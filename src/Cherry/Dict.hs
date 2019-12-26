@@ -25,13 +25,13 @@ module Cherry.Dict
   )
 where
 
-import Cherry.Basics
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
+import Cherry.Basics
+import Cherry.List (List)
+import Cherry.Maybe (Maybe (..))
 import qualified Cherry.Internal as Internal
 import qualified Data.Map.Strict
 import qualified Cherry.List as List
-import Cherry.List (List)
-import Cherry.Maybe (Maybe (..))
 
 
 -- DICTIONARIES

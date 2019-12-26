@@ -36,8 +36,8 @@ module Cherry.Basics
   ) where
 
 
-import qualified Prelude
 import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (++), (+), (-), (*), (/), (^), Bool(..))
+import qualified Prelude
 import qualified Cherry.Internal as Internal
 
 

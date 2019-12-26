@@ -22,8 +22,8 @@ where
 
 import Data.Foldable (foldl', product, sum)
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Cherry.Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
 import Data.Vector ((!?), (++), (//))
+import Cherry.Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
 import Cherry.List (List)
 import Cherry.Maybe (Maybe (..))
 import qualified Data.Vector

@@ -37,8 +37,8 @@ module Cherry.Char
   )
 where
 
-import Cherry.Basics ((&&), (<<), (<=), Bool (..), Int)
 import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
+import Cherry.Basics ((&&), (<<), (<=), Bool (..), Int)
 import qualified Data.Char
 import qualified Cherry.Internal as Internal
 

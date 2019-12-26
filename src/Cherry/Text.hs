@@ -93,15 +93,15 @@ import Cherry.Basics
     clamp,
     (|>),
   )
-import Cherry.Char (Char)
 import Prelude (otherwise)
+import Cherry.Char (Char)
+import Cherry.List (List)
+import Cherry.Maybe (Maybe)
 import qualified Prelude
 import qualified Data.Text
 import qualified Text.Read
 import qualified Text.Show
 import qualified Cherry.List as List
-import Cherry.List (List)
-import Cherry.Maybe (Maybe)
 
 -- | A `Text` is a chunk of text:
 --

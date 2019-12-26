@@ -20,9 +20,9 @@ module Cherry.Set
 where
 
 import Cherry.Basics ((>>), Bool, Int)
+import Cherry.List (List)
 import qualified Data.Set
 import qualified Prelude
-import Cherry.List (List)
 
 
 {-| Represents a set of unique values. So `(Set Int)` is a set of integers and

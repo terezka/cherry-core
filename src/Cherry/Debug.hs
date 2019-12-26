@@ -10,11 +10,11 @@ module Cherry.Debug
   )
 where
 
-import Cherry.Basics ((>>))
-import Data.Text (pack, unpack)
-import qualified Debug.Trace
-import Cherry.Text (Text, concat)
 import Prelude (Show, error, show)
+import Data.Text (pack, unpack)
+import Cherry.Basics ((>>))
+import Cherry.Text (Text, concat)
+import qualified Debug.Trace
 import qualified Cherry.Internal as Internal
 
 

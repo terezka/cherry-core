@@ -9,9 +9,9 @@ module Cherry.Bitwise
   )
 where
 
+import Data.Bits ((.&.), (.|.))
 import Cherry.Basics (Int)
 import qualified Prelude
-import Data.Bits ((.&.), (.|.))
 import qualified Data.Bits
 import qualified Cherry.Internal as Internal
 

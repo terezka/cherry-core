@@ -23,13 +23,13 @@ module Cherry.List
   )
 where
 
-import Cherry.Basics ((-), (>>), Bool (..), Int, Order (..))
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
+import Cherry.Basics ((-), (>>), Bool (..), Int, Order (..))
+import Cherry.Maybe (Maybe (..))
 import qualified Prelude
 import qualified Data.List
 import qualified Data.Maybe
 import qualified Cherry.Internal as Internal
-import Cherry.Maybe (Maybe (..))
 
 
 {-| -}
