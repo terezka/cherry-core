@@ -1,10 +1,10 @@
-module List
+module Cherry.List
   ( -- You can create a `List` in Elm with the `[1,2,3]` syntax, so lists are
     -- used all over the place. This module has a bunch of functions to help you work
     -- with them!
 
     -- * Create
-  , List, singleton, repeat, range, (:)
+    List, singleton, repeat, range
 
     -- * Transform
   , map, indexedMap, foldl, foldr, filter, filterMap
@@ -23,13 +23,13 @@ module List
   )
 where
 
-import Basics ((-), (>>), Bool (..), Int, Ordering (..))
+import Cherry.Basics ((-), (>>), Bool (..), Int, Order (..))
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import qualified Prelude
 import qualified Data.List
 import qualified Data.Maybe
 import qualified Cherry.Internal as Internal
-import Maybe (Maybe (..))
+import Cherry.Maybe (Maybe (..))
 
 
 {-| -}
@@ -114,7 +114,7 @@ foldl :: (a -> b -> b) -> b -> List a -> b
 foldl func =
   -- Note: This function is implemented using fold' to eagerly evaluate the
   -- accumulator, preventing space leaks.
-  foldl' (flip func)
+  Data.List.foldl' (flip func)
 
 
 {-| Reduce a list from the right.
@@ -132,7 +132,7 @@ So `foldr step state [1,2,3]` is like saying:
 -}
 foldr :: (a -> b -> b) -> b -> List a -> b
 foldr =
-  Prelude.foldr
+  Data.List.foldr
 
 
 {-| Keep elements that satisfy the test.
@@ -295,7 +295,7 @@ concat =
 -}
 concatMap :: (a -> List b) -> List a -> List b
 concatMap =
-  Prelude.andThen
+  Internal.andThen
 
 
 {-| Places the given value between all members of the given list.
@@ -357,7 +357,7 @@ map5 =
 -}
 sort :: Prelude.Ord a => List a -> List a
 sort =
-  Prelude.sort
+  Data.List.sort
 
 
 {-| Sort values by a derived property.
@@ -373,7 +373,7 @@ sort =
 -}
 sortBy :: Prelude.Ord b => (a -> b) -> List a -> List a
 sortBy =
-  Prelude.sortOn
+  Data.List.sortOn
 
 
 {-| Sort values with a custom comparison function.
@@ -389,7 +389,7 @@ sortBy =
 This is also the most general sort function, allowing you
 to define any other: `sort == sortWith compare`
 -}
-sortWith :: (a -> a -> Ordering) -> List a -> List a
+sortWith :: (a -> a -> Order) -> List a -> List a
 sortWith =
   Data.List.sortBy
 

@@ -1,6 +1,6 @@
 module Cherry.Prelude
-  ( Task.Task
-  , module Basics
+  ( Task
+  , module Cherry.Basics
   , Maybe (..)
   , Result (..)
   )
@@ -19,9 +19,7 @@ where
 --   import Tuple
 --   import Debug
 --
-import Basics
-import Maybe (Maybe (..))
-import Nri.Prelude.Internal
-import Nri.Prelude.Protolude
-import Result (Result (..))
-import qualified Task (Task)
+import Cherry.Basics
+import Cherry.Maybe (Maybe (..))
+import Cherry.Result (Result (..))
+import Cherry.Task (Task)

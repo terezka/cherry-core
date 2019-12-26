@@ -1,9 +1,9 @@
-module Result
+module Cherry.Result
   ( -- A `Result` is the result of a computation that may fail. This is a great
-    -- way to manage errors in Elm.
+    -- way to manage errors in Cherry.
     --
     -- * Type and Constructors
-    Result (..),
+    Result(..)
 
     -- * Mapping
   , map, map2, map3, map4, map5
@@ -16,8 +16,8 @@ module Result
   )
 where
 
-import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Maybe (Maybe (..))
+import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure, (<*>), (>>=), fmap)
+import Cherry.Maybe (Maybe(Just, Nothing))
 import qualified Cherry.Internal as Internal
 
 
@@ -27,17 +27,17 @@ import qualified Cherry.Internal as Internal
 data Result error success
   = Ok success
   | Err error
-  deriving (Internal.Show, Internal.Eq)
+  deriving (Prelude.Show, Prelude.Eq)
 
 
-instance Internal.Functor (Result error) where
+instance Functor (Result error) where
   fmap func result =
     case result of
       Ok success -> Ok (func success)
       Err error -> Err error
 
 
-instance Internal.Applicative (Result error) where
+instance Applicative (Result error) where
   pure = Ok
   (<*>) r1 r2 =
     case (r1, r2) of
@@ -46,7 +46,7 @@ instance Internal.Applicative (Result error) where
       (Ok _, Err err) -> Err err
 
 
-instance Internal.Monad (Result error) where
+instance Monad (Result error) where
   (>>=) result func =
     case result of
       Ok success -> func success

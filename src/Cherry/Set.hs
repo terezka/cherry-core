@@ -1,4 +1,4 @@
-module Set
+module Cherry.Set
   ( -- * Sets
     Set
 
@@ -19,10 +19,10 @@ module Set
   )
 where
 
-import Basics ((>>), Bool, Int)
-import qualified Cherry.Internal as Internal
+import Cherry.Basics ((>>), Bool, Int)
 import qualified Data.Set
-import List (List)
+import qualified Prelude
+import Cherry.List (List)
 
 
 {-| Represents a set of unique values. So `(Set Int)` is a set of integers and
@@ -48,14 +48,14 @@ singleton =
 
 {-| Insert a value into a set.
 -}
-insert :: Internal.Ord comparable => comparable -> Set comparable -> Set comparable
+insert :: Prelude.Ord comparable => comparable -> Set comparable -> Set comparable
 insert =
   Data.Set.insert
 
 
 {-| Remove a value from a set. If the value is not found, no changes are made.
 -}
-remove :: Internal.Ord comparable => comparable -> Set comparable -> Set comparable
+remove :: Prelude.Ord comparable => comparable -> Set comparable -> Set comparable
 remove =
   Data.Set.delete
 
@@ -69,7 +69,7 @@ isEmpty =
 
 {-| Determine if a value is in a set.
 -}
-member :: Internal.Ord comparable => comparable -> Set comparable -> Bool
+member :: Prelude.Ord comparable => comparable -> Set comparable -> Bool
 member =
   Data.Set.member
 
@@ -78,19 +78,19 @@ member =
 -}
 size :: Set a -> Int
 size =
-  Data.Set.size >> Internal.fromIntegral
+  Data.Set.size >> Prelude.fromIntegral
 
 
 {-| Get the union of two sets. Keep all values.
 -}
-union :: Internal.Ord comparable => Set comparable -> Set comparable -> Set comparable
+union :: Prelude.Ord comparable => Set comparable -> Set comparable -> Set comparable
 union =
   Data.Set.union
 
 
 {-| Get the intersection of two sets. Keeps values that appear in both sets.
 -}
-intersect :: Internal.Ord comparable => Set comparable -> Set comparable -> Set comparable
+intersect :: Prelude.Ord comparable => Set comparable -> Set comparable -> Set comparable
 intersect =
   Data.Set.intersection
 
@@ -98,7 +98,7 @@ intersect =
 {-| Get the difference between the first set and the second. Keeps values
 that do not appear in the second set.
 -}
-diff :: Internal.Ord comparable => Set comparable -> Set comparable -> Set comparable
+diff :: Prelude.Ord comparable => Set comparable -> Set comparable -> Set comparable
 diff =
   Data.Set.difference
 
@@ -112,7 +112,7 @@ toList =
 
 {-| Convert a list into a set, removing any duplicates.
 -}
-fromList :: Internal.Ord comparable => List comparable -> Set comparable
+fromList :: Prelude.Ord comparable => List comparable -> Set comparable
 fromList =
   Data.Set.fromList
 
@@ -121,7 +121,7 @@ fromList =
 -}
 foldl :: (a -> b -> b) -> b -> Set a -> b
 foldl func =
-  Data.Set.foldl' (Internal.flip func)
+  Data.Set.foldl' (Prelude.flip func)
 
 
 {-| Fold over the values in a set, in order from highest to lowest.
@@ -133,7 +133,7 @@ foldr =
 
 {-| Map a function onto a set, creating a new set with no duplicates.
 -}
-map :: Internal.Ord comparable2 => (comparable -> comparable2) -> Set comparable -> Set comparable2
+map :: Prelude.Ord comparable2 => (comparable -> comparable2) -> Set comparable -> Set comparable2
 map =
   Data.Set.map
 

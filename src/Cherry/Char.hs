@@ -19,7 +19,7 @@
 -- default locale, functions like `toLocaleUpper` and `toLocaleUpper` are not
 -- supported. If you need something like that you can check out the `text-icu`
 -- package which provides functions like `toUpper :: LocaleName -> Text -> Text`.
-module Char
+module Cherry.Char
   ( -- * Characters
     Char
 
@@ -30,15 +30,15 @@ module Char
   , isDigit, isOctDigit, isHexDigit
 
     -- * Conversion
-  . toUpper, toLower
+  , toUpper, toLower
 
     -- * Unicode Code Points
   , toCode, fromCode
   )
 where
 
-import Basics ((&&), (<<), (<=), Bool (..), Int)
-import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
+import Cherry.Basics ((&&), (<<), (<=), Bool (..), Int)
+import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import qualified Data.Char
 import qualified Cherry.Internal as Internal
 
@@ -69,7 +69,7 @@ many whitespace characters with different widths.
 
 -}
 type Char =
-  Prelude.Char
+  Data.Char.Char
 
 
 {-| Detect upper case ASCII characters.

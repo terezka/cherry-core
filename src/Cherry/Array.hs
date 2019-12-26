@@ -1,4 +1,4 @@
-module Array
+module Cherry.Array
   ( -- * Arrays
     -- Fast immutable arrays. The elements in an array must have the same type.
     Array
@@ -20,16 +20,17 @@ module Array
   )
 where
 
-import Data.Foldable (foldl', foldr, product, sum)
-import Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
+import Data.Foldable (foldl', product, sum)
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import qualified Data.Vector
+import Cherry.Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
 import Data.Vector ((!?), (++), (//))
-import List (List)
-import qualified List
-import Maybe (Maybe (..))
+import Cherry.List (List)
+import Cherry.Maybe (Maybe (..))
+import qualified Data.Vector
+import qualified Data.Foldable
+import qualified Cherry.List as List
 import qualified Cherry.Internal as Internal
-import qualified Tuple
+import qualified Cherry.Tuple as Tuple
 
 newtype Array a = Array (Data.Vector.Vector a)
   deriving (Eq, Show)
@@ -153,7 +154,7 @@ toIndexedList =
   >  foldr (+) 0 (repeat 3 5) == 15
 -}
 foldr :: (a -> b -> b) -> b -> Array a -> b
-foldr f value array = foldr f value (unwrap array)
+foldr f value array = Data.Foldable.foldr f value (unwrap array)
 
 {-| Reduce an array from the left. Read `foldl` as fold from the left.
 

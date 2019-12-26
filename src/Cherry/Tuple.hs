@@ -29,7 +29,7 @@
 --
 -- Map
 -- @docs mapFirst, mapSecond, mapBoth
-module Tuple
+module Cherry.Tuple
   ( pair,
     first,
     second,

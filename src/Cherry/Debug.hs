@@ -3,17 +3,17 @@
 --
 -- Debugging
 -- @docs toString, log, todo
-module Debug
+module Cherry.Debug
   ( toString,
     log,
     todo,
   )
 where
 
-import Basics ((>>))
+import Cherry.Basics ((>>))
 import Data.Text (pack, unpack)
 import qualified Debug.Trace
-import Text (Text, concat)
+import Cherry.Text (Text, concat)
 import Prelude (Show, error, show)
 import qualified Cherry.Internal as Internal
 

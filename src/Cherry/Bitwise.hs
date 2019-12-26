@@ -1,4 +1,4 @@
-module Bitwise
+module Cherry.Bitwise
   ( and,
     or,
     xor,
@@ -9,8 +9,8 @@ module Bitwise
   )
 where
 
-import Basics (Int)
-import qualified Core
+import Cherry.Basics (Int)
+import qualified Prelude
 import Data.Bits ((.&.), (.|.))
 import qualified Data.Bits
 import qualified Cherry.Internal as Internal
@@ -43,7 +43,7 @@ This can be used to multiply numbers by powers of two.
 -}
 shiftLeftBy :: Int -> Int -> Int
 shiftLeftBy offset value =
-  Data.Bits.shift value (Core.fromIntegral offset)
+  Data.Bits.shift value (Prelude.fromIntegral offset)
 
 {-| Shift bits to the right by a given offset, filling new bits with
 whatever is the topmost bit. This can be used to divide numbers by powers of two.
@@ -59,7 +59,7 @@ with copies of the highest bit.
 -}
 shiftRightBy :: Int -> Int -> Int
 shiftRightBy offset value =
-  Data.Bits.shiftR value (Core.fromIntegral offset)
+  Data.Bits.shiftR value (Prelude.fromIntegral offset)
 
 {-| Shift bits to the right by a given offset, filling new bits with zeros.
 
@@ -78,7 +78,7 @@ shiftRightZfBy offset value =
   -- 1. Generate a mask that will clear the leftmost n bits when ANDed with the result.
   -- 2. Shift right by n bits.
   -- 3. Bitwise AND the mask.
-  let n = Core.fromIntegral offset
+  let n = Prelude.fromIntegral offset
       oneBits = Data.Bits.complement Data.Bits.zeroBits :: Int
       shiftedValue = Data.Bits.shiftR value n
       shiftedMask = Data.Bits.rotateR (Data.Bits.shiftL oneBits n) n

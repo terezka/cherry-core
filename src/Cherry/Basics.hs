@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Elm.Basics
+module Cherry.Basics
   ( -- Tons of useful functions that get imported by default.
     -- * Math
     Int, Float, (+), (-), (*), (/), (//), (^)

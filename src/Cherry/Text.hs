@@ -32,7 +32,7 @@
 --
 -- Higher-Order Functions
 -- @docs map, filter, foldl, foldr, any, all
-module Text
+module Cherry.Text
   ( Text,
     isEmpty,
     length,
@@ -81,7 +81,7 @@ module Text
   )
 where
 
-import Basics
+import Cherry.Basics
   ( (+),
     (-),
     (<),
@@ -93,13 +93,15 @@ import Basics
     clamp,
     (|>),
   )
-import Char (Char)
-import Core (otherwise)
-import qualified Core
+import Cherry.Char (Char)
+import Prelude (otherwise)
+import qualified Prelude
 import qualified Data.Text
-import qualified List
-import List (List)
-import Maybe (Maybe)
+import qualified Text.Read
+import qualified Text.Show
+import qualified Cherry.List as List
+import Cherry.List (List)
+import Cherry.Maybe (Maybe)
 
 -- | A `Text` is a chunk of text:
 --
@@ -139,7 +141,7 @@ isEmpty = Data.Text.null
 --    length "" == 0
 length :: Text -> Int
 length =
-  Data.Text.length >> Core.fromIntegral
+  Data.Text.length >> Prelude.fromIntegral
 
 -- | Reverse a string.
 --
@@ -152,7 +154,7 @@ reverse = Data.Text.reverse
 --    repeat 3 "ha" == "hahaha"
 repeat :: Int -> Text -> Text
 repeat =
-  Core.fromIntegral >> Data.Text.replicate
+  Prelude.fromIntegral >> Data.Text.replicate
 
 -- | Replace all occurrences of some substring.
 --
@@ -223,7 +225,7 @@ slice from to text
       | value < 0 = len + value
       | otherwise = value
     normalize =
-      Core.fromIntegral
+      Prelude.fromIntegral
         >> handleNegative
         >> clamp 0 len
     from' = normalize from
@@ -234,28 +236,28 @@ slice from to text
 --    left 2 "Mulder" == "Mu"
 left :: Int -> Text -> Text
 left =
-  Core.fromIntegral >> Data.Text.take
+  Prelude.fromIntegral >> Data.Text.take
 
 -- | Take *n* characters from the right side of a string.
 --
 --    right 2 "Scully" == "ly"
 right :: Int -> Text -> Text
 right =
-  Core.fromIntegral >> Data.Text.takeEnd
+  Prelude.fromIntegral >> Data.Text.takeEnd
 
 -- | Drop *n* characters from the left side of a string.
 --
 --    dropLeft 2 "The Lone Gunmen" == "e Lone Gunmen"
 dropLeft :: Int -> Text -> Text
 dropLeft =
-  Core.fromIntegral >> Data.Text.drop
+  Prelude.fromIntegral >> Data.Text.drop
 
 -- | Drop *n* characters from the right side of a string.
 --
 --    dropRight 2 "Cigarette Smoking Man" == "Cigarette Smoking M"
 dropRight :: Int -> Text -> Text
 dropRight =
-  Core.fromIntegral >> Data.Text.dropEnd
+  Prelude.fromIntegral >> Data.Text.dropEnd
 
 -- DETECT SUBSTRINGS
 
@@ -296,7 +298,7 @@ indexes n h
         |> List.map
           ( \(lhs, _) ->
               Data.Text.length lhs
-                |> Core.fromIntegral
+                |> Prelude.fromIntegral
           )
 
 -- | Alias for `indexes`.
@@ -325,7 +327,7 @@ toLower = Data.Text.toLower
 --    pad 5 ' ' "121" == " 121 "
 pad :: Int -> Char -> Text -> Text
 pad =
-  Core.fromIntegral >> Data.Text.center
+  Prelude.fromIntegral >> Data.Text.center
 
 -- | Pad a string on the left until it has a given length.
 --
@@ -334,7 +336,7 @@ pad =
 --    padLeft 5 '.' "121" == "..121"
 padLeft :: Int -> Char -> Text -> Text
 padLeft =
-  Core.fromIntegral >> Data.Text.justifyRight
+  Prelude.fromIntegral >> Data.Text.justifyRight
 
 -- | Pad a string on the right until it has a given length.
 --
@@ -343,7 +345,7 @@ padLeft =
 --    padRight 5 '.' "121" == "121.."
 padRight :: Int -> Char -> Text -> Text
 padRight =
-  Core.fromIntegral >> Data.Text.justifyLeft
+  Prelude.fromIntegral >> Data.Text.justifyLeft
 
 -- | Get rid of whitespace on both sides of a string.
 --
@@ -379,7 +381,7 @@ trimRight = Data.Text.stripEnd
 --    Maybe.withDefault 0 (Text.toInt "ab") == 0
 toInt :: Text -> Maybe Int
 toInt text =
-  Core.readMaybe str'
+  Text.Read.readMaybe str'
   where
     str = Data.Text.unpack text
     str' = case str of
@@ -391,7 +393,7 @@ toInt text =
 --    Text.fromInt 123 == "123"
 --    Text.fromInt -42 == "-42"
 fromInt :: Int -> Text
-fromInt = Core.show
+fromInt = Prelude.show >> Data.Text.pack
 
 -- FLOAT CONVERSIONS
 
@@ -409,7 +411,7 @@ fromInt = Core.show
 --    Maybe.withDefault 0 (Text.toFloat "cats") == 0
 toFloat :: Text -> Maybe Float
 toFloat text =
-  Core.readMaybe str'
+  Text.Read.readMaybe str'
   where
     str = Data.Text.unpack text
     str' = case str of
@@ -423,7 +425,7 @@ toFloat text =
 --    Text.fromFloat -42 == "-42"
 --    Text.fromFloat 3.9 == "3.9"
 fromFloat :: Float -> Text
-fromFloat = Core.show
+fromFloat = Prelude.show >> Data.Text.pack
 
 -- LIST CONVERSIONS
 
@@ -483,7 +485,7 @@ filter = Data.Text.filter
 --
 --    foldl cons "" "time" == "emit"
 foldl :: (Char -> b -> b) -> b -> Text -> b
-foldl f = Data.Text.foldl' (Core.flip f)
+foldl f = Data.Text.foldl' (Prelude.flip f)
 
 -- | Reduce a Text from the right.
 --

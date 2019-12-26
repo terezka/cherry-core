@@ -1,9 +1,9 @@
-module Maybe
-  ( -- This library fills a bunch of important niches in Elm. A `Maybe` can help
+module Cherry.Maybe
+  ( -- This library fills a bunch of important niches in Cherry. A `Maybe` can help
     -- you with optional arguments, error handling, and records with optional fields.
 
     -- * Definition
-    Maybe(..)
+    Data.Maybe.Maybe(..)
 
     -- * Common Helpers
   , withDefault, map, map2, map3, map4, map5
@@ -14,8 +14,9 @@ module Maybe
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Data.Maybe (Maybe (..), fromMaybe)
-import qualified Data.Maybe as Maybe
+import Data.Maybe (fromMaybe)
+import qualified Prelude
+import qualified Data.Maybe
 import qualified Cherry.Internal as Internal
 
 
@@ -32,7 +33,7 @@ sometimes, but does not absolutely need it.
   >  tom = { name = "Tom", age = Just 42 }
   >  sue = { name = "Sue", age = Nothing }
 -}
-type Maybe a = Maybe.Maybe a
+type Maybe a = Data.Maybe.Maybe a
 
 
 {-| Provide a default value, turning an optional value into a normal

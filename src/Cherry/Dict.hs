@@ -1,4 +1,4 @@
-module Dict
+module Cherry.Dict
   ( -- A dictionary mapping unique keys to values. The keys can be any comparable
     -- type. This includes `Int`, `Float`, `Time`, `Char`, `String`, and tuples or
     -- lists of comparable types.
@@ -25,13 +25,13 @@ module Dict
   )
 where
 
-import Basics
+import Cherry.Basics
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import qualified Cherry.Internal as Internal
 import qualified Data.Map.Strict
-import qualified List
-import List (List)
-import Maybe (Maybe (..))
+import qualified Cherry.List as List
+import Cherry.List (List)
+import Cherry.Maybe (Maybe (..))
 
 
 -- DICTIONARIES
