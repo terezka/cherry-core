@@ -238,9 +238,9 @@ terminal =
         let lengthSeverity = Text.length (severityText severity_) 
             lengthNamespace = Text.length namespace_
             lengthOther = 5
+            lengthDashes = 80 - lengthSeverity - lengthNamespace - lengthOther
         in
-        Data.List.replicate (80 - lengthSeverity - lengthNamespace - lengthOther) '-'
-          |> Text.pack
+        Text.pack (Data.List.replicate lengthDashes '-')
 
       printParagraphs :: List Paragraph -> IO ()
       printParagraphs paragraphs =
