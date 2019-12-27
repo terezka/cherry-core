@@ -212,14 +212,20 @@ none =
 
 terminal :: Output
 terminal =
-  let print entry = do
-        P.putStrLn <| Text.unpack <| color (severity entry) <> "-- " <> severityText (severity entry) <> " " <> dashes (severity entry) (namespace entry) <> " " <> namespace entry <> " \x1b[0m"
+  let print entry = 
+        let severity_ = severity entry
+            namespace_ = namespace entry
+            headerColor_ = headerColor severity_
+            headerDashes_ = headerDashes severity_ namespace_
+            header = headerColor_ <> "-- " <> severityText severity_ <> " " <> headerDashes_ <> " " <> namespace_ <> " \x1b[0m"
+        in do
+        printLine header
         printParagraphs (paragraphs entry)
         printContexts (contexts entry)
-        P.putStrLn ""
+        printLine ""
 
-      color :: Severity -> Text.Text
-      color severity_ =
+      headerColor :: Severity -> Text.Text
+      headerColor severity_ =
         case severity_ of
           Debug -> "\x1b[36m"
           Info -> "\x1b[36m"
@@ -227,8 +233,8 @@ terminal =
           Error -> "\x1b[35m"
           Alert -> "\x1b[31m"
 
-      dashes :: Severity -> Text.Text -> Text.Text
-      dashes severity_ namespace_ =
+      headerDashes :: Severity -> Text.Text -> Text.Text
+      headerDashes severity_ namespace_ =
         let lengthSeverity = Text.length (severityText severity_) 
             lengthNamespace = Text.length namespace_
             lengthOther = 5
@@ -243,9 +249,9 @@ terminal =
 
       printParagraph :: Paragraph -> IO ()
       printParagraph paragraph = do
-        P.putStrLn ""
-        P.putStrLn <| Text.unpack (text paragraph)
-        P.putStrLn <| Text.unpack <| "    " <> snippet paragraph
+        printLine ""
+        printLine (text paragraph)
+        printLine <| "    " <> snippet paragraph
 
       printContexts :: Context -> IO ()
       printContexts context =
@@ -254,8 +260,11 @@ terminal =
 
       printContext :: ( Text.Text, Text.Text ) -> IO ()
       printContext ( name, value ) = do
-        P.putStrLn <| Text.unpack <| "    " <> name <> ": " <> value
+        printLine <| "    " <> name <> ": " <> value
 
+      printLine :: Text.Text -> IO ()
+      printLine =
+        P.putStrLn << Text.unpack
   in
   Output { print = print }
 

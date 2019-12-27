@@ -16,8 +16,8 @@ main =
 messages :: Task.Task () ()
 messages = 
   Task.context "messages" [ ( "online", "true" ) ] <| do 
-    Task.warning "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
-    print "\x1b[32m> hello first! \x1b[0m"
+    Task.debug "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
+    print "> hello first!"
     printBad "> hello second!"
 
 
