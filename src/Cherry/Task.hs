@@ -13,7 +13,7 @@ module Cherry.Task
   , custom, multiple
   , debug, info, warning, error, alert
   , Context, context
-  , Entry, Severity(..), Paragraph, entry
+  , Entry, Severity(..), Paragraph, note
   ) where
 
 
@@ -102,7 +102,7 @@ type Program = IO ()
 perform :: Output -> Task x a -> Program
 perform output task =
   let onResult result =
-        P.pure ()
+        Internal.blank
 
       initKey =
         Key "" [] output
@@ -207,7 +207,7 @@ newtype Output =
 none :: Output
 none =
   Output 
-    { print = \_ -> P.pure () }
+    { print = \_ -> Internal.blank }
 
 
 terminal :: Output
@@ -272,7 +272,7 @@ terminal =
 file :: FilePath -> Output
 file filepath =
   let print entry =
-        P.putStrLn "TODO print to file"
+        P.error "TODO Print to file."
   in
   Output { print = print }
 
@@ -350,12 +350,11 @@ logged onErr onOk task =
 context :: Text.Text -> Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key ->
-    let key_ = 
-          Key
-            { current_namespace = current_namespace key <> namespace
-            , current_context = current_context key ++ context
-            , output = output key
-            }
+    let key_ = Key
+          { current_namespace = current_namespace key <> namespace
+          , current_context = current_context key ++ context
+          , output = output key
+          }
     in
     run task key_
 
@@ -403,12 +402,12 @@ severityText severity =
 log :: Severity -> Text.Text -> Context -> Task x ()
 log severity message context =
   Stack.withFrozenCallStack <|
-    let entry_ = entry severity "" message context in
+    let entry_ = note severity "" message context in
     logged (\_ -> entry_) (\_ -> entry_) <| succeed ()
 
 
-entry :: Severity -> Text.Text -> Text.Text -> Context -> Entry
-entry severity namespace message context =
+note :: Severity -> Text.Text -> Text.Text -> Context -> Entry
+note severity namespace message context =
   Entry
     { severity = severity
     , namespace = namespace
