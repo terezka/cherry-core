@@ -49,19 +49,19 @@ import qualified Cherry.List as List
 
 {-| A `Text` is a chunk of text:
 
-    "Hello!"
-    "How are you?"
-    "🙈🙉🙊"
-
-    -- strings with escape characters
-    "this\n\t\"that\""
-    "\u{1F648}\u{1F649}\u{1F64A}" -- "🙈🙉🙊"
-
-    -- multiline strings
-    """Triple double quotes let you
-    create "multiline strings" which
-    can have unescaped quotes and newlines.
-    """
+  >  "Hello!"
+  >  "How are you?"
+  >  "🙈🙉🙊"
+  >
+  >  -- strings with escape characters
+  >  "this\n\t\"that\""
+  >  "\u{1F648}\u{1F649}\u{1F64A}" -- "🙈🙉🙊"
+  >
+  >  -- multiline strings
+  >  """Triple double quotes let you
+  >  create "multiline strings" which
+  >  can have unescaped quotes and newlines.
+  >  """
 
 A `Text` can represent any sequence of [unicode characters][u]. You can use
 the unicode escapes from `\u{0000}` to `\u{10FFFF}` to represent characters
@@ -77,8 +77,8 @@ type Text =
 
 {-| Determine if a string is empty.
 
-    isEmpty "" == True
-    isEmpty "the world" == False
+  >  isEmpty "" == True
+  >  isEmpty "the world" == False
 -}
 isEmpty :: Text -> Bool
 isEmpty = Data.Text.null
@@ -86,8 +86,8 @@ isEmpty = Data.Text.null
 
 {-|  Get the length of a string.
 
-    length "innumerable" == 11
-    length "" == 0
+  >  length "innumerable" == 11
+  >  length "" == 0
 -}
 length :: Text -> Int
 length =
@@ -96,7 +96,7 @@ length =
 
 {-| Reverse a string.
 
-    reverse "stressed" == "desserts"
+  >  reverse "stressed" == "desserts"
 -}
 reverse :: Text -> Text
 reverse = Data.Text.reverse
@@ -104,7 +104,7 @@ reverse = Data.Text.reverse
 
 {-| Repeat a string *n* times.
 
-    repeat 3 "ha" == "hahaha"
+  >  repeat 3 "ha" == "hahaha"
 -}
 repeat :: Int -> Text -> Text
 repeat =
@@ -113,8 +113,8 @@ repeat =
 
 {-| Replace all occurrences of some substring.
 
-    replace "." "-" "Json.Decode.succeed" == "Json-Decode-succeed"
-    replace "," "/" "a,b,c,d,e"           == "a/b/c/d/e"
+  >  replace "." "-" "Json.Decode.succeed" == "Json-Decode-succeed"
+  >  replace "," "/" "a,b,c,d,e"           == "a/b/c/d/e"
 -}
 replace :: Text -> Text -> Text -> Text
 replace = Data.Text.replace
@@ -126,7 +126,7 @@ replace = Data.Text.replace
 
 {-| Append two strings. You can also use [the `(++)` operator](Basics#++) to do this.
 
-    append "butter" "fly" == "butterfly"
+  >  append "butter" "fly" == "butterfly"
 -}
 append :: Text -> Text -> Text
 append = Data.Text.append
@@ -134,7 +134,7 @@ append = Data.Text.append
 
 {-| Concatenate many strings into one.
 
-    concat ["never","the","less"] == "nevertheless"
+  >  concat ["never","the","less"] == "nevertheless"
 -}
 concat :: List Text -> Text
 concat = Data.Text.concat
@@ -142,8 +142,8 @@ concat = Data.Text.concat
 
 {-| Split a string using a given separator.
 
-    split "," "cat,dog,cow"        == ["cat","dog","cow"]
-    split "/" "home/evan/Desktop/" == ["home","evan","Desktop", ""]
+  >  split "," "cat,dog,cow"        == ["cat","dog","cow"]
+  >  split "/" "home/evan/Desktop/" == ["home","evan","Desktop", ""]
 -}
 split :: Text -> Text -> List Text
 split = Data.Text.splitOn
@@ -151,9 +151,9 @@ split = Data.Text.splitOn
 
 {-| Put many strings together with a given separator.
 
-    join "a" ["H","w","ii","n"]        == "Hawaiian"
-    join " " ["cat","dog","cow"]       == "cat dog cow"
-    join "/" ["home","evan","Desktop"] == "home/evan/Desktop"
+  >  join "a" ["H","w","ii","n"]        == "Hawaiian"
+  >  join " " ["cat","dog","cow"]       == "cat dog cow"
+  >  join "/" ["home","evan","Desktop"] == "home/evan/Desktop"
 -}
 join :: Text -> List Text -> Text
 join = Data.Text.intercalate
@@ -161,7 +161,7 @@ join = Data.Text.intercalate
 
 {-| Break a string into words, splitting on chunks of whitespace.
 
-    words "How are \t you? \n Good?" == ["How","are","you?","Good?"]
+  >  words "How are \t you? \n Good?" == ["How","are","you?","Good?"]
 -}
 words :: Text -> List Text
 words = Data.Text.words
@@ -169,7 +169,7 @@ words = Data.Text.words
 
 {-| Break a string into lines, splitting on newlines.
 
-    lines "How are you?\nGood?" == ["How are you?", "Good?"]
+  >  lines "How are you?\nGood?" == ["How are you?", "Good?"]
 -}
 lines :: Text -> List Text
 lines = Data.Text.lines
@@ -182,10 +182,10 @@ lines = Data.Text.lines
 {-| Take a substring given a start and end index. Negative indexes
  are taken starting from the *end* of the list.
 
-    slice  7  9 "snakes on a plane!" == "on"
-    slice  0  6 "snakes on a plane!" == "snakes"
-    slice  0 -7 "snakes on a plane!" == "snakes on a"
-    slice -6 -1 "snakes on a plane!" == "plane"
+  >  slice  7  9 "snakes on a plane!" == "on"
+  >  slice  0  6 "snakes on a plane!" == "snakes"
+  >  slice  0 -7 "snakes on a plane!" == "snakes on a"
+  >  slice -6 -1 "snakes on a plane!" == "plane"
 -}
 slice :: Int -> Int -> Text -> Text
 slice from to text
@@ -207,7 +207,7 @@ slice from to text
 
 {-| Take *n* characters from the left side of a string.
 
-    left 2 "Mulder" == "Mu"
+  >  left 2 "Mulder" == "Mu"
 -}
 left :: Int -> Text -> Text
 left =
@@ -216,7 +216,7 @@ left =
 
 {-| Take *n* characters from the right side of a string.
 
-    right 2 "Scully" == "ly"
+  >  right 2 "Scully" == "ly"
 -}
 right :: Int -> Text -> Text
 right =
@@ -225,7 +225,7 @@ right =
 
 {-| Drop *n* characters from the left side of a string.
 
-    dropLeft 2 "The Lone Gunmen" == "e Lone Gunmen"
+  >  dropLeft 2 "The Lone Gunmen" == "e Lone Gunmen"
 -}
 dropLeft :: Int -> Text -> Text
 dropLeft =
@@ -234,7 +234,7 @@ dropLeft =
 
 {-| Drop *n* characters from the right side of a string.
 
-    dropRight 2 "Cigarette Smoking Man" == "Cigarette Smoking M"
+  >  dropRight 2 "Cigarette Smoking Man" == "Cigarette Smoking M"
 -}
 dropRight :: Int -> Text -> Text
 dropRight =
@@ -247,9 +247,9 @@ dropRight =
 
 {-| See if the second string contains the first one.
 
-    contains "the" "theory" == True
-    contains "hat" "theory" == False
-    contains "THE" "theory" == False
+  >  contains "the" "theory" == True
+  >  contains "hat" "theory" == False
+  >  contains "THE" "theory" == False
 -}
 contains :: Text -> Text -> Bool
 contains = Data.Text.isInfixOf
@@ -257,8 +257,8 @@ contains = Data.Text.isInfixOf
 
 {-| See if the second string starts with the first one.
 
-    startsWith "the" "theory" == True
-    startsWith "ory" "theory" == False
+  >  startsWith "the" "theory" == True
+  >  startsWith "ory" "theory" == False
 -}
 startsWith :: Text -> Text -> Bool
 startsWith = Data.Text.isPrefixOf
@@ -266,8 +266,8 @@ startsWith = Data.Text.isPrefixOf
 
 {-| See if the second string ends with the first one.
 
-    endsWith "the" "theory" == False
-    endsWith "ory" "theory" == True
+  >  endsWith "the" "theory" == False
+  >  endsWith "ory" "theory" == True
 -}
 endsWith :: Text -> Text -> Bool
 endsWith = Data.Text.isSuffixOf
@@ -275,9 +275,9 @@ endsWith = Data.Text.isSuffixOf
 
 {-| Get all of the indexes for a substring in another string.
 
-    indexes "i" "Mississippi"   == [1,4,7,10]
-    indexes "ss" "Mississippi"  == [2,5]
-    indexes "needle" "haystack" == []
+  >  indexes "i" "Mississippi"   == [1,4,7,10]
+  >  indexes "ss" "Mississippi"  == [2,5]
+  >  indexes "needle" "haystack" == []
 -}
 indexes :: Text -> Text -> List Int
 indexes n h
@@ -306,7 +306,7 @@ indices = indexes
 {-| Convert a string to all upper case. Useful for case-insensitive comparisons
  and VIRTUAL YELLING.
 
-    toUpper "skinner" == "SKINNER"
+  >  toUpper "skinner" == "SKINNER"
 -}
 toUpper :: Text -> Text
 toUpper = Data.Text.toUpper
@@ -314,7 +314,7 @@ toUpper = Data.Text.toUpper
 
 {-| Convert a string to all lower case. Useful for case-insensitive comparisons.
 
-    toLower "X-FILES" == "x-files"
+  >  toLower "X-FILES" == "x-files"
 -}
 toLower :: Text -> Text
 toLower = Data.Text.toLower
@@ -322,9 +322,9 @@ toLower = Data.Text.toLower
 
 {-| Pad a string on both sides until it has a given length.
 
-    pad 5 ' ' "1"   == "  1  "
-    pad 5 ' ' "11"  == "  11 "
-    pad 5 ' ' "121" == " 121 "
+  >  pad 5 ' ' "1"   == "  1  "
+  >  pad 5 ' ' "11"  == "  11 "
+  >  pad 5 ' ' "121" == " 121 "
 -}
 pad :: Int -> Char -> Text -> Text
 pad =
@@ -333,9 +333,9 @@ pad =
 
 {-| Pad a string on the left until it has a given length.
 
-    padLeft 5 '.' "1"   == "....1"
-    padLeft 5 '.' "11"  == "...11"
-    padLeft 5 '.' "121" == "..121"
+  >  padLeft 5 '.' "1"   == "....1"
+  >  padLeft 5 '.' "11"  == "...11"
+  >  padLeft 5 '.' "121" == "..121"
 -}
 padLeft :: Int -> Char -> Text -> Text
 padLeft =
@@ -344,9 +344,9 @@ padLeft =
 
 {-| Pad a string on the right until it has a given length.
 
-    padRight 5 '.' "1"   == "1...."
-    padRight 5 '.' "11"  == "11..."
-    padRight 5 '.' "121" == "121.."
+  >  padRight 5 '.' "1"   == "1...."
+  >  padRight 5 '.' "11"  == "11..."
+  >  padRight 5 '.' "121" == "121.."
 -}
 padRight :: Int -> Char -> Text -> Text
 padRight =
@@ -355,7 +355,7 @@ padRight =
 
 {-| Get rid of whitespace on both sides of a string.
 
-    trim "  hats  \n" == "hats"
+  >  trim "  hats  \n" == "hats"
 -}
 trim :: Text -> Text
 trim = Data.Text.strip
@@ -363,7 +363,7 @@ trim = Data.Text.strip
 
 {-| Get rid of whitespace on the left of a string.
 
-    trimLeft "  hats  \n" == "hats  \n"
+  >  trimLeft "  hats  \n" == "hats  \n"
 -}
 trimLeft :: Text -> Text
 trimLeft = Data.Text.stripStart
@@ -371,7 +371,7 @@ trimLeft = Data.Text.stripStart
 
 {-| Get rid of whitespace on the right of a string.
 
-    trimRight "  hats  \n" == "  hats"
+  >  trimRight "  hats  \n" == "  hats"
 -}
 trimRight :: Text -> Text
 trimRight = Data.Text.stripEnd
@@ -383,16 +383,16 @@ trimRight = Data.Text.stripEnd
 
 {-| Try to convert a string into an int, failing on improperly formatted strings.
 
-    Text.toInt "123" == Just 123
-    Text.toInt "-42" == Just -42
-    Text.toInt "3.1" == Nothing
-    Text.toInt "31a" == Nothing
+  >  Text.toInt "123" == Just 123
+  >  Text.toInt "-42" == Just -42
+  >  Text.toInt "3.1" == Nothing
+  >  Text.toInt "31a" == Nothing
 
 If you are extracting a number from some raw user input, you will typically
 want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 
-    Maybe.withDefault 0 (Text.toInt "42") == 42
-    Maybe.withDefault 0 (Text.toInt "ab") == 0
+  >  Maybe.withDefault 0 (Text.toInt "42") == 42
+  >  Maybe.withDefault 0 (Text.toInt "ab") == 0
 -}
 toInt :: Text -> Maybe Int
 toInt text =
@@ -406,8 +406,8 @@ toInt text =
 
 {-| Convert an `Int` to a `Text`.
 
-    Text.fromInt 123 == "123"
-    Text.fromInt -42 == "-42"
+  >  Text.fromInt 123 == "123"
+  >  Text.fromInt -42 == "-42"
 
 -}
 fromInt :: Int -> Text
@@ -420,16 +420,16 @@ fromInt = Prelude.show >> Data.Text.pack
 
 {-| Try to convert a string into a float, failing on improperly formatted strings.
 
-    Text.toFloat "123" == Just 123.0
-    Text.toFloat "-42" == Just -42.0
-    Text.toFloat "3.1" == Just 3.1
-    Text.toFloat "31a" == Nothing
+  >  Text.toFloat "123" == Just 123.0
+  >  Text.toFloat "-42" == Just -42.0
+  >  Text.toFloat "3.1" == Just 3.1
+  >  Text.toFloat "31a" == Nothing
 
 If you are extracting a number from some raw user input, you will typically
 want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 
-    Maybe.withDefault 0 (Text.toFloat "42.5") == 42.5
-    Maybe.withDefault 0 (Text.toFloat "cats") == 0
+  >  Maybe.withDefault 0 (Text.toFloat "42.5") == 42.5
+  >  Maybe.withDefault 0 (Text.toFloat "cats") == 0
 -}
 toFloat :: Text -> Maybe Float
 toFloat text =
@@ -444,9 +444,9 @@ toFloat text =
 
 {-| Convert a `Float` to a `Text`.
 
-    Text.fromFloat 123 == "123"
-    Text.fromFloat -42 == "-42"
-    Text.fromFloat 3.9 == "3.9"
+  >  Text.fromFloat 123 == "123"
+  >  Text.fromFloat -42 == "-42"
+  >  Text.fromFloat 3.9 == "3.9"
 -}
 fromFloat :: Float -> Text
 fromFloat = Prelude.show >> Data.Text.pack
@@ -458,8 +458,8 @@ fromFloat = Prelude.show >> Data.Text.pack
 
 {-| Convert a Text to a list of characters.
 
-    toList "abc" == ['a','b','c']
-    toList "🙈🙉🙊" == ['🙈','🙉','🙊']
+  >  toList "abc" == ['a','b','c']
+  >  toList "🙈🙉🙊" == ['🙈','🙉','🙊']
 -}
 toList :: Text -> List Char
 toList = Data.Text.unpack
@@ -469,8 +469,8 @@ toList = Data.Text.unpack
  want to create a string primarily by consing, perhaps for decoding
  something.
 
-    fromList ['a','b','c'] == "abc"
-    fromList ['🙈','🙉','🙊'] == "🙈🙉🙊"
+  >  fromList ['a','b','c'] == "abc"
+  >  fromList ['🙈','🙉','🙊'] == "🙈🙉🙊"
 -}
 fromList :: List Char -> Text
 fromList = Data.Text.pack
@@ -482,7 +482,7 @@ fromList = Data.Text.pack
 
 {-| Create a Text from a given character.
 
-    fromChar 'a' == "a"
+  >  fromChar 'a' == "a"
 -}
 fromChar :: Char -> Text
 fromChar = Data.Text.singleton
@@ -490,7 +490,7 @@ fromChar = Data.Text.singleton
 
 {-| Add a character to the beginning of a Text.
 
-    cons 'T' "he truth is out there" == "The truth is out there"
+  >  cons 'T' "he truth is out there" == "The truth is out there"
 -}
 cons :: Char -> Text -> Text
 cons = Data.Text.cons
@@ -499,8 +499,8 @@ cons = Data.Text.cons
 {-| Split a non-empty Text into its head and tail. This lets you 
 pattern match on strings exactly as you would with lists.
 
-    uncons "abc" == Just ('a',"bc")
-    uncons ""    == Nothing
+  >  uncons "abc" == Just ('a',"bc")
+  >  uncons ""    == Nothing
 -}
 uncons :: Text -> Maybe (Char, Text)
 uncons = Data.Text.uncons
@@ -512,7 +512,7 @@ uncons = Data.Text.uncons
 
 {-| Transform every character in a Text
 
-    map (\c -> if c == '/' then '.' else c) "a/b/c" == "a.b.c"
+  >  map (\c -> if c == '/' then '.' else c) "a/b/c" == "a.b.c"
 -}
 map :: (Char -> Char) -> Text -> Text
 map = Data.Text.map
@@ -520,7 +520,7 @@ map = Data.Text.map
 
 {-| Keep only the characters that pass the test.
 
-    filter isDigit "R2-D2" == "22"
+  >  filter isDigit "R2-D2" == "22"
 -}
 filter :: (Char -> Bool) -> Text -> Text
 filter = Data.Text.filter
@@ -528,7 +528,7 @@ filter = Data.Text.filter
 
 {-| Reduce a Text from the left.
 
-    foldl cons "" "time" == "emit"
+  >  foldl cons "" "time" == "emit"
 -}
 foldl :: (Char -> b -> b) -> b -> Text -> b
 foldl f = Data.Text.foldl' (Prelude.flip f)
@@ -536,7 +536,7 @@ foldl f = Data.Text.foldl' (Prelude.flip f)
 
 {-| Reduce a Text from the right.
 
-    foldr cons "" "time" == "time"
+  >  foldr cons "" "time" == "time"
 -}
 foldr :: (Char -> b -> b) -> b -> Text -> b
 foldr = Data.Text.foldr
@@ -544,9 +544,9 @@ foldr = Data.Text.foldr
 
 {-| Determine whether *any* characters pass the test.
 
-    any isDigit "90210" == True
-    any isDigit "R2-D2" == True
-    any isDigit "heart" == False
+  >  any isDigit "90210" == True
+  >  any isDigit "R2-D2" == True
+  >  any isDigit "heart" == False
 -}
 any :: (Char -> Bool) -> Text -> Bool
 any = Data.Text.any
@@ -554,9 +554,9 @@ any = Data.Text.any
 
 {-| Determine whether *all* characters pass the test.
 
-    all isDigit "90210" == True
-    all isDigit "R2-D2" == False
-    all isDigit "heart" == False
+  >  all isDigit "90210" == True
+  >  all isDigit "R2-D2" == False
+  >  all isDigit "heart" == False
 -}
 all :: (Char -> Bool) -> Text -> Bool
 all = Data.Text.all
