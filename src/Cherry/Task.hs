@@ -21,7 +21,7 @@ import qualified Prelude as P
 import qualified Data.Text as Text
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal as Internal
-import Prelude (IO, FilePath)
+import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
 import Cherry.Result (Result(..))
@@ -213,8 +213,11 @@ none =
 
 terminal :: Output
 terminal =
-  let print entry =
-        P.putStrLn "Printing an entry!"
+  let print entry = do
+        P.putStrLn <| Text.unpack <| "-- " <> severityText (severity entry) <> " -----------------------------"
+        P.putStrLn ""
+        P.putStrLn <| Text.unpack (namespace entry)
+        P.putStrLn ""
   in
   Output { print = print }
 
@@ -309,7 +312,21 @@ data Paragraph = Paragraph
   }
 
 
-entry :: Entry
-entry =
-  Entry Debug "test" [] []
+
+-- INTERNAL
+
+
+severityText :: Severity -> Text.Text
+severityText severity =
+  case severity of
+    Debug -> "DEBUG"
+    Info -> "INFO"
+    Warning -> "WARNING"
+    Error -> "ERROR"
+    Alert -> "ALERT"
+
+
+entry :: Text.Text -> Entry
+entry namespace =
+  Entry Info namespace [] []
 
