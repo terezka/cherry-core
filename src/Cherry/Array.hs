@@ -9,13 +9,13 @@ module Cherry.Array
     -- * Query
   , isEmpty, length, get
 
-  -- * Manipulate
+    -- * Manipulate
   , set, push, append, slice
 
-  -- * Lists
+    -- * Lists
   , toList, toIndexedList
 
-  -- * Transform
+    -- * Transform
   , map, indexedMap, foldr, foldl, filter
   )
 where

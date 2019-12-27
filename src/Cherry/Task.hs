@@ -1,7 +1,7 @@
 module Cherry.Task 
   ( -- * Task
     Program, Task, perform
-  , succeed, fail, logged
+  , succeed, fail, Logged(..), logged
   , andThen, map, map2, map3, map4, map5, map6, sequence
   , onError, mapError
 
@@ -334,13 +334,19 @@ compact =
   Compact
 
 
-logged :: (x -> Entry) -> (a -> Entry) -> Task x a -> Task x a
-logged onErr onOk task =
+data Logged x a = Logged
+  { task :: Task x a
+  , success :: a -> Entry
+  , failure :: x -> Entry
+  }
+
+logged :: Logged x a -> Task x a
+logged (Logged task success failure) =
   Task <| \key ->
     let entry result =
           case result of
-            Ok ok -> onOk ok
-            Err err -> onErr err
+            Ok ok -> success ok
+            Err err -> failure err
     in do 
     result <- run task key
     print (output key) (finalEntry key <| entry result)
@@ -403,7 +409,11 @@ log :: Severity -> Text.Text -> Context -> Task x ()
 log severity message context =
   Stack.withFrozenCallStack <|
     let entry_ = note severity "" message context in
-    logged (\_ -> entry_) (\_ -> entry_) <| succeed ()
+    logged <| Logged
+      { task = succeed ()
+      , success = \_ -> entry_
+      , failure = \_ -> entry_
+      }
 
 
 note :: Severity -> Text.Text -> Text.Text -> Context -> Entry
