@@ -16,18 +16,18 @@ main =
 messages :: Task.Task () ()
 messages = 
   Task.context "messages" [ ( "online", "true" ) ] <| do 
-    Task.debug "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
-    print "\x1b[32m > hello first! \x1b[0m"
+    Task.warning "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
+    print "\x1b[32m> hello first! \x1b[0m"
     printBad "> hello second!"
 
 
 print :: P.String -> Task.Task () ()
 print note =
-  Task.logged (\_ -> Task.entry Task.Error ".print" "print err!" []) (\_ -> Task.entry Task.Info ".print" "print ok!" []) <|
+  Task.logged (\_ -> Task.entry Task.Error "/print" "print err!" []) (\_ -> Task.entry Task.Info "/print" "print ok!" []) <|
     Task.enter <| P.fmap Ok (P.putStrLn note)
 
 
 printBad :: P.String -> Task.Task () ()
 printBad note =
-  Task.logged (\_ -> Task.entry Task.Error ".print" "printBad err!" []) (\_ -> Task.entry Task.Info ".print" "printBad ok!" []) <|
+  Task.logged (\_ -> Task.entry Task.Error "/print" "printBad err!" []) (\_ -> Task.entry Task.Info "/print" "printBad ok!" []) <|
     Task.enter <| P.fmap Err (P.putStrLn "> Not working")

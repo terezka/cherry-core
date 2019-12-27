@@ -213,10 +213,19 @@ none =
 terminal :: Output
 terminal =
   let print entry = do
-        P.putStrLn <| Text.unpack <| "\x1b[36m-- " <> severityText (severity entry) <> " " <> dashes (severity entry) (namespace entry) <> " " <> namespace entry <> " \x1b[0m"
+        P.putStrLn <| Text.unpack <| color (severity entry) <> "-- " <> severityText (severity entry) <> " " <> dashes (severity entry) (namespace entry) <> " " <> namespace entry <> " \x1b[0m"
         printParagraphs (paragraphs entry)
         printContexts (contexts entry)
         P.putStrLn ""
+
+      color :: Severity -> Text.Text
+      color severity_ =
+        case severity_ of
+          Debug -> "\x1b[36m"
+          Info -> "\x1b[36m"
+          Warning -> "\x1b[33m"
+          Error -> "\x1b[35m"
+          Alert -> "\x1b[31m"
 
       dashes :: Severity -> Text.Text -> Text.Text
       dashes severity_ namespace_ =
