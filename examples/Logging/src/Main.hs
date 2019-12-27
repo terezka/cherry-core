@@ -23,11 +23,11 @@ messages =
 
 print :: P.String -> Task.Task () ()
 print note =
-  Task.logged (\_ -> Task.entry Task.Error "-print" "print err!" []) (\_ -> Task.entry Task.Info "-print" "print ok!" []) <|
+  Task.logged (\_ -> Task.entry Task.Error ".print" "print err!" []) (\_ -> Task.entry Task.Info ".print" "print ok!" []) <|
     Task.enter <| P.fmap Ok (P.putStrLn note)
 
 
 printBad :: P.String -> Task.Task () ()
 printBad note =
-  Task.logged (\_ -> Task.entry Task.Error "-print" "printBad err!" []) (\_ -> Task.entry Task.Info "-print" "printBad ok!" []) <|
+  Task.logged (\_ -> Task.entry Task.Error ".print" "printBad err!" []) (\_ -> Task.entry Task.Info ".print" "printBad ok!" []) <|
     Task.enter <| P.fmap Err (P.putStrLn "> Not working")

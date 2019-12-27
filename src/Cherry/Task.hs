@@ -19,6 +19,7 @@ module Cherry.Task
 
 import qualified Prelude as P
 import qualified Data.Text as Text
+import qualified Data.List
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal as Internal
 import qualified Cherry.List as List
@@ -212,10 +213,19 @@ none =
 terminal :: Output
 terminal =
   let print entry = do
-        P.putStrLn <| Text.unpack <| "\x1b[36m-- " <> severityText (severity entry) <> " ----------------------------- " <> namespace entry <> " \x1b[0m"
+        P.putStrLn <| Text.unpack <| "\x1b[36m-- " <> severityText (severity entry) <> " " <> dashes (severity entry) (namespace entry) <> " " <> namespace entry <> " \x1b[0m"
         printParagraphs (paragraphs entry)
         printContexts (contexts entry)
         P.putStrLn ""
+
+      dashes :: Severity -> Text.Text -> Text.Text
+      dashes severity_ namespace_ =
+        let lengthSeverity = Text.length (severityText severity_) 
+            lengthNamespace = Text.length namespace_
+            lengthOther = 5
+        in
+        Data.List.replicate (80 - lengthSeverity - lengthNamespace - lengthOther) '-'
+          |> Text.pack
 
       printParagraphs :: List Paragraph -> IO ()
       printParagraphs paragraphs =
