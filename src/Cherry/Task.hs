@@ -212,7 +212,7 @@ none =
 terminal :: Output
 terminal =
   let print entry = do
-        P.putStrLn <| Text.unpack <| "-- " <> severityText (severity entry) <> " ----------------------------- " <> namespace entry
+        P.putStrLn <| Text.unpack <| "\x1b[36m-- " <> severityText (severity entry) <> " ----------------------------- " <> namespace entry <> " \x1b[0m"
         printParagraphs (paragraphs entry)
         printContexts (contexts entry)
         P.putStrLn ""
