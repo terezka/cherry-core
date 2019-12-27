@@ -15,17 +15,18 @@ main =
 
 messages :: Task.Task () ()
 messages = do 
+  Task.debug "debug something" [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
   print "hello first!"
   printBad "hello second!"
 
 
 print :: P.String -> Task.Task () ()
 print note =
-  Task.logged (\_ -> Task.entry "print err!") (\_ -> Task.entry "print ok!") <|
+  Task.logged (\_ -> Task.entry Task.Error "here" "print err!" []) (\_ -> Task.entry Task.Info "here" "print ok!" []) <|
     Task.enter <| P.fmap Ok (P.putStrLn note)
 
 
 printBad :: P.String -> Task.Task () ()
 printBad note =
-  Task.logged (\_ -> Task.entry "printBad err!") (\_ -> Task.entry "printBad ok!") <|
+  Task.logged (\_ -> Task.entry Task.Error "here" "printBad err!" []) (\_ -> Task.entry Task.Info "here" "printBad ok!" []) <|
     Task.enter <| P.fmap Err (P.putStrLn "Not working")

@@ -13,7 +13,7 @@ module Cherry.Task
   , custom, multiple
   , debug, info, warning, error, alert
   , Context, context
-  , Entry, Severity, Paragraph, entry
+  , Entry, Severity(..), Paragraph, entry
   ) where
 
 
@@ -21,6 +21,7 @@ import qualified Prelude as P
 import qualified Data.Text as Text
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal as Internal
+import qualified Cherry.List as List
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
@@ -42,7 +43,6 @@ data Key = Key
 
 
 instance P.Functor (Task a) where
-  -- fmap :: (a -> b) -> Task x a -> Task x b
   fmap func task =
     Task <| \key ->
       let onResult result =
@@ -58,7 +58,6 @@ instance P.Applicative (Task a) where
   pure a = 
     succeed a
 
-  -- (<*>) :: Task x (a -> b) -> Task x a -> Task x b
   (<*>) func task =
     Task <| \key ->
       let onResult resultFunc resultTask = 
@@ -75,8 +74,6 @@ instance P.Applicative (Task a) where
       func_ <- run func key
       task_ <- run task key
       P.return (onResult func_ task_)
-
-
 
 
 instance P.Monad (Task a) where
@@ -161,8 +158,9 @@ andThen =
   Internal.andThen
 
 
-sequence :: List (Task x a) -> Task x a
-sequence = P.error "TODO"
+sequence :: List (Task x a) -> Task x (List a)
+sequence tasks =
+  List.foldr (map2 (:)) (succeed []) tasks
 
 
 onError :: (x -> Task y a) -> Task x a -> Task y a
@@ -214,10 +212,31 @@ none =
 terminal :: Output
 terminal =
   let print entry = do
-        P.putStrLn <| Text.unpack <| "-- " <> severityText (severity entry) <> " -----------------------------"
+        P.putStrLn <| Text.unpack <| "-- " <> severityText (severity entry) <> " ----------------------------- " <> namespace entry
+        printParagraphs (paragraphs entry)
+        printContexts (contexts entry)
         P.putStrLn ""
-        P.putStrLn <| Text.unpack (namespace entry)
+
+      printParagraphs :: List Paragraph -> IO ()
+      printParagraphs paragraphs =
+        List.map printParagraph paragraphs
+          |> List.foldl (\next io -> io |> Internal.andThen (\_ -> next)) (P.pure ())
+
+      printParagraph :: Paragraph -> IO ()
+      printParagraph paragraph = do
         P.putStrLn ""
+        P.putStrLn <| Text.unpack (text paragraph)
+        P.putStrLn <| Text.unpack <| "    " <> snippet paragraph
+
+      printContexts :: Context -> IO ()
+      printContexts context =
+        List.map printContext context
+          |> List.foldl (\next io -> io |> Internal.andThen (\_ -> next)) (P.pure ())
+
+      printContext :: ( Text.Text, Text.Text ) -> IO ()
+      printContext ( name, value ) = do
+        P.putStrLn <| Text.unpack <| "    " <> name <> ": " <> value
+
   in
   Output { print = print }
 
@@ -229,28 +248,49 @@ file filepath =
   in
   Output { print = print }
 
+
 custom :: (Entry -> Task x a) -> Output
 custom func =
   Output { print = func >> exit >> Internal.map (\_ -> ()) }
 
 
 multiple :: List Output -> Output
-multiple = P.error "TODO"
+multiple outputs =
+  let addOutput :: Entry -> Output -> IO () -> IO ()
+      addOutput entry (Output print) io =
+        io |> Internal.andThen (\_ -> print entry)
+
+      addOutputs :: Entry -> IO ()
+      addOutputs entry =
+        List.foldr (addOutput entry) (P.pure ()) outputs
+  in
+  Output { print = addOutputs }
+
 
 debug :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-debug = P.error "TODO"
+debug =
+  log Debug 
+
 
 info :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-info = P.error "TODO"
+info = 
+  log Info 
+
 
 warning :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-warning = P.error "TODO"
+warning = 
+  log Warning 
+
 
 error :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-error = P.error "TODO"
+error = 
+  log Error 
+
 
 alert :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-alert = P.error "TODO"
+alert = 
+  log Alert 
+
 
 
 data Measure
@@ -326,7 +366,19 @@ severityText severity =
     Alert -> "ALERT"
 
 
-entry :: Text.Text -> Entry
-entry namespace =
-  Entry Info namespace [] []
+log :: Severity -> Text.Text -> Context -> Task x ()
+log severity message context =
+  Stack.withFrozenCallStack <|
+    let entry_ = entry severity "" message context in
+    logged (\_ -> entry_) (\_ -> entry_) <| succeed ()
+
+
+entry :: Severity -> Text.Text -> Text.Text -> Context -> Entry
+entry severity namespace message context =
+  Entry
+    { severity = severity
+    , namespace = namespace
+    , paragraphs = [ Paragraph message "" ]
+    , contexts = context
+    }
 
