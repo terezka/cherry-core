@@ -1,11 +1,18 @@
-module Cherry.Internal (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen) where
+module Cherry.Internal (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen, afterwards, blank) where
 
-import Prelude ((<*>), (>>=), Applicative, Monad, return)
+import Prelude ((<*>), (>>=), Applicative, Monad, return, pure)
 
 
 {-| -}
 andThen :: Monad m => (a -> m b) -> m a -> m b
-andThen f x = x >>= f
+andThen b a =
+  a >>= b
+
+
+{-| -}
+afterwards :: Monad m => m b -> m a -> m b
+afterwards b a =
+  a >>= (\_ -> b)
 
 
 {-| -}
@@ -61,4 +68,9 @@ map9 :: (Monad m, Applicative m) => (a -> b -> c -> d -> e -> f -> g -> h -> i -
 map9 func a b c d e f g h i =
   return func <*> a <*> b <*> c <*> d <*> e <*> f <*> g <*> h <*> i
 
+
+{-| -}
+blank :: Monad m => m ()
+blank =
+  pure ()
 

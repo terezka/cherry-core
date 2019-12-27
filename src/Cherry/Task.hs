@@ -220,7 +220,7 @@ terminal =
       printParagraphs :: List Paragraph -> IO ()
       printParagraphs paragraphs =
         List.map printParagraph paragraphs
-          |> List.foldl (\next io -> io |> Internal.andThen (\_ -> next)) (P.pure ())
+          |> List.foldl Internal.afterwards Internal.blank
 
       printParagraph :: Paragraph -> IO ()
       printParagraph paragraph = do
@@ -231,7 +231,7 @@ terminal =
       printContexts :: Context -> IO ()
       printContexts context =
         List.map printContext context
-          |> List.foldl (\next io -> io |> Internal.andThen (\_ -> next)) (P.pure ())
+          |> List.foldl Internal.afterwards Internal.blank
 
       printContext :: ( Text.Text, Text.Text ) -> IO ()
       printContext ( name, value ) = do
@@ -256,13 +256,11 @@ custom func =
 
 multiple :: List Output -> Output
 multiple outputs =
-  let addOutput :: Entry -> Output -> IO () -> IO ()
-      addOutput entry (Output print) io =
-        io |> Internal.andThen (\_ -> print entry)
+  let addOutput entry (Output print) io =
+        io |> Internal.afterwards (print entry)
 
-      addOutputs :: Entry -> IO ()
       addOutputs entry =
-        List.foldr (addOutput entry) (P.pure ()) outputs
+        List.foldr (addOutput entry) Internal.blank outputs
   in
   Output { print = addOutputs }
 
@@ -317,16 +315,21 @@ logged onErr onOk task =
             Err err -> onErr err
     in do 
     result <- run task key
-    print (output key) (entry result)
+    print (output key) (finalEntry key <| entry result)
     P.return result
 
 
 context :: Text.Text -> Context -> Task x a -> Task x a
-context = P.error "TODO"
-
-
-type Context =
-  List ( Text.Text, Text.Text )
+context namespace context task =
+  Task <| \key ->
+    let key_ = 
+          Key
+            { current_namespace = current_namespace key <> namespace
+            , current_context = current_context key ++ context
+            , output = output key
+            }
+    in
+    run task key_
 
 
 data Entry = Entry
@@ -345,11 +348,14 @@ data Severity
   | Alert
 
 
-
 data Paragraph = Paragraph
   { text :: Text.Text
   , snippet :: Text.Text
   }
+
+
+type Context =
+  List ( Text.Text, Text.Text )
 
 
 
@@ -382,3 +388,12 @@ entry severity namespace message context =
     , contexts = context
     }
 
+
+finalEntry :: Key -> Entry -> Entry
+finalEntry key entry =
+  Entry
+    { severity = severity entry
+    , namespace = current_namespace key <> namespace entry
+    , paragraphs = paragraphs entry
+    , contexts = current_context key ++ contexts entry
+    }
