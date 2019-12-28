@@ -26,8 +26,8 @@ print :: P.String -> Task.Task () ()
 print note =
   Log.logged <| Log.Logged
     { Log.task = Task.enter <| P.fmap Ok (P.putStrLn note)
-    , Log.success = \_ -> Log.note Log.Info "/print" "Good print succeeded." []
-    , Log.failure = \_ -> Log.note Log.Error "/print" "Good print errored." []
+    , Log.success = \_ -> Log.Entry Log.Info "/print" "Good print succeeded." []
+    , Log.failure = \_ -> Log.Entry Log.Error "/print" "Good print errored." []
     }
 
 
@@ -35,6 +35,6 @@ printBad :: P.String -> Task.Task () ()
 printBad note =
   Log.logged <| Log.Logged
     { Log.task = Task.enter <| P.fmap Err (P.putStrLn "> Not working")
-    , Log.success = \_ -> Log.note Log.Info "/print" "Bad print succeeded." []
-    , Log.failure = \_ -> Log.note Log.Error "/print" "Bad print errored." []
+    , Log.success = \_ -> Log.Entry Log.Info "/print" "Bad print succeeded." []
+    , Log.failure = \_ -> Log.Entry Log.Error "/print" "Bad print errored." []
     }
