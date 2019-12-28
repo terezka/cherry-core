@@ -56,14 +56,15 @@ type Program =
 
 {-| Just having a `Task` does not mean it is done. We must `perform` the task:
 
-    import Cherry.Task
-
-    main :: Program
-    main =
-      Task.perform Log.none Time.now
+  >  import Cherry.Task
+  >  import Cherry.Task
+  >
+  >  main :: Program
+  >  main =
+  >    Task.perform Log.none Time.now
 
 -}
-perform :: Output -> Task x a -> Program
+perform :: Task.Output -> Task x a -> Program
 perform =
   Task.perform
 
@@ -71,12 +72,12 @@ perform =
 {-| A task that succeeds immediately when run. It is usually used with
 [`andThen`](#andThen). You can use it like `map` if you want:
 
-    import Time
-
-    timeInMillis : Task x Int
-    timeInMillis =
-      Time.now
-        |> andThen (\t -> succeed (Time.posixToMillis t))
+  >  import Time
+  >
+  >  timeInMillis : Task x Int
+  >  timeInMillis =
+  >    Time.now
+  >      |> andThen (\t -> succeed (Time.posixToMillis t))
 
 -}
 succeed :: a -> Task x a
@@ -87,11 +88,11 @@ succeed =
 {-| A task that fails immediately when run. Like with `succeed`, this can be
 used with `andThen` to check on the outcome of another task.
 
-    type Error = NotFound
-
-    notFound : Task Error a
-    notFound =
-      fail NotFound
+  >  type Error = NotFound
+  >
+  >  notFound : Task Error a
+  >  notFound =
+  >    fail NotFound
 -}
 fail :: x -> Task x a
 fail =
@@ -105,16 +106,16 @@ fail =
 {-| Transform a task. Maybe you want to use [`elm/time`][time] to figure
 out what time it will be in one hour:
 
-    import Task exposing (Task)
-    import Time -- elm install elm/time
-
-    timeInOneHour : Task x Time.Posix
-    timeInOneHour =
-      Task.map addAnHour Time.now
-
-    addAnHour : Time.Posix -> Time.Posix
-    addAnHour time =
-      Time.millisToPosix (Time.posixToMillis time + 60 * 60 * 1000)
+  >  import Task exposing (Task)
+  >  import Time -- elm install elm/time
+  >
+  >  timeInOneHour : Task x Time.Posix
+  >  timeInOneHour =
+  >    Task.map addAnHour Time.now
+  >
+  >  addAnHour : Time.Posix -> Time.Posix
+  >  addAnHour time =
+  >    Time.millisToPosix (Time.posixToMillis time + 60 * 60 * 1000)
 
 [time]: /packages/elm/time/latest/
 -}
@@ -126,12 +127,12 @@ map =
 {-| Put the results of two tasks together. For example, if we wanted to know
 the current month, we could use [`elm/time`][time] to ask:
 
-    import Task exposing (Task)
-    import Time -- elm install elm/time
-
-    getMonth : Task x Int
-    getMonth =
-      Task.map2 Time.toMonth Time.here Time.now
+  >  import Task exposing (Task)
+  >  import Time -- elm install elm/time
+  >
+  >  getMonth : Task x Int
+  >  getMonth =
+  >    Task.map2 Time.toMonth Time.here Time.now
 
 **Note:** Say we were doing HTTP requests instead. `map2` does each task in
 order, so it would try the first request and only continue after it succeeds.
@@ -173,13 +174,13 @@ successful, you give the result to the callback resulting in another task. This
 task then gets run. We could use this to make a task that resolves an hour from
 now:
 
-    import Time -- elm install elm/time
-    import Process
-
-    timeInOneHour : Task x Time.Posix
-    timeInOneHour =
-      Process.sleep (60 * 60 * 1000)
-        |> andThen (\_ -> Time.now)
+  >  import Time -- elm install elm/time
+  >  import Process
+  >
+  >  timeInOneHour : Task x Time.Posix
+  >  timeInOneHour =
+  >    Process.sleep (60 * 60 * 1000)
+  >      |> andThen (\_ -> Time.now)
 
 First the process sleeps for an hour **and then** it tells us what time it is.
 -}
@@ -192,7 +193,7 @@ andThen =
 list. The tasks will be run in order one-by-one and if any task fails the whole
 sequence fails.
 
-    sequence [ succeed 1, succeed 2 ] == succeed [ 1, 2 ]
+  >  sequence [ succeed 1, succeed 2 ] == succeed [ 1, 2 ]
 
 -}
 sequence :: List (Task x a) -> Task x (List a)
@@ -203,13 +204,13 @@ sequence =
 {-| Recover from a failure in a task. If the given task fails, we use the
 callback to recover.
 
-    fail "file not found"
-      |> onError (\msg -> succeed 42)
-      -- succeed 42
-
-    succeed 9
-      |> onError (\msg -> succeed 42)
-      -- succeed 9
+  >  fail "file not found"
+  >    |> onError (\msg -> succeed 42)
+  >    -- succeed 42
+  >
+  >  succeed 9
+  >    |> onError (\msg -> succeed 42)
+  >    -- succeed 9
 -}
 onError :: (x -> Task y a) -> Task x a -> Task y a
 onError =
@@ -219,16 +220,16 @@ onError =
 {-| Transform the error value. This can be useful if you need a bunch of error
 types to match up.
 
-    type Error
-      = Http Http.Error
-      | WebGL WebGL.Error
-
-    getResources : Task Error Resource
-    getResources =
-      sequence
-        [ mapError Http serverTask
-        , mapError WebGL textureTask
-        ]
+  >  type Error
+  >    = Http Http.Error
+  >    | WebGL WebGL.Error
+  >
+  >  getResources : Task Error Resource
+  >  getResources =
+  >    sequence
+  >      [ mapError Http serverTask
+  >      , mapError WebGL textureTask
+  >      ]
 -}
 mapError :: (x -> y) -> Task x a -> Task y a
 mapError =
@@ -257,157 +258,4 @@ You shouldn't usually need to use this!
 exit :: Task x a -> IO (Result x a)
 exit =
   Task.exit
-
-
-
--- LOGGING
-
-
-{-| A output channel for logging.
--}
-type Output =
-  Task.Output
-
-
-{-| This does not store the logs anywhere.
--}
-none :: Output
-none =
-  Task.none
-
-
-{-| This prints the logs to the terminal.
-
-  >  main :: Program
-  >  main =
-  >    Http.send request
-  >      |> Task.perform Log.terminal
--}
-terminal :: Output
-terminal =
-  Task.terminal
-
-
-{-| Make your own logging outout channel! Maybe you have a service like rollbar,
-which you might want to send your logs too.
-
--}
-custom :: (Entry -> Task x a) -> Output
-custom =
-  Task.custom
-
-
-{-| Log to multiple outputs.
--}
-multiple :: List Output -> Output
-multiple =
-  Task.multiple
-
-
-{-| Send a debug log entry.
-
-  >  main :: Program
-  >  main =
-  >    Task.perform Log.terminal doThings
-  >
-  >  doThings :: Task x ()
-  >  doThings = do
-  >    Http.send request
-  >    Log.debug "Hello!" [ ( "user", "terezka" ) ]
-  >
--}
-debug :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-debug =
-  Task.debug
-
-
-{-| Same as debug, but an `Info` log entry.
--}
-info :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-info = 
-  Task.info
-
-
-{-| Same as debug, but an `Warning` log entry.
--}
-warning :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-warning = 
-  Task.warning
-
-
-{-| Same as debug, but an `Error` log entry.
--}
-error :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-error = 
-  Task.error
-
-
-{-| Same as debug, but an `Alert` log entry.
--}
-alert :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
-alert = 
-  Task.alert
-
-
-{-| -}
-type Logged x a =
-  Task.Logged x a
-
-
-{-| Add logging to a task.
-
-    login :: User.Id -> Task Error User.User
-    login id =
-      Task.logged <| Log.Logged
-        { task = actuallyLogin id
-        , success = \user -> 
-            Just <| Log.Entry
-              { severity = Log.Info
-              , namespace = "login"
-              , message = "Succesfully logged in."
-              , contexts = [ ( "username", username user ) ]
-              }
-        , failure = \error ->
-            Just <| Log.Entry
-              { severity = Log.Error
-              , namespace = "login"
-              , message = "Failed to logged in."
-              , contexts = [ ( "user_id", id ) ]
-              }
-        }
--}
-logged :: Logged x a -> Task x a
-logged =
-  Task.logged
-
-
-{-| Add context to all subsequent tasks.
-
-    
-    login :: User.Id -> Task Error User.User
-    login id =
-      context "login" [ ( "user_id", id ) ] <|
-        actualLogin id
-
--}
-context :: Text.Text -> Context -> Task x a -> Task x a
-context =
-  Task.context
-
-
-{-| A log entry.
-
--}
-type Entry =
-  Task.Entry
-
-
-{-| -}
-type Severity
-  = Task.Severity
-
-
-{-| -}
-type Context =
-  Task.Context
 

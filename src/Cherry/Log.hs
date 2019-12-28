@@ -2,7 +2,7 @@ module Cherry.Log
   ( -- * Logging
     -- Logging tools for tasks.
     Output, none, terminal, custom, multiple
-  , logged, Task.Logged(..), Task.Entry(..), Task.Severity(..)
+  , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
   , Context, context
   ) where
@@ -75,78 +75,45 @@ multiple =
   >    Log.debug "Hello!" [ ( "user", "terezka" ) ]
   >
 -}
-debug :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 debug =
   Task.debug
 
 
 {-| Same as debug, but an `Info` log entry.
 -}
-info :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 info = 
   Task.info
 
 
 {-| Same as debug, but an `Warning` log entry.
 -}
-warning :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 warning = 
   Task.warning
 
 
 {-| Same as debug, but an `Error` log entry.
 -}
-error :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 error = 
   Task.error
 
 
 {-| Same as debug, but an `Alert` log entry.
 -}
-alert :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 alert = 
   Task.alert
 
 
-{-| -}
-type Logged x a =
-  Task.Logged x a
-
-
-{-| Add logging to a task.
-
-    login :: User.Id -> Task Error User.User
-    login id =
-      Task.logged <| Log.Logged
-        { task = actuallyLogin id
-        , success = \user -> 
-            Just <| Log.Entry
-              { severity = Log.Info
-              , namespace = "login"
-              , message = "Succesfully logged in."
-              , contexts = [ ( "username", username user ) ]
-              }
-        , failure = \error ->
-            Just <| Log.Entry
-              { severity = Log.Error
-              , namespace = "login"
-              , message = "Failed to logged in."
-              , contexts = [ ( "user_id", id ) ]
-              }
-        }
--}
-logged :: Logged x a -> Task x a
-logged =
-  Task.logged
-
-
 {-| Add context to all subsequent tasks.
 
-    
-    login :: User.Id -> Task Error User.User
-    login id =
-      context "login" [ ( "user_id", id ) ] <|
-        actualLogin id
+  >  login :: User.Id -> Task Error User.User
+  >  login id =
+  >    context "login" [ ( "user_id", id ) ] <|
+  >      actualLogin id
 
 -}
 context :: Text.Text -> Context -> Task x a -> Task x a

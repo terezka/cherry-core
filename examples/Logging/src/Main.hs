@@ -19,24 +19,23 @@ main =
 messages :: Task.Task () ()
 messages = 
   Log.context "messages" [ ( "online", "true" ) ] <| do 
-    Log.debug "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
+    Log.debug "" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     print "> hello first!"
     printBad "> hello second!"
 
 
 print :: P.String -> Task.Task () ()
 print note =
-  Log.logged <| Log.Logged
-    { Log.task = Task.enter <| P.fmap Ok (P.putStrLn note)
-    , Log.success = \_ -> Just <| Log.Entry Log.Info "/print" "Good print succeeded." []
-    , Log.failure = \_ -> Just <| Log.Entry Log.Error "/print" "Good print errored." []
-    }
+  P.fmap Err (P.putStrLn note)
+    |> Task.enter
+    |> Task.andThen (\_ -> Log.info "/print" "Good print succeeded." [])
+    |> Task.onError (\_ -> Log.info "/print" "Good print succeeded." [])
 
 
 printBad :: P.String -> Task.Task () ()
 printBad note =
-  Log.logged <| Log.Logged
-    { Log.task = Task.enter <| P.fmap Err (P.putStrLn "> Not working")
-    , Log.success = \_ -> Just <| Log.Entry Log.Info "/print" "Bad print succeeded." []
-    , Log.failure = \_ -> Just <| Log.Entry Log.Error "/print" "Bad print errored." []
-    }
+  P.fmap Err (P.putStrLn "> Not working")
+    |> Task.enter
+    |> Task.andThen (\_ -> Log.info "/print" "Bad print succeeded." [])
+    |> Task.onError (\_ -> Log.error "/print" "Bad print errored." [])
+

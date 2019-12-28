@@ -290,27 +290,27 @@ multiple outputs =
   Output { print = addOutputs }
 
 
-debug :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 debug =
   log Debug 
 
 
-info :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 info = 
   log Info 
 
 
-warning :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 warning = 
   log Warning 
 
 
-error :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 error = 
   log Error 
 
 
-alert :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
+alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 alert = 
   log Alert 
 
@@ -402,10 +402,10 @@ severityText severity =
     Alert -> "ALERT"
 
 
-log :: Severity -> Text.Text -> Context -> Task x ()
-log severity message context =
+log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
+log severity namespace message context =
   Stack.withFrozenCallStack <|
-    let entry_ = Entry severity "" message context in
+    let entry_ = Entry severity namespace message context in
     logged <| Logged
       { task = succeed ()
       , success = \_ -> Just entry_
