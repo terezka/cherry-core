@@ -15,12 +15,6 @@ module Cherry.Task
 
     -- * Errors
   , onError, mapError
-
-  -- * Logging
-  , Output, none, terminal, custom, multiple -- , file, compact, verbose
-  , Logged(..), Entry(..), Severity(..), logged
-  , debug, info, warning, error, alert
-  , Context, context
   ) where
 
 import qualified Prelude as P
@@ -28,6 +22,7 @@ import qualified Data.Text as Text
 import qualified Data.List
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal as Internal
+import qualified Cherry.Internal.Task as Task
 import qualified Cherry.List as List
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
@@ -41,65 +36,8 @@ list. Or like a grocery list. Or like GitHub issues. So saying "the task is
 to tell me the current POSIX time" does not complete the task! You need
 [`perform`](#perform) tasks or [`attempt`](#attempt) tasks.
 -}
-newtype Task x a = 
-  Task { run :: Key -> P.IO (Result x a) }
-
-
-data Key = Key 
-  { current_namespace :: Text.Text
-  , current_context :: Context
-  , output :: Output
-  }
-
-
-instance P.Functor (Task a) where
-  fmap func task =
-    Task <| \key ->
-      let onResult result =
-            case result of
-              Ok a -> Ok (func a)
-              Err x -> Err x
-      in
-      run task key
-        |> Internal.map onResult
-
-
-instance P.Applicative (Task a) where
-  pure a = 
-    succeed a
-
-  (<*>) func task =
-    Task <| \key ->
-      let onResult resultFunc resultTask = 
-            case (resultFunc, resultTask) of
-              ( Ok func_, Ok task_ ) ->
-                Ok (func_ task_)
-
-              ( Err x, _ ) ->
-                Err x
-
-              ( _, Err x ) ->
-                Err x
-      in do 
-      func_ <- run func key
-      task_ <- run task key
-      P.return (onResult func_ task_)
-
-
-instance P.Monad (Task a) where
-  task >>= func =
-    Task <| \key ->
-      let onResult result =
-            case result of
-              Ok ok ->
-                run (func ok) key
-
-              Err err ->
-                P.return (Err err)
-      in
-      run task key
-        |> Internal.andThen onResult
-
+type Task x a = 
+  Task.Task x a
 
 
 -- BASICS
@@ -112,19 +50,22 @@ instance P.Monad (Task a) where
   >    Terminal.write "Hello world!"
   >      |> Task.perform Log.none
 -}
-type Program = IO ()
+type Program =
+  Task.Program
 
 
+{-| Just having a `Task` does not mean it is done. We must `perform` the task:
+
+    import Cherry.Task
+
+    main :: Program
+    main =
+      Task.perform Log.none Time.now
+
+-}
 perform :: Output -> Task x a -> Program
-perform output task =
-  let onResult result =
-        Internal.blank
-
-      initKey =
-        Key "" [] output
-  in 
-  run task initKey
-    |> Internal.andThen onResult
+perform =
+  Task.perform
 
 
 {-| A task that succeeds immediately when run. It is usually used with
@@ -139,8 +80,8 @@ perform output task =
 
 -}
 succeed :: a -> Task x a
-succeed a =
-  Task <| \_ -> P.return (Ok a)
+succeed =
+  Task.succeed
 
 
 {-| A task that fails immediately when run. Like with `succeed`, this can be
@@ -153,8 +94,8 @@ used with `andThen` to check on the outcome of another task.
       fail NotFound
 -}
 fail :: x -> Task x a
-fail x =
-  Task <| \_ -> P.return (Err x)
+fail =
+  Task.fail
 
 
 
@@ -179,7 +120,7 @@ out what time it will be in one hour:
 -}
 map :: (a -> b) -> Task x a -> Task x b
 map =
-  Internal.map
+  Task.map
 
 
 {-| Put the results of two tasks together. For example, if we wanted to know
@@ -200,31 +141,31 @@ If it fails, the whole thing fails!
 -}
 map2 :: (a -> b -> result) -> Task x a -> Task x b -> Task x result
 map2 =
-  Internal.map2
+  Task.map2
 
 
 {-| -}
 map3 :: (a -> b -> c -> result) -> Task x a -> Task x b -> Task x c -> Task x result
 map3 =
-  Internal.map3
+  Task.map3
 
 
 {-| -}
 map4 :: (a -> b -> c -> d -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x result
 map4 =
-  Internal.map4
+  Task.map4
 
 
 {-| -}
 map5 :: (a -> b -> c -> d -> e -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x result
 map5 =
-  Internal.map5
+  Task.map5
 
 
 {-| -}
 map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x f -> Task x result
 map6 =
-  Internal.map6
+  Task.map6
 
 
 {-| Chain together a task and a callback. The first task will run, and if it is
@@ -244,7 +185,7 @@ First the process sleeps for an hour **and then** it tells us what time it is.
 -}
 andThen :: (a -> Task x b) -> Task x a -> Task x b
 andThen =
-  Internal.andThen
+  Task.andThen
 
 
 {-| Start with a list of tasks, and turn them into a single task that returns a
@@ -255,8 +196,8 @@ sequence fails.
 
 -}
 sequence :: List (Task x a) -> Task x (List a)
-sequence tasks =
-  List.foldr (map2 (:)) (succeed []) tasks
+sequence =
+  Task.sequence
 
 
 {-| Recover from a failure in a task. If the given task fails, we use the
@@ -271,15 +212,8 @@ callback to recover.
       -- succeed 9
 -}
 onError :: (x -> Task y a) -> Task x a -> Task y a
-onError func task =
-  Task <| \key -> 
-    let onResult result =
-          case result of
-            Ok ok -> P.return (Ok ok)
-            Err err -> run (func err) key
-    in
-    run task key
-      |> Internal.andThen onResult
+onError =
+  Task.onError
 
 
 {-| Transform the error value. This can be useful if you need a bunch of error
@@ -297,12 +231,13 @@ types to match up.
         ]
 -}
 mapError :: (x -> y) -> Task x a -> Task y a
-mapError func task =
-  task |> onError (fail << func)
+mapError =
+  Task.mapError
 
 
 
 -- INTEROP
+
 
 {-| When working with third party libraries, you might need to
 transform an `IO` into a `Task`. If that is the case, use this function.
@@ -310,8 +245,8 @@ transform an `IO` into a `Task`. If that is the case, use this function.
 You shouldn't usually need to use this!
 -}
 enter :: IO (Result x a) -> Task x a
-enter io =
-  Task <| \_ -> io
+enter =
+  Task.enter
 
 
 {-| When working with third party libraries, you might need to
@@ -320,9 +255,8 @@ transform a `Task` into an `IO`. If that is the case, use this function.
 You shouldn't usually need to use this!
 -}
 exit :: Task x a -> IO (Result x a)
-exit task =
-  let key = Key "" [] none in
-  run task key
+exit =
+  Task.exit
 
 
 
@@ -331,16 +265,15 @@ exit task =
 
 {-| A output channel for logging.
 -}
-newtype Output =
-  Output { print :: Entry -> IO () }
+type Output =
+  Task.Output
 
 
 {-| This does not store the logs anywhere.
 -}
 none :: Output
 none =
-  Output 
-    { print = \_ -> Internal.blank }
+  Task.none
 
 
 {-| This prints the logs to the terminal.
@@ -352,72 +285,7 @@ none =
 -}
 terminal :: Output
 terminal =
-  let print entry = 
-        let severity_ = severity entry
-            namespace_ = namespace entry
-            headerColor_ = headerColor severity_
-            headerDashes_ = headerDashes severity_ namespace_
-            header = headerColor_ <> "-- " <> severityText severity_ <> " " <> headerDashes_ <> " " <> namespace_ <> " \x1b[0m"
-        in do
-        printLine header
-        printBlank
-        printText (message entry)
-        printBlank
-        printBlank
-        printLine "For context:"
-        printBlank
-        printContexts (contexts entry)
-        printBlank
-
-      headerColor :: Severity -> Text.Text
-      headerColor severity_ =
-        case severity_ of
-          Debug -> "\x1b[36m"
-          Info -> "\x1b[36m"
-          Warning -> "\x1b[33m"
-          Error -> "\x1b[35m"
-          Alert -> "\x1b[31m"
-
-      headerDashes :: Severity -> Text.Text -> Text.Text
-      headerDashes severity_ namespace_ =
-        let lengthSeverity = Text.length (severityText severity_) 
-            lengthNamespace = Text.length namespace_
-            lengthOther = 5
-            lengthDashes = 80 - lengthSeverity - lengthNamespace - lengthOther
-        in
-        Text.pack (Data.List.replicate lengthDashes '-')
-
-      printContexts :: Context -> IO ()
-      printContexts context =
-        List.map printContext context
-          |> List.foldl Internal.afterwards Internal.blank
-
-      printContext :: ( Text.Text, Text.Text ) -> IO ()
-      printContext ( name, value ) = do
-        printLine <| "    " <> name <> ": " <> value
-
-      printLine :: Text.Text -> IO ()
-      printLine =
-        P.putStrLn << Text.unpack
-
-      printText :: Text.Text -> IO ()
-      printText =
-        P.putStr << Text.unpack
-
-      printBlank :: IO ()
-      printBlank =
-        P.putStrLn ""
-  in
-  Output { print = print }
-
-
-{-| -}
-file :: FilePath -> Output
-file filepath =
-  let print entry =
-        P.error "TODO Print to file."
-  in
-  Output { print = print }
+  Task.terminal
 
 
 {-| Make your own logging outout channel! Maybe you have a service like rollbar,
@@ -425,21 +293,15 @@ which you might want to send your logs too.
 
 -}
 custom :: (Entry -> Task x a) -> Output
-custom func =
-  Output { print = func >> exit >> Internal.map (\_ -> ()) }
+custom =
+  Task.custom
 
 
 {-| Log to multiple outputs.
 -}
 multiple :: List Output -> Output
-multiple outputs =
-  let addOutput entry (Output print) io =
-        io |> Internal.afterwards (print entry)
-
-      addOutputs entry =
-        List.foldr (addOutput entry) Internal.blank outputs
-  in
-  Output { print = addOutputs }
+multiple =
+  Task.multiple
 
 
 {-| Send a debug log entry.
@@ -456,59 +318,40 @@ multiple outputs =
 -}
 debug :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
 debug =
-  log Debug 
+  Task.debug
 
 
 {-| Same as debug, but an `Info` log entry.
 -}
 info :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
 info = 
-  log Info 
+  Task.info
 
 
 {-| Same as debug, but an `Warning` log entry.
 -}
 warning :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
 warning = 
-  log Warning 
+  Task.warning
 
 
 {-| Same as debug, but an `Error` log entry.
 -}
 error :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
 error = 
-  log Error 
+  Task.error
 
 
 {-| Same as debug, but an `Alert` log entry.
 -}
 alert :: Stack.HasCallStack => Text.Text -> Context -> Task e ()
 alert = 
-  log Alert 
-
-
-
-data Measure
-  = Compact
-  | Verbose
-
-
-verbose :: Measure
-verbose =
-  Verbose
-
-
-compact :: Measure
-compact =
-  Compact
+  Task.alert
 
 
 {-| -}
-data Logged x a = Logged
-  { task :: Task x a
-  , success :: a -> Maybe Entry
-  , failure :: x -> Maybe Entry
-  }
+type Logged x a =
+  Task.Logged x a
 
 
 {-| Add logging to a task.
@@ -534,16 +377,8 @@ data Logged x a = Logged
         }
 -}
 logged :: Logged x a -> Task x a
-logged (Logged task success failure) =
-  Task <| \key ->
-    let entry result =
-          case result of
-            Ok ok -> success ok
-            Err err -> failure err
-    in do 
-    result <- run task key
-    print (output key) (merge key <| entry result)
-    P.return result
+logged =
+  Task.logged
 
 
 {-| Add context to all subsequent tasks.
@@ -556,72 +391,23 @@ logged (Logged task success failure) =
 
 -}
 context :: Text.Text -> Context -> Task x a -> Task x a
-context namespace context task =
-  Task <| \key ->
-    let key_ = Key
-          { current_namespace = current_namespace key <> namespace
-          , current_context = current_context key ++ context
-          , output = output key
-          }
-    in
-    run task key_
+context =
+  Task.context
 
 
 {-| A log entry.
 
 -}
-data Entry = Entry
-  { severity :: Severity
-  , namespace :: Text.Text
-  , message :: Text.Text
-  , contexts :: Context
-  }
+type Entry =
+  Task.Entry
 
 
 {-| -}
-data Severity
-  = Debug
-  | Info
-  | Warning
-  | Error
-  | Alert
+type Severity
+  = Task.Severity
 
 
 {-| -}
 type Context =
-  List ( Text.Text, Text.Text )
+  Task.Context
 
-
-
--- INTERNAL
-
-
-severityText :: Severity -> Text.Text
-severityText severity =
-  case severity of
-    Debug -> "DEBUG"
-    Info -> "INFO"
-    Warning -> "WARNING"
-    Error -> "ERROR"
-    Alert -> "ALERT"
-
-
-log :: Severity -> Text.Text -> Context -> Task x ()
-log severity message context =
-  Stack.withFrozenCallStack <|
-    let entry_ = Entry severity "" message context in
-    logged <| Logged
-      { task = succeed ()
-      , success = \_ -> entry_
-      , failure = \_ -> entry_
-      }
-
-
-merge :: Key -> Entry -> Entry
-merge key entry =
-  Entry
-    { severity = severity entry
-    , namespace = current_namespace key <> namespace entry
-    , message = message entry
-    , contexts = current_context key ++ contexts entry
-    }
