@@ -29,7 +29,6 @@ import Cherry.Maybe (Maybe (..))
 import qualified Data.Vector
 import qualified Data.Foldable
 import qualified Cherry.List as List
-import qualified Cherry.Internal as Internal
 import qualified Cherry.Tuple as Tuple
 
 newtype Array a = Array (Data.Vector.Vector a)

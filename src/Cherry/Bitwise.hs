@@ -13,7 +13,6 @@ import Data.Bits ((.&.), (.|.))
 import Cherry.Basics (Int)
 import qualified Prelude
 import qualified Data.Bits
-import qualified Cherry.Internal as Internal
 
 {-| Bitwise AND
 -}

@@ -18,7 +18,7 @@ where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure, (<*>), (>>=), fmap)
 import Cherry.Maybe (Maybe(Just, Nothing))
-import qualified Cherry.Internal as Internal
+import qualified Cherry.Internal.Shortcut as Shortcut
 
 
 {-| A `Result` is either `Ok` meaning the computation succeeded, or it is an
@@ -74,7 +74,7 @@ If the result is an `Err`, the same error value will propagate through.
 -}
 map :: (a -> b) -> Result c a -> Result c b
 map =
-  Internal.map
+  Shortcut.map
 
 
 {-| Apply a function if both results are `Ok`. If not, the first `Err` will
@@ -90,25 +90,25 @@ to put them together quickly.
 -}
 map2 :: (a -> b -> c) -> Result err a -> Result err b -> Result err c
 map2 =
-  Internal.map2
+  Shortcut.map2
 
 
 {-|-}
 map3 :: (a -> b -> c -> d) -> Result err a -> Result err b -> Result err c -> Result err d
 map3 =
-  Internal.map3
+  Shortcut.map3
 
 
 {-|-}
 map4 :: (a -> b -> c -> d -> e) -> Result err a -> Result err b -> Result err c -> Result err d -> Result err e
 map4 =
-  Internal.map4
+  Shortcut.map4
 
 
 {-|-}
 map5 :: (a -> b -> c -> d -> e -> f) -> Result err a -> Result err b -> Result err c -> Result err d -> Result err e -> Result err f
 map5 =
-  Internal.map5
+  Shortcut.map5
 
 
 {-| Chain together a sequence of computations that may fail. It is helpful
@@ -147,7 +147,7 @@ code.
 -}
 andThen :: (a -> Result c b) -> Result c a -> Result c b
 andThen =
-  Internal.andThen
+  Shortcut.andThen
 
 
 {-| Transform an `Err` value. For example, say the errors we get have too much

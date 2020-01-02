@@ -1,4 +1,4 @@
-module Cherry.Internal (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen, afterwards, blank) where
+module Cherry.Internal.Shortcut (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen, afterwards, blank) where
 
 import Prelude ((<*>), (>>=), Applicative, Monad, return, pure)
 

@@ -40,7 +40,6 @@ where
 import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Cherry.Basics ((&&), (<<), (<=), Bool (..), Int)
 import qualified Data.Char
-import qualified Cherry.Internal as Internal
 
 
 {-| A `Char` is a single [unicode](https://en.wikipedia.org/wiki/Unicode) character:

@@ -15,7 +15,6 @@ import Data.Text (pack, unpack)
 import Cherry.Basics ((>>))
 import Cherry.Text (Text, concat)
 import qualified Debug.Trace
-import qualified Cherry.Internal as Internal
 
 
 {-| Turn any kind of value into a string.

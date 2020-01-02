@@ -38,7 +38,6 @@ module Cherry.Basics
 
 import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (++), (+), (-), (*), (/), (^), Bool(..))
 import qualified Prelude
-import qualified Cherry.Internal as Internal
 
 
 -- INFIX OPERATORS

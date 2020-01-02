@@ -1,4 +1,4 @@
-module Cherry.Task 
+module Cherry.Task
   ( -- * Tasks
     -- Tasks make it easy to describe asynchronous operations that may fail, like
     -- HTTP requests or writing to a database.
@@ -21,7 +21,6 @@ import qualified Prelude as P
 import qualified Data.Text as Text
 import qualified Data.List
 import qualified GHC.Stack as Stack
-import qualified Cherry.Internal as Internal
 import qualified Cherry.Internal.Task as Task
 import qualified Cherry.List as List
 import Prelude (IO, FilePath, (<>))
@@ -36,7 +35,7 @@ list. Or like a grocery list. Or like GitHub issues. So saying "the task is
 to tell me the current POSIX time" does not complete the task! You need
 [`perform`](#perform) tasks or [`attempt`](#attempt) tasks.
 -}
-type Task x a = 
+type Task x a =
   Task.Task x a
 
 

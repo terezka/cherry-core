@@ -1,4 +1,4 @@
-module Cherry.Log 
+module Cherry.Log
   ( -- * Logging
     -- Logging tools for tasks.
     Output, none, terminal, custom, multiple
@@ -12,7 +12,6 @@ import qualified Prelude as P
 import qualified Data.Text as Text
 import qualified Data.List
 import qualified GHC.Stack as Stack
-import qualified Cherry.Internal as Internal
 import qualified Cherry.Internal.Task as Task
 import qualified Cherry.List as List
 import Prelude (IO, FilePath, (<>))
@@ -84,28 +83,28 @@ debug =
 {-| Same as debug, but an `Info` log entry.
 -}
 info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
-info = 
+info =
   Task.info
 
 
 {-| Same as debug, but an `Warning` log entry.
 -}
 warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
-warning = 
+warning =
   Task.warning
 
 
 {-| Same as debug, but an `Error` log entry.
 -}
 error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
-error = 
+error =
   Task.error
 
 
 {-| Same as debug, but an `Alert` log entry.
 -}
 alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
-alert = 
+alert =
   Task.alert
 
 

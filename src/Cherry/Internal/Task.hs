@@ -19,7 +19,7 @@ import qualified Data.Text as Text
 import qualified Data.List
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as Stack
-import qualified Cherry.Internal as Internal
+import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.List as List
 import Control.Exception (catch)
 import Prelude (IO, FilePath, (<>))
@@ -49,7 +49,7 @@ instance P.Functor (Task a) where
               Err x -> Err x
       in
       run task key
-        |> Internal.map onResult
+        |> Shortcut.map onResult
 
 
 instance P.Applicative (Task a) where
@@ -86,7 +86,7 @@ instance P.Monad (Task a) where
                 P.return (Err err)
       in
       run task key
-        |> Internal.andThen onResult
+        |> Shortcut.andThen onResult
 
 
 
@@ -99,13 +99,13 @@ type Program = IO ()
 perform :: Output -> Task x a -> Program
 perform output task =
   let onResult result =
-        Internal.blank
+        Shortcut.blank
 
       initKey =
         Key "" [] output
   in
   run task initKey
-    |> Internal.andThen onResult
+    |> Shortcut.andThen onResult
 
 
 succeed :: a -> Task x a
@@ -124,37 +124,37 @@ fail x =
 
 map :: (a -> b) -> Task x a -> Task x b
 map =
-  Internal.map
+  Shortcut.map
 
 
 map2 :: (a -> b -> result) -> Task x a -> Task x b -> Task x result
 map2 =
-  Internal.map2
+  Shortcut.map2
 
 
 map3 :: (a -> b -> c -> result) -> Task x a -> Task x b -> Task x c -> Task x result
 map3 =
-  Internal.map3
+  Shortcut.map3
 
 
 map4 :: (a -> b -> c -> d -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x result
 map4 =
-  Internal.map4
+  Shortcut.map4
 
 
 map5 :: (a -> b -> c -> d -> e -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x result
 map5 =
-  Internal.map5
+  Shortcut.map5
 
 
 map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x f -> Task x result
 map6 =
-  Internal.map6
+  Shortcut.map6
 
 
 andThen :: (a -> Task x b) -> Task x a -> Task x b
 andThen =
-  Internal.andThen
+  Shortcut.andThen
 
 
 sequence :: List (Task x a) -> Task x (List a)
@@ -171,7 +171,7 @@ onError func task =
             Err err -> run (func err) key
     in
     run task key
-      |> Internal.andThen onResult
+      |> Shortcut.andThen onResult
 
 
 mapError :: (x -> y) -> Task x a -> Task y a
@@ -205,7 +205,7 @@ newtype Output =
 none :: Output
 none =
   Output
-    { _output = \_ -> Internal.blank }
+    { _output = \_ -> Shortcut.blank }
 
 
 terminal :: Output
@@ -248,7 +248,7 @@ terminal =
       printContexts :: Context -> IO ()
       printContexts context =
         List.map printContext context
-          |> List.foldl Internal.afterwards Internal.blank
+          |> List.foldl Shortcut.afterwards Shortcut.blank
 
       printContext :: ( Text.Text, Text.Text ) -> IO ()
       printContext ( name, value ) = do
@@ -279,16 +279,16 @@ file filepath =
 
 custom :: (Entry -> Task x a) -> Output
 custom func =
-  Output { _output = func >> exit >> Internal.map (\_ -> ()) }
+  Output { _output = func >> exit >> Shortcut.map (\_ -> ()) }
 
 
 multiple :: List Output -> Output
 multiple outputs =
   let addOutput entry (Output _output) io =
-        io |> Internal.afterwards (_output entry)
+        io |> Shortcut.afterwards (_output entry)
 
       addOutputs entry =
-        List.foldr (addOutput entry) Internal.blank outputs
+        List.foldr (addOutput entry) Shortcut.blank outputs
   in
   Output { _output = addOutputs }
 
@@ -345,7 +345,7 @@ onOk log task =
           |> P.fmap (\_ -> ())
 
       Err _ ->
-        Internal.blank
+        Shortcut.blank
     P.return result
 
 
@@ -356,7 +356,7 @@ onErr log task =
     result <- run task key
     case result of
       Ok _ ->
-        Internal.blank
+        Shortcut.blank
 
       Err err ->
         run (log err) key
@@ -423,7 +423,7 @@ log severity namespace message context =
 
 ignoreException :: Exception.SomeException -> IO ()
 ignoreException e =
-  Internal.blank
+  Shortcut.blank
 
 
 merge :: Key -> Entry -> Entry

@@ -29,7 +29,7 @@ import Cherry.Maybe (Maybe (..))
 import qualified Prelude
 import qualified Data.List
 import qualified Data.Maybe
-import qualified Cherry.Internal as Internal
+import qualified Cherry.Internal.Shortcut as Shortcut
 
 
 {-| -}
@@ -95,7 +95,7 @@ element (starting at zero).
 -}
 indexedMap :: (Int -> a -> b) -> List a -> List b
 indexedMap f xs =
-  Internal.map2 f [0 .. (length xs - 1)] xs
+  Shortcut.map2 f [0 .. (length xs - 1)] xs
 
 
 {-| Reduce a list from the left.
@@ -295,7 +295,7 @@ concat =
 -}
 concatMap :: (a -> List b) -> List a -> List b
 concatMap =
-  Internal.andThen
+  Shortcut.andThen
 
 
 {-| Places the given value between all members of the given list.
@@ -326,25 +326,25 @@ If one list is longer, the extra elements are dropped.
 -}
 map2 :: (a -> b -> result) -> List a -> List b -> List result
 map2 =
-  Internal.map2
+  Shortcut.map2
 
 
 {-| -}
 map3 :: (a -> b -> c -> result) -> List a -> List b -> List c -> List result
 map3 =
-  Internal.map3
+  Shortcut.map3
 
 
 {-| -}
 map4 :: (a -> b -> c -> d -> result) -> List a -> List b -> List c -> List d -> List result
 map4 =
-  Internal.map4
+  Shortcut.map4
 
 
 {-| -}
 map5 :: (a -> b -> c -> d -> e -> result) -> List a -> List b -> List c -> List d -> List e -> List result
 map5 =
-  Internal.map5
+  Shortcut.map5
 
 
 
