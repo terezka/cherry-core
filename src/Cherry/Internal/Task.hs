@@ -332,13 +332,6 @@ compact =
   Compact
 
 
-data Logged x a = Logged
-  { task :: Task x a
-  , success :: a -> Maybe Entry
-  , failure :: x -> Maybe Entry
-  }
-
-
 {-| -}
 onOk :: (a -> Task () ()) -> Task x a -> Task x a
 onOk log task =
