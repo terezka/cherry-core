@@ -13,12 +13,19 @@ import qualified Prelude as P
 
 main :: Task.Program
 main =
-  Task.perform Log.terminal messages
+  Task.perform rollbar messages
+
+
+rollbar :: Log.Output
+rollbar =
+  Log.custom <| \_ ->
+    Task.succeed (10 // 0)
+    |> Task.andThen (\n -> print Ok (P.show n))
 
 
 messages :: Task.Task () ()
-messages = 
-  Log.context "messages" [ ( "online", "true" ) ] <| do 
+messages =
+  Log.context "messages" [ ( "online", "true" ) ] <| do
     Log.debug "" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     printGood "> hello first!"
     printBad "> hello second!"
