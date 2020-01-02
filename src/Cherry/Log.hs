@@ -4,6 +4,7 @@ module Cherry.Log
     Output, none, terminal, custom, multiple
   , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
+  , onOk, onErr
   , Context, context
   ) where
 
@@ -75,35 +76,35 @@ multiple =
   >    Log.debug "Hello!" [ ( "user", "terezka" ) ]
   >
 -}
-debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
 debug =
   Task.debug
 
 
 {-| Same as debug, but an `Info` log entry.
 -}
-info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
 info = 
   Task.info
 
 
 {-| Same as debug, but an `Warning` log entry.
 -}
-warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
 warning = 
   Task.warning
 
 
 {-| Same as debug, but an `Error` log entry.
 -}
-error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
 error = 
   Task.error
 
 
 {-| Same as debug, but an `Alert` log entry.
 -}
-alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
 alert = 
   Task.alert
 
@@ -119,6 +120,18 @@ alert =
 context :: Text.Text -> Context -> Task x a -> Task x a
 context =
   Task.context
+
+
+{-| -}
+onOk :: (a -> Task () ()) -> Task x a -> Task x a
+onOk =
+  Task.onOk
+
+
+{-| -}
+onErr :: (x -> Task () ()) -> Task x a -> Task x a
+onErr =
+  Task.onErr
 
 
 {-| A log entry.

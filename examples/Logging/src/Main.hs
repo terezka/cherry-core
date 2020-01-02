@@ -20,22 +20,25 @@ messages :: Task.Task () ()
 messages = 
   Log.context "messages" [ ( "online", "true" ) ] <| do 
     Log.debug "" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
-    print "> hello first!"
+    printGood "> hello first!"
     printBad "> hello second!"
 
 
-print :: P.String -> Task.Task () ()
-print note =
-  P.fmap Err (P.putStrLn note)
-    |> Task.enter
-    |> Task.andThen (\_ -> Log.info "/print" "Good print succeeded." [])
-    |> Task.onError (\_ -> Log.info "/print" "Good print succeeded." [])
+printGood :: P.String -> Task.Task () ()
+printGood note =
+  print Ok note
+    |> Log.onOk (\_ -> Log.info "/print" "Good print succeeded." [])
+    |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
 
 
 printBad :: P.String -> Task.Task () ()
 printBad note =
-  P.fmap Err (P.putStrLn "> Not working")
-    |> Task.enter
-    |> Task.andThen (\_ -> Log.info "/print" "Bad print succeeded." [])
-    |> Task.onError (\_ -> Log.error "/print" "Bad print errored." [])
+  print Err "> Not working"
+    |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
+    |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
 
+
+print :: (() -> Result () ()) -> P.String -> Task.Task () ()
+print toResult text =
+  P.fmap toResult (P.putStrLn text)
+    |> Task.enter

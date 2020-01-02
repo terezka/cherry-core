@@ -8,8 +8,9 @@ module Cherry.Internal.Task
 
   -- * Logging
   , Output, none, terminal, custom, multiple, file, compact, verbose
-  , Logged(..), Entry(..), Severity(..), logged
+  , Entry(..), Severity(..)
   , debug, info, warning, error, alert
+  , onOk, onErr
   , Context, context
   ) where
 
@@ -338,21 +339,33 @@ data Logged x a = Logged
   }
 
 
-logged :: Logged x a -> Task x a
-logged (Logged task success failure) =
-  Task <| \key ->
-    let entry result =
-          case result of
-            Ok ok -> success ok
-            Err err -> failure err
-    in do 
+{-| -}
+onOk :: (a -> Task () ()) -> Task x a -> Task x a
+onOk log task =
+  Task <| \key -> do 
     result <- run task key
-    case entry result of
-      Just entry_ -> 
-        print (output key) (merge key entry_)
+    case result of
+      Ok ok ->
+        run (log ok) key
+          |> P.fmap (\_ -> ())
 
-      Nothing ->
+      Err _ ->
         Internal.blank
+    P.return result
+
+
+{-| -}
+onErr :: (x -> Task () ()) -> Task x a -> Task x a
+onErr log task =
+  Task <| \key -> do 
+    result <- run task key
+    case result of
+      Ok _ -> 
+        Internal.blank
+
+      Err err ->
+        run (log err) key
+          |> P.fmap (\_ -> ())
     P.return result
 
 
@@ -405,12 +418,10 @@ severityText severity =
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
   Stack.withFrozenCallStack <|
-    let entry_ = Entry severity namespace message context in
-    logged <| Logged
-      { task = succeed ()
-      , success = \_ -> Just entry_
-      , failure = \_ -> Just entry_
-      }
+    Task <| \key -> 
+      let entry_ = Entry severity namespace message context in do
+      print (output key) (merge key entry_)
+      P.return (Ok ())
 
 
 merge :: Key -> Entry -> Entry
