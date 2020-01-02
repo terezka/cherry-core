@@ -8,19 +8,13 @@ import qualified Cherry.Task as Task
 import qualified Cherry.Log as Log
 import qualified Cherry.Result as Result
 import qualified Cherry.Maybe as Maybe
+import qualified Cherry.Terminal as T
 import qualified Prelude as P
 
 
 main :: Task.Program
 main =
-  Task.perform rollbar messages
-
-
-rollbar :: Log.Output
-rollbar =
-  Log.custom <| \_ ->
-    Task.succeed (10 // 0)
-    |> Task.andThen (\n -> print Ok (P.show n))
+  Task.perform Log.terminal messages
 
 
 messages :: Task.Task () ()
@@ -32,20 +26,14 @@ messages =
 
 
 printGood :: P.String -> Task.Task () ()
-printGood note =
-  print Ok note
+printGood string =
+  T.write [ T.green, T.italic, string, T.reset, T.newline ]
     |> Log.onOk (\_ -> Log.info "/print" "Good print succeeded." [])
     |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
 
 
 printBad :: P.String -> Task.Task () ()
-printBad note =
-  print Err "> Not working"
+printBad string =
+  T.write [ "> Not working", T.newline ]
     |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
     |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
-
-
-print :: (() -> Result () ()) -> P.String -> Task.Task () ()
-print toResult text =
-  P.fmap toResult (P.putStrLn text)
-    |> Task.enter
