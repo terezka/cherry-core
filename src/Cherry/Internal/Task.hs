@@ -1,4 +1,4 @@
-module Cherry.Internal.Task 
+module Cherry.Internal.Task
   ( -- * Tasks
     Program, Task(..), perform
   , andThen, succeed, fail, sequence
@@ -27,11 +27,11 @@ import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
 
 
-newtype Task x a = 
+newtype Task x a =
   Task { run :: Key -> P.IO (Result x a) }
 
 
-data Key = Key 
+data Key = Key
   { current_namespace :: Text.Text
   , current_context :: Context
   , output :: Output
@@ -51,12 +51,12 @@ instance P.Functor (Task a) where
 
 
 instance P.Applicative (Task a) where
-  pure a = 
+  pure a =
     succeed a
 
   (<*>) func task =
     Task <| \key ->
-      let onResult resultFunc resultTask = 
+      let onResult resultFunc resultTask =
             case (resultFunc, resultTask) of
               ( Ok func_, Ok task_ ) ->
                 Ok (func_ task_)
@@ -66,7 +66,7 @@ instance P.Applicative (Task a) where
 
               ( _, Err x ) ->
                 Err x
-      in do 
+      in do
       func_ <- run func key
       task_ <- run task key
       P.return (onResult func_ task_)
@@ -101,7 +101,7 @@ perform output task =
 
       initKey =
         Key "" [] output
-  in 
+  in
   run task initKey
     |> Internal.andThen onResult
 
@@ -162,7 +162,7 @@ sequence tasks =
 
 onError :: (x -> Task y a) -> Task x a -> Task y a
 onError func task =
-  Task <| \key -> 
+  Task <| \key ->
     let onResult result =
           case result of
             Ok ok -> P.return (Ok ok)
@@ -202,13 +202,13 @@ newtype Output =
 
 none :: Output
 none =
-  Output 
+  Output
     { print = \_ -> Internal.blank }
 
 
 terminal :: Output
 terminal =
-  let print entry = 
+  let print entry =
         let severity_ = severity entry
             namespace_ = namespace entry
             headerColor_ = headerColor severity_
@@ -236,7 +236,7 @@ terminal =
 
       headerDashes :: Severity -> Text.Text -> Text.Text
       headerDashes severity_ namespace_ =
-        let lengthSeverity = Text.length (severityText severity_) 
+        let lengthSeverity = Text.length (severityText severity_)
             lengthNamespace = Text.length namespace_
             lengthOther = 5
             lengthDashes = 80 - lengthSeverity - lengthNamespace - lengthOther
@@ -293,27 +293,27 @@ multiple outputs =
 
 debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
 debug =
-  log Debug 
+  log Debug
 
 
 info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
-info = 
-  log Info 
+info =
+  log Info
 
 
 warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
-warning = 
-  log Warning 
+warning =
+  log Warning
 
 
 error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
-error = 
-  log Error 
+error =
+  log Error
 
 
 alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
-alert = 
-  log Alert 
+alert =
+  log Alert
 
 
 
@@ -335,7 +335,7 @@ compact =
 {-| -}
 onOk :: (a -> Task () ()) -> Task x a -> Task x a
 onOk log task =
-  Task <| \key -> do 
+  Task <| \key -> do
     result <- run task key
     case result of
       Ok ok ->
@@ -350,10 +350,10 @@ onOk log task =
 {-| -}
 onErr :: (x -> Task () ()) -> Task x a -> Task x a
 onErr log task =
-  Task <| \key -> do 
+  Task <| \key -> do
     result <- run task key
     case result of
-      Ok _ -> 
+      Ok _ ->
         Internal.blank
 
       Err err ->
@@ -411,7 +411,7 @@ severityText severity =
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
   Stack.withFrozenCallStack <|
-    Task <| \key -> 
+    Task <| \key ->
       let entry_ = Entry severity namespace message context in do
       print (output key) (merge key entry_)
       P.return (Ok ())
