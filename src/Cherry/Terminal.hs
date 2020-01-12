@@ -15,9 +15,9 @@ message string =
     |> Task.enter
 
 
-write :: List P.String -> Task e ()
-write strings =
-  P.fmap (\_ -> Ok ()) (P.putStr (List.concat strings))
+write :: P.String -> Task e ()
+write string =
+  P.fmap (\_ -> Ok ()) (P.putStr string)
     |> Task.enter
 
 

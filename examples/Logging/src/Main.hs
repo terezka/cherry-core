@@ -27,13 +27,15 @@ messages =
 
 printGood :: P.String -> Task.Task () ()
 printGood string =
-  T.write [ T.green, T.italic, string, T.reset, T.newline ]
+  T.green <> T.italic <> string <> T.reset <> T.newline
+    |> T.write
     |> Log.onOk (\_ -> Log.info "/print" "Good print succeeded." [])
     |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
 
 
 printBad :: P.String -> Task.Task () ()
 printBad string =
-  T.write [ "> Not working", T.newline ]
+  "> Not working" <> T.newline
+    |> T.write
     |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
     |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
