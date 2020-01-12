@@ -496,7 +496,7 @@ cons :: Char -> Text -> Text
 cons = Data.Text.cons
 
 
-{-| Split a non-empty Text into its head and tail. This lets you 
+{-| Split a non-empty Text into its head and tail. This lets you
 pattern match on strings exactly as you would with lists.
 
   >  uncons "abc" == Just ('a',"bc")

@@ -15,12 +15,14 @@ module Cherry.Internal.Task
   ) where
 
 import qualified Prelude as P
-import qualified Data.Text as Text
+import qualified Data.Text
 import qualified Data.List
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal.Shortcut as Shortcut
+import qualified Cherry.Internal.Terminal as T
 import qualified Cherry.List as List
+import qualified Cherry.Text as Text
 import Control.Exception (catch)
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
@@ -211,60 +213,41 @@ none =
 terminal :: Output
 terminal =
   let print entry =
-        let severity_ = severity entry
-            namespace_ = namespace entry
-            headerColor_ = headerColor severity_
-            headerDashes_ = headerDashes severity_ namespace_
-            header = headerColor_ <> "-- " <> severityText severity_ <> " " <> headerDashes_ <> " " <> namespace_ <> " \x1b[0m"
-        in do
-        printLine header
-        printBlank
-        printText (message entry)
-        printBlank
-        printBlank
-        printLine "For context:"
-        printBlank
-        printContexts (contexts entry)
-        printBlank
+        T.message (color entry) (title entry) (namespace entry) (content entry)
 
-      headerColor :: Severity -> Text.Text
-      headerColor severity_ =
-        case severity_ of
-          Debug -> "\x1b[36m"
-          Info -> "\x1b[36m"
-          Warning -> "\x1b[33m"
-          Error -> "\x1b[35m"
-          Alert -> "\x1b[31m"
+      color :: Entry -> Text.Text
+      color entry =
+        case severity entry of
+          Debug -> T.cyan
+          Info -> T.cyan
+          Warning -> T.yellow
+          Error -> T.magenta
+          Alert -> T.red
 
-      headerDashes :: Severity -> Text.Text -> Text.Text
-      headerDashes severity_ namespace_ =
-        let lengthSeverity = Text.length (severityText severity_)
-            lengthNamespace = Text.length namespace_
-            lengthOther = 5
-            lengthDashes = 80 - lengthSeverity - lengthNamespace - lengthOther
-        in
-        Text.pack (Data.List.replicate lengthDashes '-')
+      title :: Entry -> Text.Text
+      title entry =
+        case severity entry of
+          Debug -> "Debug"
+          Info -> "Info"
+          Warning -> "Warning"
+          Error -> "Error"
+          Alert -> "Alert"
 
-      printContexts :: Context -> IO ()
-      printContexts context =
-        List.map printContext context
-          |> List.foldl Shortcut.afterwards Shortcut.blank
+      content :: Entry -> List Text.Text
+      content entry =
+        [ message entry
+        , "For context:"
+        , contexts_ entry
+        ]
 
-      printContext :: ( Text.Text, Text.Text ) -> IO ()
-      printContext ( name, value ) = do
-        printLine <| "    " <> name <> ": " <> value
+      contexts_ :: Entry -> Text.Text
+      contexts_ entry =
+        List.map context (contexts entry)
+          |> Text.join T.newline
 
-      printLine :: Text.Text -> IO ()
-      printLine =
-        P.putStrLn << Text.unpack
-
-      printText :: Text.Text -> IO ()
-      printText =
-        P.putStr << Text.unpack
-
-      printBlank :: IO ()
-      printBlank =
-        P.putStrLn ""
+      context :: ( Text.Text, Text.Text ) -> Text.Text
+      context ( name, value ) = do
+        T.indent 4 <> name <> ": " <> value
   in
   Output { _output = print }
 
@@ -398,16 +381,6 @@ type Context =
 
 
 -- INTERNAL
-
-
-severityText :: Severity -> Text.Text
-severityText severity =
-  case severity of
-    Debug -> "DEBUG"
-    Info -> "INFO"
-    Warning -> "WARNING"
-    Error -> "ERROR"
-    Alert -> "ALERT"
 
 
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()

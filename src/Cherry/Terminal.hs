@@ -1,29 +1,27 @@
-module Cherry.Terminal (write, read, red, blue, green, magenta, yellow, cyan, black, white, reset, underline, italic, newline) where
+module Cherry.Terminal (write, read, message, red, blue, green, magenta, yellow, cyan, black, white, reset, underline, italic, newline) where
 
 import qualified Prelude as P
 import qualified Cherry.Task as Task
 import qualified Cherry.List as List
+import qualified Cherry.Text as Text
+import qualified Cherry.Internal.Terminal as T
 import Cherry.Task (Task)
 import Cherry.List (List)
 import Cherry.Basics
 import Cherry.Result (Result(..))
 
 
-message :: P.String -> Task e ()
-message string =
-  P.fmap (\_ -> Ok ()) (P.putStrLn string)
-    |> Task.enter
+{-| -}
+write :: Text.Text -> Task e ()
+write =
+  T.write >> P.fmap (\_ -> Ok ()) >> Task.enter
 
 
-write :: P.String -> Task e ()
-write string =
-  P.fmap (\_ -> Ok ()) (P.putStr string)
-    |> Task.enter
-
-
-read :: Task e P.String
+{-| -}
+read :: Task e Text.Text
 read =
-  P.fmap Ok P.getLine
+  T.read
+    |> P.fmap Ok
     |> Task.enter
 
 
@@ -31,62 +29,72 @@ read =
 -- CHARACTERS
 
 
-red :: P.String
+red :: Text.Text
 red =
-  "\x1b[31m"
+  T.red
 
 
-blue :: P.String
+blue :: Text.Text
 blue =
-  "\x1b[34m"
+  T.blue
 
 
-magenta :: P.String
+magenta :: Text.Text
 magenta =
-  "\x1b[35m"
+  T.magenta
 
-green :: P.String
+green :: Text.Text
 green =
-  "\x1b[32m"
+  T.green
 
 
-yellow :: P.String
+yellow :: Text.Text
 yellow =
-  "\x1b[33m"
+  T.yellow
 
 
-cyan :: P.String
+cyan :: Text.Text
 cyan =
-  "\x1b[36m"
+  T.cyan
 
 
-black :: P.String
+black :: Text.Text
 black =
-  "\x1b[30m"
+  T.black
 
 
-white :: P.String
+white :: Text.Text
 white =
-  "\x1b[37m"
+  T.white
 
 
-reset :: P.String
+reset :: Text.Text
 reset =
-  "\x1b[0m"
+  T.reset
 
 
-newline :: P.String
+newline :: Text.Text
 newline =
-  "\n"
+  T.newline
 
 
-underline :: P.String
+underline :: Text.Text
 underline =
-  "\x1b[4m"
+  T.underline
 
 
-italic :: P.String
+italic :: Text.Text
 italic =
-  "\x1b[3m"
+  T.italic
 
+
+
+-- MESSAGE
+
+
+message :: Text.Text -> Text.Text -> List Text.Text -> Task e ()
+message title location content =
+  T.message cyan title location content
+    |> P.fmap (\_ -> Ok ())
+    |> Task.enter
 

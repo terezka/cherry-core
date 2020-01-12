@@ -3,7 +3,7 @@ module Main where
 import Cherry.Basics
 import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
-import qualified Data.Text as Text
+import qualified Cherry.Text as Text
 import qualified Cherry.Task as Task
 import qualified Cherry.Log as Log
 import qualified Cherry.Result as Result
@@ -25,7 +25,7 @@ messages =
     printBad "> hello second!"
 
 
-printGood :: P.String -> Task.Task () ()
+printGood :: Text.Text -> Task.Task () ()
 printGood string =
   T.green <> T.italic <> string <> T.reset <> T.newline
     |> T.write
@@ -33,9 +33,8 @@ printGood string =
     |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
 
 
-printBad :: P.String -> Task.Task () ()
+printBad :: Text.Text -> Task.Task () ()
 printBad string =
-  "> Not working" <> T.newline
-    |> T.write
+  T.message "Something" "badPrint" [ "> Not working" ]
     |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
     |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
