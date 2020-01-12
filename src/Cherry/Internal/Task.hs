@@ -36,9 +36,9 @@ newtype Task x a =
 
 
 data Key = Key
-  { _current_namespace :: Text.Text
-  , _current_context :: Context
-  , _current_output :: Output
+  { _currentNamespace :: Text.Text
+  , _currentContext :: Context
+  , _currentOutput :: Output
   }
 
 
@@ -344,9 +344,9 @@ context :: Text.Text -> Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key ->
     let nextKey = Key
-          { _current_namespace = _current_namespace key <> namespace
-          , _current_context = _current_context key ++ context
-          , _current_output = _current_output key
+          { _currentNamespace = _currentNamespace key <> namespace
+          , _currentContext = _currentContext key ++ context
+          , _currentOutput = _currentOutput key
           }
     in
     _run task nextKey
@@ -380,8 +380,8 @@ log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
   Stack.withFrozenCallStack <|
     Task <| \key ->
-      let entry_ = Entry severity namespace message context
-          output = _output (_current_output key) (merge key entry_)
+      let entry = Entry severity namespace message context
+          output = _output (_currentOutput key) (merge key entry)
       in do
       output `catch` ignoreException
       P.return (Ok ())
@@ -396,7 +396,7 @@ merge :: Key -> Entry -> Entry
 merge key entry =
   Entry
     { _severity = _severity entry
-    , _namespace = _current_namespace key <> _namespace entry
+    , _namespace = _currentNamespace key <> _namespace entry
     , _message = _message entry
-    , _contexts = _current_context key ++ _contexts entry
+    , _contexts = _currentContext key ++ _contexts entry
     }
