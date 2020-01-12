@@ -11,7 +11,15 @@ import Cherry.Basics
 import Cherry.Result (Result(..))
 
 
-{-| -}
+{-| Write some text to the terminal. Remember to add newlines where
+  appropriate, or use `message`.
+
+  > import qualified Cherry.Terminal as T
+  >
+  > T.write <| T.green <> "What is your name?" <> T.reset <> T.newline
+  >
+
+-}
 write :: Text.Text -> Task e ()
 write =
   T.write >> P.fmap (\_ -> Ok ()) >> Task.enter

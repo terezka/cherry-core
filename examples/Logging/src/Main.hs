@@ -36,8 +36,8 @@ printGood string =
 printBad :: Text.Text -> Task.Task () ()
 printBad string =
   T.message "My message" "Main.hs"
-      [ "This is a message from my program."
-      , "This message is on the next line."
-      ]
+    [ "This is a message from my program."
+    , "This message is on the next line."
+    ]
     |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
     |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
