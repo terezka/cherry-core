@@ -25,76 +25,103 @@ read =
     |> Task.enter
 
 
+{-| Write a message with a title, a location, and some paragraphs.
 
--- CHARACTERS
+  > message "My message" "Main.hs"
+  >    [ "This is a message from my program."
+  >    , "This message is on the next line."
+  >    ]
 
+The above code results in:
 
-red :: Text.Text
-red =
-  T.red
+  > -- MY MESSAGE ---------------------------------------------------------- Main.hs
+  >
+  > This is a message from my program.
+  >
+  > This message is on the next line.
+  >
 
-
-blue :: Text.Text
-blue =
-  T.blue
-
-
-magenta :: Text.Text
-magenta =
-  T.magenta
-
-green :: Text.Text
-green =
-  T.green
-
-
-yellow :: Text.Text
-yellow =
-  T.yellow
-
-
-cyan :: Text.Text
-cyan =
-  T.cyan
-
-
-black :: Text.Text
-black =
-  T.black
-
-
-white :: Text.Text
-white =
-  T.white
-
-
-reset :: Text.Text
-reset =
-  T.reset
-
-
-newline :: Text.Text
-newline =
-  T.newline
-
-
-underline :: Text.Text
-underline =
-  T.underline
-
-
-italic :: Text.Text
-italic =
-  T.italic
-
-
-
--- MESSAGE
-
-
+-}
 message :: Text.Text -> Text.Text -> List Text.Text -> Task e ()
 message title location content =
   T.message cyan title location content
     |> P.fmap (\_ -> Ok ())
     |> Task.enter
+
+
+
+-- CHARACTERS
+
+
+{-| -}
+red :: Text.Text
+red =
+  T.red
+
+
+{-| -}
+blue :: Text.Text
+blue =
+  T.blue
+
+
+{-| -}
+magenta :: Text.Text
+magenta =
+  T.magenta
+
+
+{-| -}
+green :: Text.Text
+green =
+  T.green
+
+
+{-| -}
+yellow :: Text.Text
+yellow =
+  T.yellow
+
+
+{-| -}
+cyan :: Text.Text
+cyan =
+  T.cyan
+
+
+{-| -}
+black :: Text.Text
+black =
+  T.black
+
+
+{-| -}
+white :: Text.Text
+white =
+  T.white
+
+
+{-| -}
+reset :: Text.Text
+reset =
+  T.reset
+
+
+{-| -}
+newline :: Text.Text
+newline =
+  T.newline
+
+
+{-| -}
+underline :: Text.Text
+underline =
+  T.underline
+
+
+{-| -}
+italic :: Text.Text
+italic =
+  T.italic
+
 
