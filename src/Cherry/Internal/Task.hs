@@ -32,13 +32,13 @@ import Cherry.Maybe (Maybe(..))
 
 
 newtype Task x a =
-  Task { run :: Key -> P.IO (Result x a) }
+  Task { _run :: Key -> P.IO (Result x a) }
 
 
 data Key = Key
-  { current_namespace :: Text.Text
-  , current_context :: Context
-  , current_output :: Output
+  { _current_namespace :: Text.Text
+  , _current_context :: Context
+  , _current_output :: Output
   }
 
 
@@ -50,7 +50,7 @@ instance P.Functor (Task a) where
               Ok a -> Ok (func a)
               Err x -> Err x
       in
-      run task key
+      _run task key
         |> Shortcut.map onResult
 
 
@@ -71,8 +71,8 @@ instance P.Applicative (Task a) where
               ( _, Err x ) ->
                 Err x
       in do
-      func_ <- run func key
-      task_ <- run task key
+      func_ <- _run func key
+      task_ <- _run task key
       P.return (onResult func_ task_)
 
 
@@ -82,12 +82,12 @@ instance P.Monad (Task a) where
       let onResult result =
             case result of
               Ok ok ->
-                run (func ok) key
+                _run (func ok) key
 
               Err err ->
                 P.return (Err err)
       in
-      run task key
+      _run task key
         |> Shortcut.andThen onResult
 
 
@@ -106,7 +106,7 @@ perform output task =
       initKey =
         Key "" [] output
   in
-  run task initKey
+  _run task initKey
     |> Shortcut.andThen onResult
 
 
@@ -170,9 +170,9 @@ onError func task =
     let onResult result =
           case result of
             Ok ok -> P.return (Ok ok)
-            Err err -> run (func err) key
+            Err err -> _run (func err) key
     in
-    run task key
+    _run task key
       |> Shortcut.andThen onResult
 
 
@@ -193,7 +193,7 @@ enter io =
 exit :: Task x a -> IO (Result x a)
 exit task =
   let key = Key "" [] none in
-  run task key
+  _run task key
 
 
 
@@ -213,39 +213,32 @@ none =
 terminal :: Output
 terminal =
   let print entry =
-        T.message (color entry) (title entry) (namespace entry) (content entry)
+        T.message (color entry) (title entry) (_namespace entry)
+          [ _message entry
+          , "For context:"
+          , contexts entry
+          ]
 
-      color :: Entry -> Text.Text
       color entry =
-        case severity entry of
+        case _severity entry of
           Debug -> T.cyan
           Info -> T.cyan
           Warning -> T.yellow
           Error -> T.magenta
           Alert -> T.red
 
-      title :: Entry -> Text.Text
       title entry =
-        case severity entry of
+        case _severity entry of
           Debug -> "Debug"
           Info -> "Info"
           Warning -> "Warning"
           Error -> "Error"
           Alert -> "Alert"
 
-      content :: Entry -> List Text.Text
-      content entry =
-        [ message entry
-        , "For context:"
-        , contexts_ entry
-        ]
-
-      contexts_ :: Entry -> Text.Text
-      contexts_ entry =
-        List.map context (contexts entry)
+      contexts entry =
+        List.map context (_contexts entry)
           |> Text.join T.newline
 
-      context :: ( Text.Text, Text.Text ) -> Text.Text
       context ( name, value ) = do
         T.indent 4 <> name <> ": " <> value
   in
@@ -321,10 +314,10 @@ compact =
 onOk :: (a -> Task () ()) -> Task x a -> Task x a
 onOk log task =
   Task <| \key -> do
-    result <- run task key
+    result <- _run task key
     case result of
       Ok ok ->
-        run (log ok) key
+        _run (log ok) key
           |> P.fmap (\_ -> ())
 
       Err _ ->
@@ -336,13 +329,13 @@ onOk log task =
 onErr :: (x -> Task () ()) -> Task x a -> Task x a
 onErr log task =
   Task <| \key -> do
-    result <- run task key
+    result <- _run task key
     case result of
       Ok _ ->
         Shortcut.blank
 
       Err err ->
-        run (log err) key
+        _run (log err) key
           |> P.fmap (\_ -> ())
     P.return result
 
@@ -350,20 +343,20 @@ onErr log task =
 context :: Text.Text -> Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key ->
-    let key_ = Key
-          { current_namespace = current_namespace key <> namespace
-          , current_context = current_context key ++ context
-          , current_output = current_output key
+    let nextKey = Key
+          { _current_namespace = _current_namespace key <> namespace
+          , _current_context = _current_context key ++ context
+          , _current_output = _current_output key
           }
     in
-    run task key_
+    _run task nextKey
 
 
 data Entry = Entry
-  { severity :: Severity
-  , namespace :: Text.Text
-  , message :: Text.Text
-  , contexts :: Context
+  { _severity :: Severity
+  , _namespace :: Text.Text
+  , _message :: Text.Text
+  , _contexts :: Context
   }
 
 
@@ -388,7 +381,7 @@ log severity namespace message context =
   Stack.withFrozenCallStack <|
     Task <| \key ->
       let entry_ = Entry severity namespace message context
-          output = _output (current_output key) (merge key entry_)
+          output = _output (_current_output key) (merge key entry_)
       in do
       output `catch` ignoreException
       P.return (Ok ())
@@ -402,8 +395,8 @@ ignoreException e =
 merge :: Key -> Entry -> Entry
 merge key entry =
   Entry
-    { severity = severity entry
-    , namespace = current_namespace key <> namespace entry
-    , message = message entry
-    , contexts = current_context key ++ contexts entry
+    { _severity = _severity entry
+    , _namespace = _current_namespace key <> _namespace entry
+    , _message = _message entry
+    , _contexts = _current_context key ++ _contexts entry
     }
