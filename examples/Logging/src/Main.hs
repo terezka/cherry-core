@@ -27,7 +27,7 @@ messages =
 
 printGood :: Text.Text -> Task.Task () ()
 printGood string =
-  T.green <> T.italic <> string <> T.reset <> T.newline
+  T.green <> string <> T.reset <> T.newline
     |> T.write
     |> Log.onOk (\_ -> Log.info "/print" "Good print succeeded." [])
     |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
@@ -35,9 +35,7 @@ printGood string =
 
 printBad :: Text.Text -> Task.Task () ()
 printBad string =
-  T.message "My message" "Main.hs"
-    [ "This is a message from my program."
-    , "This message is on the next line."
-    ]
+  T.red <> "> print bad" <> T.reset <> T.newline
+    |> T.write
     |> Log.onOk (\_ -> Log.info "/print" "Bad print succeeded." [])
     |> Log.onErr (\_ -> Log.error "/print" "Bad print errored." [])
