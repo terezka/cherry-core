@@ -240,7 +240,7 @@ data Output = Output
 none :: Output
 none =
   Output
-    { _write = \_ -> Shortcut.blank
+    { _write = \_ -> P.return ()
     , _onDone = P.return ()
     }
 
@@ -297,8 +297,8 @@ file filepath =
 custom :: Task x a -> (Entry -> Task x a) -> Output
 custom onDone func =
   Output
-    { _write = func >> exit >> Shortcut.map (\_ -> ())
-    , _onDone = onDone |> exit |> Shortcut.map (\_ -> ())
+    { _write = func >> exit >> void
+    , _onDone = onDone |> exit |> void
     }
 
 
@@ -370,11 +370,11 @@ onOk log task =
     result <- _run task key
     case result of
       Ok ok ->
-        _run (log ok) key
-          |> P.fmap (\_ -> ())
+        _run (log ok) key |> void
 
       Err _ ->
-        Shortcut.blank
+        P.return ()
+
     P.return result
 
 
@@ -385,11 +385,11 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        Shortcut.blank
+        P.return ()
 
-      Err err ->
-        _run (log err) key
-          |> P.fmap (\_ -> ())
+      Err err -> do
+        _run (log err) key |> void
+
     P.return result
 
 
@@ -434,9 +434,8 @@ type Context =
 
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
-  Task <| \key ->
+  Task <| \key -> do
     let entry = merge key (Entry severity namespace message context)
-    in do
     STM.atomically <| addToQueue (_currentQueue key) entry
     P.return (Ok ())
 
@@ -444,10 +443,10 @@ log severity namespace message context =
 addToQueue :: BQ.TBQueue Message -> Entry -> STM.STM Bool
 addToQueue queue entry = do
   full <- BQ.isFullTBQueue queue
-  if not full then do
-    _ <- BQ.writeTBQueue queue (NewEntry entry)
+  if full then
     P.return (not full)
   else do
+    _ <- BQ.writeTBQueue queue (NewEntry entry)
     P.return (not full)
 
 
