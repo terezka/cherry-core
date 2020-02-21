@@ -14,6 +14,10 @@ module Cherry.Internal.Task
   , Context, context
   ) where
 
+
+-- TODO: Add json context
+-- TODO: Add file output
+
 import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
@@ -124,7 +128,7 @@ perform output task = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
         _ <- _onDone output
-        Shortcut.blank
+        Shortcut.empty
 
   bracket init finally (_run task)
 
@@ -139,7 +143,7 @@ spawnWorker (Output write onDone) queue =
             loop
 
           Done ->
-            Shortcut.blank
+            Shortcut.empty
   in do
   Async.async loop
 
@@ -242,8 +246,8 @@ data Output = Output
 none :: Output
 none =
   Output
-    { _write = \_ -> Shortcut.blank
-    , _onDone = Shortcut.blank
+    { _write = \_ -> Shortcut.empty
+    , _onDone = Shortcut.empty
     }
 
 
@@ -282,7 +286,7 @@ terminal =
   in
   Output
     { _write = print
-    , _onDone = Shortcut.blank
+    , _onDone = Shortcut.empty
     }
 
 
@@ -293,7 +297,7 @@ file filepath =
   in
   Output
     { _write = print
-    , _onDone = Shortcut.blank
+    , _onDone = Shortcut.empty
     }
 
 
@@ -311,13 +315,13 @@ multiple outputs =
         io |> Shortcut.afterwards (write_ entry)
 
       write entry =
-        List.foldr (addWriter entry) Shortcut.blank outputs
+        List.foldr (addWriter entry) Shortcut.empty outputs
 
       addExit (Output _ onDone) io =
         io |> Shortcut.afterwards onDone
 
       exit =
-        List.foldr addExit Shortcut.blank outputs
+        List.foldr addExit Shortcut.empty outputs
   in
   Output
     { _write = write
@@ -374,10 +378,10 @@ onOk log task =
     case result of
       Ok ok -> do
         _ <- _run (log ok) key
-        Shortcut.blank
+        Shortcut.empty
 
       Err _ ->
-        Shortcut.blank
+        Shortcut.empty
 
     P.return result
 
@@ -389,11 +393,11 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        Shortcut.blank
+        Shortcut.empty
 
       Err err -> do
         _ <- _run (log err) key
-        Shortcut.blank
+        Shortcut.empty
 
     P.return result
 
