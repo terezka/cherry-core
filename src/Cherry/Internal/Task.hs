@@ -121,9 +121,10 @@ perform output task = do
         P.return (Key "" host pId output queue [])
 
   let finally _ = do
-        STM.atomically (BQ.writeTBQueue queue Done)
-        Async.waitCatch worker |> void
-        _onDone output |> void
+        _ <- STM.atomically (BQ.writeTBQueue queue Done)
+        _ <- Async.waitCatch worker
+        _ <- _onDone output
+        Shortcut.blank
 
   bracket init finally (_run task)
 
@@ -134,10 +135,10 @@ spawnWorker (Output write onDone) queue =
         next <- STM.atomically (BQ.readTBQueue queue)
         case next of
           NewEntry entry -> do
-            Exception.tryAny (write entry) |> void
+            _ <- Exception.tryAny (write entry)
             loop
 
-          Done -> do
+          Done ->
             Shortcut.blank
   in do
   Async.async loop
@@ -371,8 +372,9 @@ onOk log task =
   Task <| \key -> do
     result <- _run task key
     case result of
-      Ok ok ->
-        _run (log ok) key |> void
+      Ok ok -> do
+        _ <- _run (log ok) key
+        Shortcut.blank
 
       Err _ ->
         Shortcut.blank
@@ -390,7 +392,8 @@ onErr log task =
         Shortcut.blank
 
       Err err -> do
-        _run (log err) key |> void
+        _ <- _run (log err) key
+        Shortcut.blank
 
     P.return result
 
