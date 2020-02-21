@@ -32,6 +32,6 @@ library
   -- other-modules:
   other-extensions:    RankNTypes
   default-extensions:  OverloadedStrings
-  build-depends:       base >=4.12 && <4.13, text >=1.2 && <1.3, containers >=0.6 && <0.7, mtl, vector, safe-exceptions, async, stm, unix, hostname
+  build-depends:       base >=4.12 && <4.13, text >=1.2 && <1.3, containers >=0.6 && <0.7, mtl, vector, safe-exceptions, async, stm, unix, hostname, time
   hs-source-dirs:      src
   default-language:    Haskell2010

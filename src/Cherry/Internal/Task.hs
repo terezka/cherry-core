@@ -17,6 +17,7 @@ module Cherry.Internal.Task
 import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
+import qualified Data.Time.Clock as Clock
 import qualified Control.Exception.Safe as Exception
 import qualified Control.Concurrent.Async as Async
 import qualified Control.Concurrent.STM as STM
@@ -272,6 +273,7 @@ terminal =
 
       contexts entry =
         List.map context (_contexts entry)
+          |> List.append [T.indent 4 <> "time: " <> Data.Text.pack (P.show (_time entry)) ]
           |> Text.join T.newline
 
       context ( name, value ) = do
@@ -412,6 +414,7 @@ data Entry = Entry
   { _severity :: Severity
   , _namespace :: Text.Text
   , _message :: Text.Text
+  , _time :: Clock.UTCTime
   , _contexts :: Context
   }
 
@@ -435,7 +438,8 @@ type Context =
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
   Task <| \key -> do
-    let entry = merge key (Entry severity namespace message context)
+    time <- Clock.getCurrentTime
+    let entry = merge key (Entry severity namespace message time context)
     STM.atomically <| addToQueue (_currentQueue key) entry
     P.return (Ok ())
 
@@ -457,4 +461,5 @@ merge key entry =
     , _namespace = _currentNamespace key <> _namespace entry
     , _message = _message entry
     , _contexts = _currentContext key ++ _contexts entry
+    , _time = _time entry
     }
