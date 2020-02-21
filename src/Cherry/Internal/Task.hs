@@ -137,7 +137,7 @@ spawnWorker (Output write onDone) queue =
             loop
 
           Done -> do
-            P.return ()
+            Shortcut.blank
   in do
   Async.async loop
 
@@ -240,8 +240,8 @@ data Output = Output
 none :: Output
 none =
   Output
-    { _write = \_ -> P.return ()
-    , _onDone = P.return ()
+    { _write = \_ -> Shortcut.blank
+    , _onDone = Shortcut.blank
     }
 
 
@@ -279,7 +279,7 @@ terminal =
   in
   Output
     { _write = print
-    , _onDone = P.return ()
+    , _onDone = Shortcut.blank
     }
 
 
@@ -290,7 +290,7 @@ file filepath =
   in
   Output
     { _write = print
-    , _onDone = P.return ()
+    , _onDone = Shortcut.blank
     }
 
 
@@ -348,17 +348,17 @@ alert =
 
 
 
-data Measure
+data Verbosity
   = Compact
   | Verbose
 
 
-verbose :: Measure
+verbose :: Verbosity
 verbose =
   Verbose
 
 
-compact :: Measure
+compact :: Verbosity
 compact =
   Compact
 
@@ -373,7 +373,7 @@ onOk log task =
         _run (log ok) key |> void
 
       Err _ ->
-        P.return ()
+        Shortcut.blank
 
     P.return result
 
@@ -385,7 +385,7 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        P.return ()
+        Shortcut.blank
 
       Err err -> do
         _run (log err) key |> void
