@@ -2,7 +2,7 @@ module Cherry.Task
   ( -- * Tasks
     -- Tasks make it easy to describe asynchronous operations that may fail, like
     -- HTTP requests or writing to a database.
-    Program, Task, perform
+    Task, perform
 
     -- * Chains
   , andThen, succeed, fail, sequence
@@ -42,17 +42,6 @@ type Task x a =
 -- BASICS
 
 
-{-| A program.
-
-  >  main :: Task.Program
-  >  main =
-  >    Terminal.write "Hello world!"
-  >      |> Task.perform Log.none
--}
-type Program =
-  Task.Program
-
-
 {-| Just having a `Task` does not mean it is done. We must `perform` the task:
 
   >  import Cherry.Task
@@ -63,7 +52,7 @@ type Program =
   >    Task.perform Log.none Time.now
 
 -}
-perform :: Task.Output -> Task x a -> Program
+perform :: Task.Output -> Task x a -> IO (Result x a)
 perform =
   Task.perform
 

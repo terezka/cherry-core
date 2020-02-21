@@ -51,7 +51,7 @@ terminal =
 which you might want to send your logs too.
 
 -}
-custom :: (Entry -> Task x a) -> Output
+custom :: Task x a -> (Entry -> Task x a) -> Output
 custom =
   Task.custom
 

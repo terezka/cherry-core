@@ -1,6 +1,6 @@
 module Cherry.Internal.Task
   ( -- * Tasks
-    Program, Task(..), perform
+    Task(..), perform
   , andThen, succeed, fail, sequence
   , enter, exit
   , map, map2, map3, map4, map5, map6
@@ -17,13 +17,21 @@ module Cherry.Internal.Task
 import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
-import qualified Control.Exception as Exception
+import qualified Control.Exception.Safe as Exception
+import qualified Control.Concurrent.Async as Async
+import qualified Control.Concurrent.STM as STM
+import qualified Control.Concurrent.STM.TBQueue as BQ
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.Internal.Terminal as T
 import qualified Cherry.List as List
+import qualified Cherry.Debug as Debug
 import qualified Cherry.Text as Text
-import Control.Exception (catch)
+import qualified Network.HostName as HostName
+import qualified System.Posix.Process as Process
+import qualified System.Posix.Types as Types
+import Control.Monad (void)
+import Control.Exception (bracket)
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
@@ -37,10 +45,16 @@ newtype Task x a =
 
 data Key = Key
   { _currentNamespace :: Text.Text
-  , _currentContext :: Context
+  , _currentHost :: HostName.HostName
+  , _currentPID :: Types.ProcessID
   , _currentOutput :: Output
+  , _currentQueue :: BQ.TBQueue Message
+  , _currentContext :: Context
   }
 
+data Message
+  = NewEntry Entry
+  | Done
 
 instance P.Functor (Task a) where
   fmap func task =
@@ -95,19 +109,37 @@ instance P.Monad (Task a) where
 -- BASICS
 
 
-type Program = IO ()
+perform :: Output -> Task x a -> IO (Result x a)
+perform output task = do
+  queue <- STM.atomically (BQ.newTBQueue 4096)
+  worker <- spawnWorker output queue
+
+  let init = do
+        host <- HostName.getHostName
+        pId <- Process.getProcessID
+        P.return (Key "" host pId output queue [])
+
+  let finally _ = do
+        STM.atomically (BQ.writeTBQueue queue Done)
+        Async.waitCatch worker |> void
+        _onDone output |> void
+
+  bracket init finally (_run task)
 
 
-perform :: Output -> Task x a -> Program
-perform output task =
-  let onResult result =
-        Shortcut.blank
+spawnWorker :: Output -> BQ.TBQueue Message -> IO (Async.Async ())
+spawnWorker (Output write onDone) queue =
+  let loop = do
+        next <- STM.atomically (BQ.readTBQueue queue)
+        case next of
+          NewEntry entry -> do
+            Exception.tryAny (write entry) |> void
+            loop
 
-      initKey =
-        Key "" [] output
-  in
-  _run task initKey
-    |> Shortcut.andThen onResult
+          Done -> do
+            P.return ()
+  in do
+  Async.async loop
 
 
 succeed :: a -> Task x a
@@ -191,23 +223,26 @@ enter io =
 
 
 exit :: Task x a -> IO (Result x a)
-exit task =
-  let key = Key "" [] none in
-  _run task key
+exit =
+  perform none
 
 
 
 -- LOGGING
 
 
-newtype Output =
-  Output { _output :: Entry -> IO () }
+data Output = Output
+  { _write :: Entry -> IO ()
+  , _onDone :: IO ()
+  }
 
 
 none :: Output
 none =
   Output
-    { _output = \_ -> Shortcut.blank }
+    { _write = \_ -> Shortcut.blank
+    , _onDone = P.return ()
+    }
 
 
 terminal :: Output
@@ -242,7 +277,10 @@ terminal =
       context ( name, value ) = do
         T.indent 4 <> name <> ": " <> value
   in
-  Output { _output = print }
+  Output
+    { _write = print
+    , _onDone = P.return ()
+    }
 
 
 file :: FilePath -> Output
@@ -250,23 +288,38 @@ file filepath =
   let print entry =
         P.error "TODO Print to file."
   in
-  Output { _output = print }
+  Output
+    { _write = print
+    , _onDone = P.return ()
+    }
 
 
-custom :: (Entry -> Task x a) -> Output
-custom func =
-  Output { _output = func >> exit >> Shortcut.map (\_ -> ()) }
+custom :: Task x a -> (Entry -> Task x a) -> Output
+custom onDone func =
+  Output
+    { _write = func >> exit >> Shortcut.map (\_ -> ())
+    , _onDone = onDone |> exit |> Shortcut.map (\_ -> ())
+    }
 
 
 multiple :: List Output -> Output
 multiple outputs =
-  let addOutput entry (Output _output) io =
-        io |> Shortcut.afterwards (_output entry)
+  let addWriter entry (Output write_ _) io =
+        io |> Shortcut.afterwards (write_ entry)
 
-      addOutputs entry =
-        List.foldr (addOutput entry) Shortcut.blank outputs
+      write entry =
+        List.foldr (addWriter entry) Shortcut.blank outputs
+
+      addExit (Output _ onDone) io =
+        io |> Shortcut.afterwards onDone
+
+      exit =
+        List.foldr addExit Shortcut.blank outputs
   in
-  Output { _output = addOutputs }
+  Output
+    { _write = write
+    , _onDone = exit
+    }
 
 
 debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
@@ -347,6 +400,9 @@ context namespace context task =
           { _currentNamespace = _currentNamespace key <> namespace
           , _currentContext = _currentContext key ++ context
           , _currentOutput = _currentOutput key
+          , _currentHost = _currentHost key
+          , _currentPID = _currentPID key
+          , _currentQueue = _currentQueue key
           }
     in
     _run task nextKey
@@ -378,18 +434,21 @@ type Context =
 
 log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
 log severity namespace message context =
-  Stack.withFrozenCallStack <|
-    Task <| \key ->
-      let entry = Entry severity namespace message context
-          output = _output (_currentOutput key) (merge key entry)
-      in do
-      output `catch` ignoreException
-      P.return (Ok ())
+  Task <| \key ->
+    let entry = merge key (Entry severity namespace message context)
+    in do
+    STM.atomically <| addToQueue (_currentQueue key) entry
+    P.return (Ok ())
 
 
-ignoreException :: Exception.SomeException -> IO ()
-ignoreException e =
-  Shortcut.blank
+addToQueue :: BQ.TBQueue Message -> Entry -> STM.STM Bool
+addToQueue queue entry = do
+  full <- BQ.isFullTBQueue queue
+  if not full then do
+    _ <- BQ.writeTBQueue queue (NewEntry entry)
+    P.return (not full)
+  else do
+    P.return (not full)
 
 
 merge :: Key -> Entry -> Entry

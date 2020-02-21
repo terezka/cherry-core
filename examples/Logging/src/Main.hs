@@ -12,7 +12,7 @@ import qualified Cherry.Terminal as T
 import qualified Prelude as P
 
 
-main :: Task.Program
+main :: P.IO (Result () ())
 main =
   Task.perform Log.terminal messages
 
@@ -20,7 +20,7 @@ main =
 messages :: Task.Task () ()
 messages =
   Log.context "messages" [ ( "online", "true" ) ] <| do
-    Log.debug "" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
+    Log.debug "/namespace" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     printGood "> hello first!"
     printBad "> hello second!"
 

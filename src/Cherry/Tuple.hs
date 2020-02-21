@@ -24,11 +24,10 @@ module Cherry.Tuple
     -- [ut]: https://robots.thoughtbot.com/modeling-with-union-types
     --
     -- * Create
-  , pair
-
+    --
+  pair
     -- * Access
   , first, second
-
     -- * Map
   , mapFirst, mapSecond, mapBoth
   )
