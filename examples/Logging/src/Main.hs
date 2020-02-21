@@ -30,7 +30,7 @@ printGood string =
   T.green <> string <> T.reset <> T.newline
     |> T.write
     |> Log.onOk (\_ -> Log.info "/print" "Good print succeeded." [])
-    |> Log.onErr (\_ -> Log.info "/print" "Good print succeeded." [])
+    |> Log.onErr (\_ -> Log.info "/print" "Good print errored." [])
 
 
 printBad :: Text.Text -> Task.Task () ()
