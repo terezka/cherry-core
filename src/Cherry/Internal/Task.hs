@@ -322,14 +322,29 @@ terminal =
 
 
 file :: FilePath -> Output
-file filepath =
-  let print entry =
-        P.error "TODO Print to file."
-  in
-  Output
-    { _write = print
-    , _close = Shortcut.empty
-    }
+file filepath = do
+  Async <| do
+    ( write, close ) <- fileHelp filepath
+
+    P.return
+      ( write, close )
+
+
+fileHelp :: FilePath -> IO ( Entry -> IO (), IO () )
+fileHelp filepath = do
+  handle <- System.IO.openFile filepath System.IO.AppendMode
+  System.IO.hSetBuffering handle System.IO.LineBuffering
+  lock <- MVar.newMVar ()
+
+  let write entry = do
+        bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
+          System.IO.hPutStrLn handle <| "Debug.toString entry"
+
+  let close = do
+        System.IO.hFlush handle
+        System.IO.hClose handle
+
+  P.return ( write, close )
 
 
 custom :: Task x ( Entry -> Task x a, Task x a ) -> Output

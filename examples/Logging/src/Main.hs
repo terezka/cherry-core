@@ -19,7 +19,7 @@ import qualified Control.Concurrent
 
 main :: P.IO (Result () ())
 main =
-  Task.perform [ bugsnag, Log.terminal ] messages
+  Task.perform [ bugsnag, Log.terminal, Log.file "log.txt" ] messages
 
 
 bugsnag :: Log.Output
