@@ -18,7 +18,7 @@ module Cherry.Internal.Task
 -- TODO: Add json context
 -- TODO: Add file output
 -- TODO: Add tracer
--- TODO: Sepe
+-- TODO: Add seperate queue for each output
 
 import qualified Prelude as P
 import qualified Data.Text
@@ -54,14 +54,25 @@ data Key = Key
   { _currentNamespace :: Text.Text
   , _currentHost :: HostName.HostName
   , _currentPID :: Types.ProcessID
-  , _currentOutput :: Output
+  , _currentOutput :: Output a
   , _currentQueue :: BQ.TBQueue Message
+  , _currentRequest :: Maybe Request,
+  , _currentQuery :: Maybe Query,
   , _currentContext :: Context
   }
+
+
+data Request = Request
+  { _requestURI :: Text,
+  , _requestId :: Text
+  , _requestMethod :: Text
+  }
+
 
 data Message
   = NewEntry Entry
   | Done
+
 
 instance P.Functor (Task a) where
   fmap func task =
@@ -356,7 +367,6 @@ alert =
   log Alert
 
 
-
 data Verbosity
   = Compact
   | Verbose
@@ -424,7 +434,8 @@ data Entry = Entry
   , _namespace :: Text.Text
   , _message :: Text.Text
   , _time :: Clock.UTCTime
-  , _contexts :: Context
+  , _callStack :: Stack.CallStack
+  , _context :: Json.Value
   }
 
 
@@ -434,10 +445,6 @@ data Severity
   | Warning
   | Error
   | Alert
-
-
-type Context =
-  List ( Text.Text, Text.Text )
 
 
 
@@ -450,7 +457,7 @@ log severity namespace message context =
     time <- Clock.getCurrentTime
     let entry = merge key (Entry severity namespace message time context)
     STM.atomically <| addToQueue (_currentQueue key) entry
-    P.return (Ok ())
+    succeed ()
 
 
 addToQueue :: BQ.TBQueue Message -> Entry -> STM.STM Bool
