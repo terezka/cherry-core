@@ -29,17 +29,20 @@ import qualified Control.Exception.Safe as Exception
 import qualified Control.Concurrent.Async as Async
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Concurrent.STM.TBQueue as BQ
+import qualified Control.Concurrent.MVar as MVar
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.Internal.Terminal as T
 import qualified Cherry.List as List
 import qualified Cherry.Debug as Debug
 import qualified Cherry.Text as Text
+import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
 import qualified System.Posix.Types as Types
+import qualified System.IO
 import Control.Monad (void)
-import Control.Exception (bracket)
+import Control.Exception (bracket, bracket_)
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
@@ -118,15 +121,18 @@ instance P.Monad (Task a) where
 
 perform :: List Output -> Task x a -> IO (Result x a)
 perform outputs task = do
+  host <- HostName.getHostName
+  pId <- Process.getProcessID
+  let emptyKey = Key "" host pId [] []
+
   ( queues, quiters ) <-
-      List.map toQueueAndQuit outputs
+      outputs
+        |> List.map (toQueueAndQuit emptyKey)
         |> P.sequence
         |> Shortcut.map List.unzip
 
   let init :: IO Key
-      init = do
-        host <- HostName.getHostName
-        pId <- Process.getProcessID
+      init =
         P.return (Key "" host pId queues [])
 
   let exit :: Key -> IO ()
@@ -137,22 +143,30 @@ perform outputs task = do
   bracket init exit (_run task)
 
 
-toQueueAndQuit :: Output -> IO ( BQ.TBQueue Message, IO () )
-toQueueAndQuit output = do
+toQueueAndQuit :: Key -> Output -> IO ( BQ.TBQueue Message, IO () )
+toQueueAndQuit emptyKey output = do
+  ( write, close ) <-
+    case output of
+      Sync ( write, close ) ->
+        P.return ( write, close )
+
+      Async io -> do
+        io
+
   queue <- STM.atomically (BQ.newTBQueue 4096)
-  worker <- spawnWorker output queue
+  worker <- spawnWorker write queue
 
   let quit = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
-        _ <- _close output
+        _ <- close
         Shortcut.empty
 
   P.return ( queue, quit )
 
 
-spawnWorker :: Output -> BQ.TBQueue Message -> IO (Async.Async ())
-spawnWorker (Output write onDone) queue =
+spawnWorker :: (Entry -> IO ()) -> BQ.TBQueue Message -> IO (Async.Async ())
+spawnWorker write queue =
   let loop = do
         next <- STM.atomically (BQ.readTBQueue queue)
         case next of
@@ -255,23 +269,22 @@ exit =
 -- LOGGING
 
 
-data Output = Output
-  { _write :: Entry -> IO ()
-  , _close :: IO ()
-  }
+data Output
+  = Sync ( Entry -> IO (), IO () )
+  | Async ( IO ( Entry -> IO (), IO () ) )
 
 
 none :: Output
 none =
-  Output
-    { _write = \_ -> Shortcut.empty
-    , _close = Shortcut.empty
-    }
+  Sync
+    ( \_ -> Shortcut.empty
+    , Shortcut.empty
+    )
 
 
 terminal :: Output
 terminal =
-  let print entry =
+  let write entry =
         T.message (color entry) (title entry) (_namespace entry)
           [ _message entry
           , "For context:"
@@ -302,10 +315,10 @@ terminal =
       context ( name, value ) = do
         T.indent 4 <> name <> ": " <> value
   in
-  Output
-    { _write = print
-    , _close = Shortcut.empty
-    }
+    Sync
+      ( write
+      , Shortcut.empty
+      )
 
 
 file :: FilePath -> Output
@@ -319,12 +332,19 @@ file filepath =
     }
 
 
-custom :: (Entry -> Task x a) -> Task x a -> Output
-custom func onDone =
-  Output
-    { _write = func >> exit >> void
-    , _close = onDone |> exit |> void
-    }
+custom :: Task x ( Entry -> Task x a, Task x a ) -> Output
+custom toFuncs =
+  Async <| do
+    result <- exit toFuncs
+    case result of
+      Ok ( write, close ) ->
+        P.return
+          ( write >> exit >> void
+          , close |> exit |> void
+          )
+
+      Err x ->
+        P.error "Could not initialize output."
 
 
 
