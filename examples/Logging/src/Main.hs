@@ -26,10 +26,8 @@ bugsnag :: Log.Output
 bugsnag =
   let write entry = do
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
-          |> Shortcut.andThen HTTP.getResponseBody
           |> Shortcut.map Result.Ok
           |> Task.enter
-          |> Task.map (List.map Debug.toString >> Text.concat)
           |> Task.andThen (\_ -> T.write "done")
 
       close =
