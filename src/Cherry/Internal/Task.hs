@@ -324,27 +324,19 @@ terminal =
 file :: FilePath -> Output
 file filepath = do
   Async <| do
-    ( write, close ) <- fileHelp filepath
+    handle <- System.IO.openFile filepath System.IO.AppendMode
+    System.IO.hSetBuffering handle System.IO.LineBuffering
+    lock <- MVar.newMVar ()
 
-    P.return
-      ( write, close )
+    let write entry = do
+          bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
+            System.IO.hPutStrLn handle <| "Debug.toString entry"
 
+    let close = do
+          System.IO.hFlush handle
+          System.IO.hClose handle
 
-fileHelp :: FilePath -> IO ( Entry -> IO (), IO () )
-fileHelp filepath = do
-  handle <- System.IO.openFile filepath System.IO.AppendMode
-  System.IO.hSetBuffering handle System.IO.LineBuffering
-  lock <- MVar.newMVar ()
-
-  let write entry = do
-        bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
-          System.IO.hPutStrLn handle <| "Debug.toString entry"
-
-  let close = do
-        System.IO.hFlush handle
-        System.IO.hClose handle
-
-  P.return ( write, close )
+    P.return ( write, close )
 
 
 custom :: Task x ( Entry -> Task x a, Task x a ) -> Output
