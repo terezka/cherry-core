@@ -1,7 +1,7 @@
 module Cherry.Log
   ( -- * Logging
     -- Logging tools for tasks.
-    Output, none, terminal, custom, multiple
+    Output, none, terminal, custom
   , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
   , onOk, onErr
@@ -48,19 +48,13 @@ terminal =
 
 
 {-| Make your own logging outout channel! Maybe you have a service like rollbar,
-which you might want to send your logs too.
+which you might want to send your logs too. First argument is writing, then second
+is what do do when the output is show down.
 
 -}
-custom :: Task x a -> (Entry -> Task x a) -> Output
+custom :: (Entry -> Task x a) -> Task x a -> Output
 custom =
   Task.custom
-
-
-{-| Log to multiple outputs.
--}
-multiple :: List Output -> Output
-multiple =
-  Task.multiple
 
 
 {-| Send a debug log entry.

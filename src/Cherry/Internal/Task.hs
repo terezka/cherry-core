@@ -7,7 +7,7 @@ module Cherry.Internal.Task
   , onError, mapError
 
   -- * Logging
-  , Output, none, terminal, custom, multiple, file, compact, verbose
+  , Output, none, terminal, custom, file, compact, verbose
   , Entry(..), Severity(..)
   , debug, info, warning, error, alert
   , onOk, onErr
@@ -18,6 +18,7 @@ module Cherry.Internal.Task
 -- TODO: Add json context
 -- TODO: Add file output
 -- TODO: Add tracer
+-- TODO: Add `attempt`
 -- TODO: Seperate queue for each output
 
 import qualified Prelude as P
@@ -54,8 +55,7 @@ data Key = Key
   { _currentNamespace :: Text.Text
   , _currentHost :: HostName.HostName
   , _currentPID :: Types.ProcessID
-  , _currentOutput :: Output
-  , _currentQueue :: BQ.TBQueue Message
+  , _currentQueue :: List (BQ.TBQueue Message)
   , _currentContext :: Context
   }
 
@@ -116,23 +116,39 @@ instance P.Monad (Task a) where
 -- BASICS
 
 
-perform :: Output -> Task x a -> IO (Result x a)
-perform output task = do
+perform :: List Output -> Task x a -> IO (Result x a)
+perform outputs task = do
+  ( queues, quiters ) <-
+      List.map toQueueAndQuit outputs
+        |> P.sequence
+        |> Shortcut.map List.unzip
+
+  let init :: IO Key
+      init = do
+        host <- HostName.getHostName
+        pId <- Process.getProcessID
+        P.return (Key "" host pId queues [])
+
+  let exit :: Key -> IO ()
+      exit _ = do
+        _ <- P.sequence quiters
+        Shortcut.empty
+
+  bracket init exit (_run task)
+
+
+toQueueAndQuit :: Output -> IO ( BQ.TBQueue Message, IO () )
+toQueueAndQuit output = do
   queue <- STM.atomically (BQ.newTBQueue 4096)
   worker <- spawnWorker output queue
 
-  let init = do
-        host <- HostName.getHostName
-        pId <- Process.getProcessID
-        P.return (Key "" host pId output queue [])
-
-  let finally _ = do
+  let quit = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
-        _ <- _onDone output
+        _ <- _close output
         Shortcut.empty
 
-  bracket init finally (_run task)
+  P.return ( queue, quit )
 
 
 spawnWorker :: Output -> BQ.TBQueue Message -> IO (Async.Async ())
@@ -232,7 +248,7 @@ enter io =
 
 exit :: Task x a -> IO (Result x a)
 exit =
-  perform none
+  perform [none]
 
 
 
@@ -241,7 +257,7 @@ exit =
 
 data Output = Output
   { _write :: Entry -> IO ()
-  , _onDone :: IO ()
+  , _close :: IO ()
   }
 
 
@@ -249,7 +265,7 @@ none :: Output
 none =
   Output
     { _write = \_ -> Shortcut.empty
-    , _onDone = Shortcut.empty
+    , _close = Shortcut.empty
     }
 
 
@@ -288,7 +304,7 @@ terminal =
   in
   Output
     { _write = print
-    , _onDone = Shortcut.empty
+    , _close = Shortcut.empty
     }
 
 
@@ -299,36 +315,20 @@ file filepath =
   in
   Output
     { _write = print
-    , _onDone = Shortcut.empty
+    , _close = Shortcut.empty
     }
 
 
-custom :: Task x a -> (Entry -> Task x a) -> Output
-custom onDone func =
+custom :: (Entry -> Task x a) -> Task x a -> Output
+custom func onDone =
   Output
     { _write = func >> exit >> void
-    , _onDone = onDone |> exit |> void
+    , _close = onDone |> exit |> void
     }
 
 
-multiple :: List Output -> Output
-multiple outputs =
-  let addWriter entry (Output write_ _) io =
-        io |> Shortcut.afterwards (write_ entry)
 
-      write entry =
-        List.foldr (addWriter entry) Shortcut.empty outputs
-
-      addExit (Output _ onDone) io =
-        io |> Shortcut.afterwards onDone
-
-      exit =
-        List.foldr addExit Shortcut.empty outputs
-  in
-  Output
-    { _write = write
-    , _onDone = exit
-    }
+-- LOG ENTRY
 
 
 debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
@@ -410,7 +410,6 @@ context namespace context task =
     let nextKey = Key
           { _currentNamespace = _currentNamespace key <> namespace
           , _currentContext = _currentContext key ++ context
-          , _currentOutput = _currentOutput key
           , _currentHost = _currentHost key
           , _currentPID = _currentPID key
           , _currentQueue = _currentQueue key
@@ -449,17 +448,20 @@ log severity namespace message context =
   Task <| \key -> do
     time <- Clock.getCurrentTime
     let entry = merge key (Entry severity namespace message time context)
-    STM.atomically <| addToQueue (_currentQueue key) entry
+    _currentQueue key
+      |> List.map (addToQueue entry)
+      |> List.map STM.atomically
+      |> P.sequence
     P.return (Ok ())
 
 
-addToQueue :: BQ.TBQueue Message -> Entry -> STM.STM Bool
-addToQueue queue entry = do
+addToQueue :: Entry -> BQ.TBQueue Message -> STM.STM Bool
+addToQueue entry queue = do
   full <- BQ.isFullTBQueue queue
   if full then
     P.return (not full)
   else do
-    _ <- BQ.writeTBQueue queue (NewEntry entry)
+    BQ.writeTBQueue queue (NewEntry entry)
     P.return (not full)
 
 

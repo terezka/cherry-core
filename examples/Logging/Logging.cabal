@@ -20,7 +20,7 @@ executable Logging
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.12 && <4.13, text, safe-exceptions, async, stm, unix, hostname, time
+  build-depends:       base >=4.12 && <4.13, text, safe-exceptions, async, stm, unix, hostname, time, HTTP
   hs-source-dirs:      src, ../../src
   default-extensions:  OverloadedStrings
   default-language:    Haskell2010
