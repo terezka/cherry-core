@@ -52,7 +52,7 @@ type Task x a =
   >    Task.perform Log.none Time.now
 
 -}
-perform :: Task.Output -> Task x a -> IO (Result x a)
+perform :: List Task.Output -> Task x a -> IO (Result x a)
 perform =
   Task.perform
 
