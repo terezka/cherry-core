@@ -1,7 +1,7 @@
 module Cherry.Log
   ( -- * Logging
     -- Logging tools for tasks.
-    Output, none, terminal, file, custom
+    Output, none, terminal, file, custom, message, json, compact
   , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
   , onOk, onErr
@@ -18,6 +18,7 @@ import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
 import Cherry.Task (Task)
+import Cherry.Text (Text)
 import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
 import Prelude (IO, FilePath, (<>))
@@ -43,9 +44,27 @@ none =
   >    Http.send request
   >      |> Task.perform Log.terminal
 -}
-terminal :: Output
+terminal :: (Entry -> Text) -> Output
 terminal =
   Task.terminal
+
+
+{-| -}
+message :: Entry -> Text
+message =
+  Task.message
+
+
+{-| -}
+json :: Entry -> Text
+json =
+  Task.json
+
+
+{-| -}
+compact :: Entry -> Text
+compact =
+  Task.compact
 
 
 {-| This prints the logs to a file.
@@ -55,7 +74,7 @@ terminal =
   >    Http.send request
   >      |> Task.perform (Log.file "log.txt")
 -}
-file :: FilePath -> Output
+file :: FilePath -> (Entry -> Text) -> Output
 file =
   Task.file
 

@@ -9,7 +9,7 @@ module Cherry.Internal.Task
   , onError, mapError
 
   -- * Logging
-  , Output, none, terminal, custom, file, compact, verbose
+  , Output, none, terminal, custom, file, message, json, compact
   , Entry(..), Severity(..)
   , debug, info, warning, error, alert
   , onOk, onErr
@@ -17,12 +17,14 @@ module Cherry.Internal.Task
   ) where
 
 
--- TODO: Add json context
 -- TODO: Add `attempt`
 
 import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
+import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Lazy as ByteString
+import qualified Data.Text.Encoding
 import qualified Data.Time.Clock as Clock
 import qualified Control.Exception.Safe as Exception
 import qualified Control.Concurrent.Async as Async
@@ -39,14 +41,15 @@ import qualified Cherry.Dict as Dict
 import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
-import qualified System.Posix.Types as Types
 import qualified System.IO
+import Data.ByteString.Lazy (ByteString)
 import Control.Monad (void)
 import Control.Exception (bracket, bracket_)
 import Control.Concurrent.STM.TBQueue (TBQueue)
 import Prelude (IO, FilePath, (<>))
 import Network.HostName (HostName)
-import System.Posix.Process (ProcessID)
+import System.Posix.Types (ProcessID)
+import Data.Aeson ((.=))
 import Cherry.Basics
 import Cherry.List (List)
 import Cherry.Dict (Dict)
@@ -291,50 +294,24 @@ none =
     }
 
 
-terminal :: Output
-terminal =
-  let write entry =
-        T.message (color entry) (title entry) (_namespace entry)
-          [ _message entry
-          , "For context:"
-          , contexts entry
-          ]
-
-      color entry =
-        case _severity entry of
-          Debug -> T.cyan
-          Info -> T.cyan
-          Warning -> T.yellow
-          Error -> T.magenta
-          Alert -> T.red
-
-      title entry =
-        case _severity entry of
-          Debug -> "Debug"
-          Info -> "Info"
-          Warning -> "Warning"
-          Error -> "Error"
-          Alert -> "Alert"
-
-      contexts entry =
-        _context entry
-          |> Dict.toList
-          |> List.map context
-          |> List.append [T.indent 4 <> "time: " <> Data.Text.pack (P.show (_time entry)) ]
-          |> Text.join T.newline
-
-      context ( name, value ) = do
-        T.indent 4 <> name <> ": " <> value
-  in
+terminal :: (Entry -> Text) -> Output
+terminal write =
   Output <| OutputSettings
-    { _open = P.return ()
-    , _write = \_ -> write
-    , _close = \_ -> P.return ()
+    { _open = do
+        System.IO.hSetBuffering System.IO.stdout System.IO.LineBuffering
+        P.return System.IO.stdout
+
+    , _write = \handle entry -> do
+        System.IO.hPutStr handle (Data.Text.unpack (write entry))
+
+    , _close = \handle -> do
+        System.IO.hFlush handle
+        System.IO.hClose handle
     }
 
 
-file :: FilePath -> Output
-file filepath =
+file :: FilePath -> (Entry -> Text) -> Output
+file filepath write = -- TODO check color if terminal
   Output <| OutputSettings
     { _open = do
         handle <- System.IO.openFile filepath System.IO.AppendMode
@@ -342,9 +319,9 @@ file filepath =
         lock <- MVar.newMVar ()
         P.return ( handle, lock )
 
-    , _write = \( handle, lock ) _ -> do
+    , _write = \( handle, lock ) entry -> do
         bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
-          System.IO.hPutStrLn handle "Debug.toString entry" -- TODO
+          System.IO.hPutStrLn handle (Data.Text.unpack (write entry))
 
     , _close = \( handle, lock ) -> do
         System.IO.hFlush handle
@@ -363,6 +340,57 @@ custom open write close =
     , _write = \r e -> exit (write r e) |> void
     , _close = \r -> exit (close r) |> void
     }
+
+
+message :: Entry -> Text
+message (Entry severity namespace message time host context) =
+  let ( color, title ) =
+        case severity of
+          Debug -> ( T.cyan, "Debug" )
+          Info -> ( T.cyan, "Info" )
+          Warning -> ( T.yellow, "Warning" )
+          Error -> ( T.magenta, "Error" )
+          Alert -> ( T.red, "Alert" )
+
+      viewContextList =
+        context
+          |> Dict.toList
+          |> List.append defaults
+          |> List.map viewContext
+          |> Text.join T.newline
+
+      viewContext ( name, value ) = do
+        T.indent 4 <> name <> ": " <> value
+
+      defaults =
+        [ ( "host", Debug.toString host )
+        , ( "time", Debug.toString time )
+        ]
+  in
+  T.message color title namespace
+    [ message
+    , "For context:"
+    , viewContextList
+    ]
+
+json :: Entry -> Text
+json =
+  Aeson.encode >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
+
+
+compact :: Entry -> Text
+compact (Entry severity namespace message time host context) =
+  let anything c = "[" <> Debug.toString c <> "]"
+      string c = "[" <> c <> "]"
+  in
+  Text.concat
+    [ anything severity
+    , string namespace
+    , string message
+    , anything time
+    , anything host
+    , anything (Dict.toList context)
+    ]
 
 
 
@@ -437,8 +465,28 @@ data Entry = Entry
   , _namespace :: Text
   , _message :: Text
   , _time :: Clock.UTCTime
+  , _host :: HostName
   , _context :: Dict Text Text
   }
+
+
+instance Aeson.ToJSON Entry where
+  toJSON (Entry severity namespace message time host context) =
+    Aeson.object
+      [ "severity" .=
+          (case severity of
+              Debug -> "Debug" :: Text
+              Info -> "Info"
+              Warning -> "Warning"
+              Error -> "Error"
+              Alert -> "Alert"
+          )
+      , "namespace" .= namespace
+      , "message" .= message
+      , "time" .= time
+      , "host" .= host
+      , "context" .= (Dict.toList context)
+      ]
 
 
 data Severity
@@ -447,6 +495,7 @@ data Severity
   | Warning
   | Error
   | Alert
+  deriving (P.Show)
 
 
 type Context =
@@ -461,7 +510,7 @@ log :: Severity -> Text -> Text -> List Context -> Task x ()
 log severity namespace message context =
   Task <| \(Key knamespace kcontext host pid queue) -> do
     time <- Clock.getCurrentTime
-    let entry = Entry severity (knamespace <> namespace) message time (merge kcontext context)
+    let entry = Entry severity (knamespace <> namespace) message time host (merge kcontext context)
     P.sequence <| List.map (send entry >> STM.atomically) queue
     P.return (Ok ())
 

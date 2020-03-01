@@ -53,8 +53,7 @@ The above code results in:
 message :: Text.Text -> Text.Text -> List Text.Text -> Task e ()
 message title location content =
   T.message cyan title location content
-    |> P.fmap (\_ -> Ok ())
-    |> Task.enter
+    |> write
 
 
 

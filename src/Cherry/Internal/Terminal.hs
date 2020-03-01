@@ -93,14 +93,16 @@ indent number =
 -- MESSAGE
 
 
-message :: Text.Text -> Text.Text -> Text.Text -> List Text.Text -> P.IO ()
-message color title location content = do
-  write (header color title location)
-  write newline
-  write newline
-  write (paragraphs content)
-  write newline
-  write newline
+message :: Text.Text -> Text.Text -> Text.Text -> List Text.Text -> Text.Text
+message color title location content =
+  Text.concat
+    [ header color title location
+    , newline
+    , newline
+    , (paragraphs content)
+    , newline
+    , newline
+    ]
 
 
 header :: Text.Text -> Text.Text -> Text.Text -> Text.Text
