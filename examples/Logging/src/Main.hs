@@ -32,11 +32,12 @@ bugsnag =
       write _ (Entry _ _ _ _ _ context) = do
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
           |> Task.enter
-          |> Task.andThen (\_ ->
-                case Dict.get "user" context of
-                  Just "tereza" -> T.write "tereza"
-                  _ -> T.write "no user"
-              )
+          |> Task.andThen (print context)
+
+      print context _ =
+        case Dict.get "user" context of
+          Just "tereza" -> T.write "tereza"
+          _ -> T.write "no user"
 
       close _ =
         Task.succeed ()
@@ -51,8 +52,7 @@ messages =
     debug "print" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     good "> hello first!"
     bad "> hello second!"
-    Control.Concurrent.threadDelay 1000000
-      |> Task.enter
+    Task.enter (Control.Concurrent.threadDelay 1000000)
     good "> hello again!"
     debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
