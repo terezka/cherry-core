@@ -18,7 +18,6 @@ module Cherry.Internal.Task
 
 
 -- TODO: Add json context
--- TODO: Add tracer .. is this just an output?
 -- TODO: Add `attempt`
 
 import qualified Prelude as P
