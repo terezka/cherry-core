@@ -353,9 +353,7 @@ message (Entry severity namespace message time host context) =
           Alert -> ( T.red, "Alert" )
 
       viewContextList =
-        context
-          |> Dict.toList
-          |> List.append defaults
+        List.append (Dict.toList context) defaults
           |> List.map viewContext
           |> Text.join T.newline
 
@@ -457,7 +455,7 @@ onErr log task =
 context :: Text -> List Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key@(Key knamespace kcontext _ _ _) ->
-    _run task <| key { _kNamespace = knamespace <> namespace, _kContext = merge kcontext context }
+    _run task <| key { _kNamespace = knamespace <> "/" <> namespace, _kContext = merge kcontext context }
 
 
 data Entry = Entry
@@ -510,7 +508,7 @@ log :: Severity -> Text -> Text -> List Context -> Task x ()
 log severity namespace message context =
   Task <| \(Key knamespace kcontext host pid queue) -> do
     time <- Clock.getCurrentTime
-    let entry = Entry severity (knamespace <> namespace) message time host (merge kcontext context)
+    let entry = Entry severity (knamespace <> "/" <> namespace) message time host (merge kcontext context)
     P.sequence <| List.map (send entry >> STM.atomically) queue
     P.return (Ok ())
 
