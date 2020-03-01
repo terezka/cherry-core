@@ -84,35 +84,35 @@ custom =
   >    Log.debug "Hello!" [ ( "user", "terezka" ) ]
   >
 -}
-debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
+debug :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task () ()
 debug =
   Task.debug
 
 
 {-| Same as debug, but an `Info` log entry.
 -}
-info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
+info :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task () ()
 info =
   Task.info
 
 
 {-| Same as debug, but an `Warning` log entry.
 -}
-warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
+warning :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task () ()
 warning =
   Task.warning
 
 
 {-| Same as debug, but an `Error` log entry.
 -}
-error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
+error :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task () ()
 error =
   Task.error
 
 
 {-| Same as debug, but an `Alert` log entry.
 -}
-alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task () ()
+alert :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task () ()
 alert =
   Task.alert
 
@@ -125,7 +125,7 @@ alert =
   >      actualLogin id
 
 -}
-context :: Text.Text -> Context -> Task x a -> Task x a
+context :: Text.Text -> List Context -> Task x a -> Task x a
 context =
   Task.context
 

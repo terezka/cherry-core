@@ -35,6 +35,7 @@ import qualified Cherry.Internal.Terminal as T
 import qualified Cherry.List as List
 import qualified Cherry.Debug as Debug
 import qualified Cherry.Text as Text
+import qualified Cherry.Dict as Dict
 import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
@@ -54,11 +55,11 @@ newtype Task x a =
 
 
 data Key = Key
-  { _currentNamespace :: Text.Text
-  , _currentHost :: HostName.HostName
-  , _currentPID :: Types.ProcessID
-  , _currentQueue :: List (BQ.TBQueue Message)
-  , _currentContext :: Context
+  { _kNamespace :: Text.Text
+  , _kContext :: Dict.Dict Text.Text Text.Text
+  , _kHost :: HostName.HostName
+  , _kPID :: Types.ProcessID
+  , _kQueue :: List (BQ.TBQueue Message)
   }
 
 data Message
@@ -109,9 +110,9 @@ instance P.Monad (Task a) where
 
               Err err ->
                 P.return (Err err)
-      in
-      _run task key
-        |> Shortcut.andThen onResult
+      in do
+      result <- _run task key
+      onResult result
 
 
 
@@ -122,7 +123,7 @@ perform :: List Output -> Task x a -> IO (Result x a)
 perform outputs task = do
   host <- HostName.getHostName
   pId <- Process.getProcessID
-  let emptyKey = Key "" host pId [] []
+  let emptyKey = Key "" Dict.empty host pId []
 
   ( queues, quiters ) <-
       outputs
@@ -132,7 +133,7 @@ perform outputs task = do
 
   let init :: IO Key
       init =
-        P.return (Key "" host pId queues [])
+        P.return (Key "" Dict.empty host pId queues)
 
   let exit :: Key -> IO ()
       exit _ = do
@@ -236,9 +237,9 @@ onError func task =
           case result of
             Ok ok -> P.return (Ok ok)
             Err err -> _run (func err) key
-    in
-    _run task key
-      |> Shortcut.andThen onResult
+    in do
+    result <- _run task key
+    onResult result
 
 
 mapError :: (x -> y) -> Task x a -> Task y a
@@ -311,7 +312,9 @@ terminal =
           Alert -> "Alert"
 
       contexts entry =
-        List.map context (_contexts entry)
+        _context entry
+          |> Dict.toList
+          |> List.map context
           |> List.append [T.indent 4 <> "time: " <> Data.Text.pack (P.show (_time entry)) ]
           |> Text.join T.newline
 
@@ -361,27 +364,27 @@ custom open write close =
 -- LOG ENTRY
 
 
-debug :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+debug :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
 debug =
   log Debug
 
 
-info :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+info :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
 info =
   log Info
 
 
-warning :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+warning :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
 warning =
   log Warning
 
 
-error :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+error :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
 error =
   log Error
 
 
-alert :: Stack.HasCallStack => Text.Text -> Text.Text -> Context -> Task e ()
+alert :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
 alert =
   log Alert
 
@@ -434,18 +437,10 @@ onErr log task =
     P.return result
 
 
-context :: Text.Text -> Context -> Task x a -> Task x a
+context :: Text.Text -> List Context -> Task x a -> Task x a
 context namespace context task =
-  Task <| \key ->
-    let nextKey = Key
-          { _currentNamespace = _currentNamespace key <> namespace
-          , _currentContext = _currentContext key ++ context
-          , _currentHost = _currentHost key
-          , _currentPID = _currentPID key
-          , _currentQueue = _currentQueue key
-          }
-    in
-    _run task nextKey
+  Task <| \key@(Key knamespace kcontext _ _ _) ->
+    _run task <| key { _kNamespace = knamespace <> namespace, _kContext = merge kcontext context }
 
 
 data Entry = Entry
@@ -453,7 +448,7 @@ data Entry = Entry
   , _namespace :: Text.Text
   , _message :: Text.Text
   , _time :: Clock.UTCTime
-  , _contexts :: Context
+  , _context :: Dict.Dict Text.Text Text.Text
   }
 
 
@@ -466,27 +461,24 @@ data Severity
 
 
 type Context =
-  List ( Text.Text, Text.Text )
+  ( Text.Text, Text.Text )
 
 
 
 -- INTERNAL
 
 
-log :: Severity -> Text.Text -> Text.Text -> Context -> Task x ()
+log :: Severity -> Text.Text -> Text.Text -> List Context -> Task x ()
 log severity namespace message context =
-  Task <| \key -> do
+  Task <| \(Key knamespace kcontext host pid queue) -> do
     time <- Clock.getCurrentTime
-    let entry = merge key (Entry severity namespace message time context)
-    _currentQueue key
-      |> List.map (addToQueue entry)
-      |> List.map STM.atomically
-      |> P.sequence
+    let entry = Entry severity (knamespace <> namespace) message time (merge kcontext context)
+    P.sequence <| List.map (send entry >> STM.atomically) queue
     P.return (Ok ())
 
 
-addToQueue :: Entry -> BQ.TBQueue Message -> STM.STM Bool
-addToQueue entry queue = do
+send :: Entry -> BQ.TBQueue Message -> STM.STM Bool
+send entry queue = do
   full <- BQ.isFullTBQueue queue
   if full then
     P.return (not full)
@@ -495,12 +487,6 @@ addToQueue entry queue = do
     P.return (not full)
 
 
-merge :: Key -> Entry -> Entry
-merge key entry =
-  Entry
-    { _severity = _severity entry
-    , _namespace = _currentNamespace key <> _namespace entry
-    , _message = _message entry
-    , _contexts = _currentContext key ++ _contexts entry
-    , _time = _time entry
-    }
+merge :: Dict.Dict Text.Text Text.Text -> List Context -> Dict.Dict Text.Text Text.Text
+merge old new =
+  Dict.fromList (Dict.toList old ++ new)
