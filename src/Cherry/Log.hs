@@ -64,8 +64,10 @@ file =
 which you might want to send your logs too. First argument is writing, then second
 is what do do when the output is show down.
 
+    > Log.custom open write close
+
 -}
-custom :: Task x (Entry -> Task x a, Task x a) -> Output
+custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Output
 custom =
   Task.custom
 

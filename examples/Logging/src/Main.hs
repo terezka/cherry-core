@@ -24,22 +24,25 @@ main =
 
 bugsnag :: Log.Output
 bugsnag =
-  let write entry = do
+  let open =
+        Task.succeed ()
+
+      write _ entry = do
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
           |> Shortcut.map Result.Ok
           |> Task.enter
           |> Task.andThen (\_ -> T.write "done")
 
-      close =
+      close _ =
         Task.succeed ()
   in
-  Log.custom <|
-    Task.succeed ( write, close)
+  Log.custom open write close
 
 
 messages :: Task.Task () ()
 messages =
   Log.context "messages" [ ( "online", "true" ) ] <| do
+    printGood "> hello first first!"
     Log.debug "/namespace" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     printGood "> hello first!"
     printBad "> hello second!"

@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 module Cherry.Internal.Task
   ( -- * Tasks
     Task(..), perform
@@ -73,7 +75,7 @@ instance P.Functor (Task a) where
               Err x -> Err x
       in
       _run task key
-        |> Shortcut.map onResult
+        |> P.fmap onResult
 
 
 instance P.Applicative (Task a) where
@@ -127,7 +129,7 @@ perform outputs task = do
       outputs
         |> List.map (toQueueAndQuit emptyKey)
         |> P.sequence
-        |> Shortcut.map List.unzip
+        |> P.fmap List.unzip
 
   let init :: IO Key
       init =
@@ -136,20 +138,16 @@ perform outputs task = do
   let exit :: Key -> IO ()
       exit _ = do
         _ <- P.sequence quiters
-        Shortcut.empty
+        P.return ()
 
   bracket init exit (_run task)
 
 
 toQueueAndQuit :: Key -> Output -> IO ( BQ.TBQueue Message, IO () )
-toQueueAndQuit emptyKey output = do
-  ( write, close ) <-
-    case output of
-      Sync ( write, close ) ->
-        P.return ( write, close )
-
-      Async io -> do
-        io
+toQueueAndQuit emptyKey (Output settings) = do
+  resource <- (_open settings)
+  let write = (_write settings) resource
+  let close = (_close settings) resource
 
   queue <- STM.atomically (BQ.newTBQueue 4096)
   worker <- spawnWorker write queue
@@ -158,7 +156,7 @@ toQueueAndQuit emptyKey output = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
         _ <- close
-        Shortcut.empty
+        P.return ()
 
   P.return ( queue, quit )
 
@@ -173,7 +171,7 @@ spawnWorker write queue =
             loop
 
           Done ->
-            Shortcut.empty
+            P.return ()
   in do
   Async.async loop
 
@@ -267,17 +265,25 @@ exit =
 -- LOGGING
 
 
-data Output
-  = Sync ( Entry -> IO (), IO () )
-  | Async ( IO ( Entry -> IO (), IO () ) )
+data Output where
+  Output :: OutputSettings x resource -> Output
+
+
+data OutputSettings x resource =
+  OutputSettings
+    { _open :: IO resource
+    , _write :: resource -> Entry -> IO ()
+    , _close :: resource -> IO ()
+    }
 
 
 none :: Output
 none =
-  Sync
-    ( \_ -> Shortcut.empty
-    , Shortcut.empty
-    )
+  Output <| OutputSettings
+    { _open = P.return ()
+    , _write = \_ _ -> P.return ()
+    , _close = \_ -> P.return ()
+    }
 
 
 terminal :: Output
@@ -313,43 +319,43 @@ terminal =
       context ( name, value ) = do
         T.indent 4 <> name <> ": " <> value
   in
-    Sync
-      ( write
-      , Shortcut.empty
-      )
+  Output <| OutputSettings
+    { _open = P.return ()
+    , _write = \_ -> write
+    , _close = \_ -> P.return ()
+    }
 
 
 file :: FilePath -> Output
-file filepath = do
-  Async <| do
-    handle <- System.IO.openFile filepath System.IO.AppendMode
-    System.IO.hSetBuffering handle System.IO.LineBuffering
-    lock <- MVar.newMVar ()
+file filepath =
+  Output <| OutputSettings
+    { _open = do
+        handle <- System.IO.openFile filepath System.IO.AppendMode
+        System.IO.hSetBuffering handle System.IO.LineBuffering
+        lock <- MVar.newMVar ()
+        P.return ( handle, lock )
 
-    let write entry = do
-          bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
-            System.IO.hPutStrLn handle <| "Debug.toString entry"
+    , _write = \( handle, lock ) _ -> do
+        bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
+          System.IO.hPutStrLn handle "Debug.toString entry"
 
-    let close = do
-          System.IO.hFlush handle
-          System.IO.hClose handle
+    , _close = \( handle, lock ) -> do
+        System.IO.hFlush handle
+        System.IO.hClose handle
+    }
 
-    P.return ( write, close )
 
-
-custom :: Task x ( Entry -> Task x a, Task x a ) -> Output
-custom toFuncs =
-  Async <| do
-    result <- exit toFuncs
-    case result of
-      Ok ( write, close ) ->
-        P.return
-          ( write >> exit >> void
-          , close |> exit |> void
-          )
-
-      Err x ->
-        P.error "Could not initialize output."
+custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Output
+custom open write close =
+  Output <| OutputSettings
+    { _open = do
+        result <- exit open
+        case result of
+          Ok resource -> P.return resource
+          Err _ -> P.error "Could not initiate logger."
+    , _write = \r e -> exit (write r e) |> void
+    , _close = \r -> exit (close r) |> void
+    }
 
 
 
@@ -405,10 +411,10 @@ onOk log task =
     case result of
       Ok ok -> do
         _ <- _run (log ok) key
-        Shortcut.empty
+        P.return ()
 
       Err _ ->
-        Shortcut.empty
+        P.return ()
 
     P.return result
 
@@ -420,11 +426,11 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        Shortcut.empty
+        P.return ()
 
       Err err -> do
         _ <- _run (log err) key
-        Shortcut.empty
+        P.return ()
 
     P.return result
 
