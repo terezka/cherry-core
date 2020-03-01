@@ -23,6 +23,7 @@ import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
 import qualified Data.Aeson as Aeson
+import qualified Data.Either as Either
 import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.Text.Encoding
 import qualified Data.Time.Clock as Clock
@@ -259,9 +260,10 @@ mapError func task =
 -- INTEROP
 
 
-enter :: IO (Result x a) -> Task x a
+enter :: IO a -> Task x a
 enter io =
-  Task <| \_ -> io
+  Task <| \_ ->
+    Shortcut.map Ok io
 
 
 exit :: Task x a -> IO (Result x a)

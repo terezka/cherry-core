@@ -233,7 +233,7 @@ transform an `IO` into a `Task`. If that is the case, use this function.
 
 You shouldn't usually need to use this!
 -}
-enter :: IO (Result x a) -> Task x a
+enter :: IO a -> Task x a
 enter =
   Task.enter
 

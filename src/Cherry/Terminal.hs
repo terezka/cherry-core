@@ -22,15 +22,13 @@ import Cherry.Result (Result(..))
 -}
 write :: Text.Text -> Task e ()
 write =
-  T.write >> P.fmap (\_ -> Ok ()) >> Task.enter
+  T.write >> Task.enter
 
 
 {-| -}
 read :: Task e Text.Text
 read =
-  T.read
-    |> P.fmap Ok
-    |> Task.enter
+  T.read |> Task.enter
 
 
 {-| Write a message with a title, a location, and some paragraphs.

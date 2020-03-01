@@ -8,6 +8,7 @@ import qualified Cherry.List as List
 import qualified Cherry.Task as Task
 import qualified Cherry.Result as Result
 import qualified Cherry.Debug as Debug
+import qualified Cherry.Dict as Dict
 import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.Maybe as Maybe
 import qualified Cherry.Terminal as T
@@ -28,11 +29,14 @@ bugsnag =
   let open =
         Task.succeed ()
 
-      write _ entry = do
+      write _ (Entry _ _ _ _ _ context) = do
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
-          |> Shortcut.map Result.Ok
           |> Task.enter
-          |> Task.andThen (\_ -> T.write "done")
+          |> Task.andThen (\_ ->
+                case Dict.get "user" context of
+                  Just "tereza" -> T.write "tereza"
+                  _ -> T.write "no user"
+              )
 
       close _ =
         Task.succeed ()
@@ -48,7 +52,6 @@ messages =
     good "> hello first!"
     bad "> hello second!"
     Control.Concurrent.threadDelay 1000000
-      |> Shortcut.map Ok
       |> Task.enter
     good "> hello again!"
     debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
