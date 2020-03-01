@@ -16,10 +16,8 @@ module Cherry.Internal.Task
 
 
 -- TODO: Add json context
--- TODO: Add file output
--- TODO: Add tracer
+-- TODO: Add tracer .. is this just an output?
 -- TODO: Add `attempt`
--- TODO: Seperate queue for each output
 
 import qualified Prelude as P
 import qualified Data.Text

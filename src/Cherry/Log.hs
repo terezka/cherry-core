@@ -65,7 +65,7 @@ which you might want to send your logs too. First argument is writing, then seco
 is what do do when the output is show down.
 
 -}
-custom :: Task x ( Entry -> Task x a, Task x a ) -> Output
+custom :: Task x (Entry -> Task x a, Task x a) -> Output
 custom =
   Task.custom
 
