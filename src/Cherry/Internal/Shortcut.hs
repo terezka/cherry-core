@@ -1,4 +1,4 @@
-module Cherry.Internal.Shortcut (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen, afterwards, empty) where
+module Cherry.Internal.Shortcut (map, map2, map3, map4, map5, map6, map7, map8, map9, andThen, afterwards) where
 
 import Prelude ((<*>), (>>=), Applicative, Monad, return)
 
@@ -68,9 +68,4 @@ map9 :: (Monad m, Applicative m) => (a -> b -> c -> d -> e -> f -> g -> h -> i -
 map9 func a b c d e f g h i =
   return func <*> a <*> b <*> c <*> d <*> e <*> f <*> g <*> h <*> i
 
-
-{-| -}
-empty :: Monad m => m ()
-empty =
-  return ()
 

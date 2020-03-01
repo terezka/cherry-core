@@ -14,36 +14,43 @@ import qualified Cherry.Maybe as Maybe
 import qualified Cherry.Terminal as T
 import qualified Prelude as P
 import qualified Network.HTTP as HTTP
+import qualified Control.Concurrent
 
 
 main :: P.IO (Result () ())
 main =
-  Task.perform [ bugsnag, Log.terminal ] messages
+  Task.perform [ bugsnag, Log.terminal, Log.file "log.txt" ] messages
 
 
 bugsnag :: Log.Output
 bugsnag =
-  let write entry = do
+  let open =
+        Task.succeed ()
+
+      write _ entry = do
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
-          |> Shortcut.andThen HTTP.getResponseBody
-          |> Shortcut.map (List.take 2)
           |> Shortcut.map Result.Ok
           |> Task.enter
-          |> Task.map (List.map Debug.toString >> Text.concat)
-          |> Task.andThen T.write
+          |> Task.andThen (\_ -> T.write "done")
 
-      close =
+      close _ =
         Task.succeed ()
   in
-  Log.custom write close
+  Log.custom open write close
 
 
 messages :: Task.Task () ()
 messages =
   Log.context "messages" [ ( "online", "true" ) ] <| do
+    printGood "> hello first first!"
     Log.debug "/namespace" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     printGood "> hello first!"
     printBad "> hello second!"
+    Control.Concurrent.threadDelay 1000000
+      |> Shortcut.map Ok
+      |> Task.enter
+    printGood "> hello again!"
+    Log.debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
 printGood :: Text.Text -> Task.Task () ()

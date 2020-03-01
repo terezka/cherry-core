@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 module Cherry.Internal.Task
   ( -- * Tasks
     Task(..), perform
@@ -16,10 +18,7 @@ module Cherry.Internal.Task
 
 
 -- TODO: Add json context
--- TODO: Add file output
--- TODO: Add tracer
 -- TODO: Add `attempt`
--- TODO: Seperate queue for each output
 
 import qualified Prelude as P
 import qualified Data.Text
@@ -29,17 +28,20 @@ import qualified Control.Exception.Safe as Exception
 import qualified Control.Concurrent.Async as Async
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Concurrent.STM.TBQueue as BQ
+import qualified Control.Concurrent.MVar as MVar
 import qualified GHC.Stack as Stack
 import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.Internal.Terminal as T
 import qualified Cherry.List as List
 import qualified Cherry.Debug as Debug
 import qualified Cherry.Text as Text
+import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
 import qualified System.Posix.Types as Types
+import qualified System.IO
 import Control.Monad (void)
-import Control.Exception (bracket)
+import Control.Exception (bracket, bracket_)
 import Prelude (IO, FilePath, (<>))
 import Cherry.Basics
 import Cherry.List (List)
@@ -72,7 +74,7 @@ instance P.Functor (Task a) where
               Err x -> Err x
       in
       _run task key
-        |> Shortcut.map onResult
+        |> P.fmap onResult
 
 
 instance P.Applicative (Task a) where
@@ -118,41 +120,48 @@ instance P.Monad (Task a) where
 
 perform :: List Output -> Task x a -> IO (Result x a)
 perform outputs task = do
+  host <- HostName.getHostName
+  pId <- Process.getProcessID
+  let emptyKey = Key "" host pId [] []
+
   ( queues, quiters ) <-
-      List.map toQueueAndQuit outputs
+      outputs
+        |> List.map (toQueueAndQuit emptyKey)
         |> P.sequence
-        |> Shortcut.map List.unzip
+        |> P.fmap List.unzip
 
   let init :: IO Key
-      init = do
-        host <- HostName.getHostName
-        pId <- Process.getProcessID
+      init =
         P.return (Key "" host pId queues [])
 
   let exit :: Key -> IO ()
       exit _ = do
         _ <- P.sequence quiters
-        Shortcut.empty
+        P.return ()
 
   bracket init exit (_run task)
 
 
-toQueueAndQuit :: Output -> IO ( BQ.TBQueue Message, IO () )
-toQueueAndQuit output = do
+toQueueAndQuit :: Key -> Output -> IO ( BQ.TBQueue Message, IO () )
+toQueueAndQuit emptyKey (Output settings) = do
+  resource <- (_open settings)
+  let write = (_write settings) resource
+  let close = (_close settings) resource
+
   queue <- STM.atomically (BQ.newTBQueue 4096)
-  worker <- spawnWorker output queue
+  worker <- spawnWorker write queue
 
   let quit = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
-        _ <- _close output
-        Shortcut.empty
+        _ <- close
+        P.return ()
 
   P.return ( queue, quit )
 
 
-spawnWorker :: Output -> BQ.TBQueue Message -> IO (Async.Async ())
-spawnWorker (Output write onDone) queue =
+spawnWorker :: (Entry -> IO ()) -> BQ.TBQueue Message -> IO (Async.Async ())
+spawnWorker write queue =
   let loop = do
         next <- STM.atomically (BQ.readTBQueue queue)
         case next of
@@ -161,7 +170,7 @@ spawnWorker (Output write onDone) queue =
             loop
 
           Done ->
-            Shortcut.empty
+            P.return ()
   in do
   Async.async loop
 
@@ -255,23 +264,30 @@ exit =
 -- LOGGING
 
 
-data Output = Output
-  { _write :: Entry -> IO ()
-  , _close :: IO ()
-  }
+data Output where
+  Output :: OutputSettings x resource -> Output
+
+
+data OutputSettings x resource =
+  OutputSettings
+    { _open :: IO resource
+    , _write :: resource -> Entry -> IO ()
+    , _close :: resource -> IO ()
+    }
 
 
 none :: Output
 none =
-  Output
-    { _write = \_ -> Shortcut.empty
-    , _close = Shortcut.empty
+  Output <| OutputSettings
+    { _open = P.return ()
+    , _write = \_ _ -> P.return ()
+    , _close = \_ -> P.return ()
     }
 
 
 terminal :: Output
 terminal =
-  let print entry =
+  let write entry =
         T.message (color entry) (title entry) (_namespace entry)
           [ _message entry
           , "For context:"
@@ -302,28 +318,42 @@ terminal =
       context ( name, value ) = do
         T.indent 4 <> name <> ": " <> value
   in
-  Output
-    { _write = print
-    , _close = Shortcut.empty
+  Output <| OutputSettings
+    { _open = P.return ()
+    , _write = \_ -> write
+    , _close = \_ -> P.return ()
     }
 
 
 file :: FilePath -> Output
 file filepath =
-  let print entry =
-        P.error "TODO Print to file."
-  in
-  Output
-    { _write = print
-    , _close = Shortcut.empty
+  Output <| OutputSettings
+    { _open = do
+        handle <- System.IO.openFile filepath System.IO.AppendMode
+        System.IO.hSetBuffering handle System.IO.LineBuffering
+        lock <- MVar.newMVar ()
+        P.return ( handle, lock )
+
+    , _write = \( handle, lock ) _ -> do
+        bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
+          System.IO.hPutStrLn handle "Debug.toString entry"
+
+    , _close = \( handle, lock ) -> do
+        System.IO.hFlush handle
+        System.IO.hClose handle
     }
 
 
-custom :: (Entry -> Task x a) -> Task x a -> Output
-custom func onDone =
-  Output
-    { _write = func >> exit >> void
-    , _close = onDone |> exit |> void
+custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Output
+custom open write close =
+  Output <| OutputSettings
+    { _open = do
+        result <- exit open
+        case result of
+          Ok resource -> P.return resource
+          Err _ -> P.error "Could not initiate logger."
+    , _write = \r e -> exit (write r e) |> void
+    , _close = \r -> exit (close r) |> void
     }
 
 
@@ -380,10 +410,10 @@ onOk log task =
     case result of
       Ok ok -> do
         _ <- _run (log ok) key
-        Shortcut.empty
+        P.return ()
 
       Err _ ->
-        Shortcut.empty
+        P.return ()
 
     P.return result
 
@@ -395,11 +425,11 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        Shortcut.empty
+        P.return ()
 
       Err err -> do
         _ <- _run (log err) key
-        Shortcut.empty
+        P.return ()
 
     P.return result
 

@@ -1,7 +1,7 @@
 module Cherry.Log
   ( -- * Logging
     -- Logging tools for tasks.
-    Output, none, terminal, custom
+    Output, none, terminal, file, custom
   , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
   , onOk, onErr
@@ -20,6 +20,7 @@ import Cherry.List (List)
 import Cherry.Task (Task)
 import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
+import Prelude (IO, FilePath, (<>))
 
 
 {-| A output channel for logging.
@@ -47,12 +48,26 @@ terminal =
   Task.terminal
 
 
+{-| This prints the logs to a file.
+
+  >  main :: Program
+  >  main =
+  >    Http.send request
+  >      |> Task.perform (Log.file "log.txt")
+-}
+file :: FilePath -> Output
+file =
+  Task.file
+
+
 {-| Make your own logging outout channel! Maybe you have a service like rollbar,
 which you might want to send your logs too. First argument is writing, then second
 is what do do when the output is show down.
 
+    > Log.custom open write close
+
 -}
-custom :: (Entry -> Task x a) -> Task x a -> Output
+custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Output
 custom =
   Task.custom
 
