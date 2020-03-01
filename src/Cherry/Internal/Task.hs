@@ -43,9 +43,14 @@ import qualified System.Posix.Types as Types
 import qualified System.IO
 import Control.Monad (void)
 import Control.Exception (bracket, bracket_)
+import Control.Concurrent.STM.TBQueue (TBQueue)
 import Prelude (IO, FilePath, (<>))
+import Network.HostName (HostName)
+import System.Posix.Process (ProcessID)
 import Cherry.Basics
 import Cherry.List (List)
+import Cherry.Dict (Dict)
+import Cherry.Text (Text)
 import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
 
@@ -55,11 +60,11 @@ newtype Task x a =
 
 
 data Key = Key
-  { _kNamespace :: Text.Text
-  , _kContext :: Dict.Dict Text.Text Text.Text
-  , _kHost :: HostName.HostName
-  , _kPID :: Types.ProcessID
-  , _kQueue :: List (BQ.TBQueue Message)
+  { _kNamespace :: Text
+  , _kContext :: Dict Text Text
+  , _kHost :: HostName
+  , _kPID :: ProcessID
+  , _kQueue :: List (TBQueue Message)
   }
 
 data Message
@@ -143,14 +148,14 @@ perform outputs task = do
   bracket init exit (_run task)
 
 
-toQueueAndQuit :: Key -> Output -> IO ( BQ.TBQueue Message, IO () )
+toQueueAndQuit :: Key -> Output -> IO ( TBQueue Message, IO () )
 toQueueAndQuit emptyKey (Output settings) = do
   resource <- (_open settings)
   let write = (_write settings) resource
   let close = (_close settings) resource
 
   queue <- STM.atomically (BQ.newTBQueue 4096)
-  worker <- spawnWorker write queue
+  worker <- toWorker write queue
 
   let quit = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
@@ -161,8 +166,8 @@ toQueueAndQuit emptyKey (Output settings) = do
   P.return ( queue, quit )
 
 
-spawnWorker :: (Entry -> IO ()) -> BQ.TBQueue Message -> IO (Async.Async ())
-spawnWorker write queue =
+toWorker :: (Entry -> IO ()) -> TBQueue Message -> IO (Async.Async ())
+toWorker write queue =
   let loop = do
         next <- STM.atomically (BQ.readTBQueue queue)
         case next of
@@ -339,7 +344,7 @@ file filepath =
 
     , _write = \( handle, lock ) _ -> do
         bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
-          System.IO.hPutStrLn handle "Debug.toString entry"
+          System.IO.hPutStrLn handle "Debug.toString entry" -- TODO
 
     , _close = \( handle, lock ) -> do
         System.IO.hFlush handle
@@ -364,45 +369,29 @@ custom open write close =
 -- LOG ENTRY
 
 
-debug :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
+debug :: Stack.HasCallStack => Text -> Text -> List Context -> Task e ()
 debug =
   log Debug
 
 
-info :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
+info :: Stack.HasCallStack => Text -> Text -> List Context -> Task e ()
 info =
   log Info
 
 
-warning :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
+warning :: Stack.HasCallStack => Text -> Text -> List Context -> Task e ()
 warning =
   log Warning
 
 
-error :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
+error :: Stack.HasCallStack => Text -> Text -> List Context -> Task e ()
 error =
   log Error
 
 
-alert :: Stack.HasCallStack => Text.Text -> Text.Text -> List Context -> Task e ()
+alert :: Stack.HasCallStack => Text -> Text -> List Context -> Task e ()
 alert =
   log Alert
-
-
-
-data Verbosity
-  = Compact
-  | Verbose
-
-
-verbose :: Verbosity
-verbose =
-  Verbose
-
-
-compact :: Verbosity
-compact =
-  Compact
 
 
 {-| -}
@@ -437,7 +426,7 @@ onErr log task =
     P.return result
 
 
-context :: Text.Text -> List Context -> Task x a -> Task x a
+context :: Text -> List Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key@(Key knamespace kcontext _ _ _) ->
     _run task <| key { _kNamespace = knamespace <> namespace, _kContext = merge kcontext context }
@@ -445,10 +434,10 @@ context namespace context task =
 
 data Entry = Entry
   { _severity :: Severity
-  , _namespace :: Text.Text
-  , _message :: Text.Text
+  , _namespace :: Text
+  , _message :: Text
   , _time :: Clock.UTCTime
-  , _context :: Dict.Dict Text.Text Text.Text
+  , _context :: Dict Text Text
   }
 
 
@@ -461,14 +450,14 @@ data Severity
 
 
 type Context =
-  ( Text.Text, Text.Text )
+  ( Text, Text )
 
 
 
 -- INTERNAL
 
 
-log :: Severity -> Text.Text -> Text.Text -> List Context -> Task x ()
+log :: Severity -> Text -> Text -> List Context -> Task x ()
 log severity namespace message context =
   Task <| \(Key knamespace kcontext host pid queue) -> do
     time <- Clock.getCurrentTime
@@ -477,7 +466,7 @@ log severity namespace message context =
     P.return (Ok ())
 
 
-send :: Entry -> BQ.TBQueue Message -> STM.STM Bool
+send :: Entry -> TBQueue Message -> STM.STM Bool
 send entry queue = do
   full <- BQ.isFullTBQueue queue
   if full then
@@ -487,6 +476,6 @@ send entry queue = do
     P.return (not full)
 
 
-merge :: Dict.Dict Text.Text Text.Text -> List Context -> Dict.Dict Text.Text Text.Text
+merge :: Dict Text Text -> List Context -> Dict Text Text
 merge old new =
   Dict.fromList (Dict.toList old ++ new)
