@@ -1,13 +1,18 @@
 module Main where
 
+import Settings
+import Keys
 import Cherry.Basics
 import Cherry.Result (Result(..))
+import Cherry.List (List(..))
 import Cherry.Maybe (Maybe(..))
 import qualified Cherry.Text as Text
 import qualified Cherry.List as List
 import qualified Cherry.Task as Task
+import qualified Cherry.List as List
 import qualified Cherry.Result as Result
 import qualified Cherry.Debug as Debug
+import qualified Cherry.Program as Program
 import qualified Cherry.Dict as Dict
 import qualified Cherry.Internal.Shortcut as Shortcut
 import qualified Cherry.Maybe as Maybe
@@ -19,10 +24,14 @@ import Cherry.Text (Text)
 import Cherry.Log
 
 
-main :: P.IO (Result () ())
+main :: Program.Program
 main =
-  Task.perform [ bugsnag, terminal message, file "log.txt" compact ] messages
+  Program.program Settings.decoder Keys.init logging app
 
+
+logging :: Keys.Keys -> List Output
+logging keys =
+  [ bugsnag, terminal message, file "log.txt" compact ]
 
 bugsnag :: Output
 bugsnag =
@@ -45,8 +54,8 @@ bugsnag =
   custom open write close
 
 
-messages :: Task.Task () ()
-messages =
+app :: Keys.Keys -> Task.Task () ()
+app keys =
   context "messages" [ ( "online", "true" ) ] <| do
     good "> hello first first!"
     debug "print" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]

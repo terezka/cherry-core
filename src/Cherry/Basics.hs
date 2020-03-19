@@ -36,7 +36,7 @@ module Cherry.Basics
   ) where
 
 
-import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (++), (+), (-), (*), (/), (^), Bool(..))
+import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
 import qualified Prelude
 
 
@@ -58,6 +58,11 @@ infixl 9 <<
 infixr 9 >>
 (>>) = composeR
 
+infixr 5 ++
+
+(++) :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
+(++) =
+  (Prelude.<>)
 
 
 -- MATHEMATICS
