@@ -25,7 +25,7 @@ module Cherry.Tuple
     --
     -- * Create
     --
-  pair
+    pair
     -- * Access
   , first, second
     -- * Map
