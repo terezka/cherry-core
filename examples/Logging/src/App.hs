@@ -40,7 +40,7 @@ app keys =
 
 good :: Text -> Task () ()
 good string = do
-  T.write (T.green <> string <> T.reset <> T.newline)
+  T.write (T.green ++ string ++ T.reset ++ T.newline)
     |> onOk (\_ -> info "good" "Good print succeeded." [])
     |> onErr (\_ -> info "good" "Good print errored." [])
 
