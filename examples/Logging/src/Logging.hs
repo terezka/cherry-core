@@ -2,6 +2,7 @@ module Logging (outputs) where
 
 import qualified Keys
 import qualified Network.HTTP as HTTP
+import qualified Control.Concurrent
 import qualified Cherry.Task as Task
 import qualified Cherry.Terminal as T
 import qualified Cherry.Dict as Dict
@@ -25,6 +26,8 @@ bugsnag =
         Task.succeed ()
 
       write _ (Entry _ _ _ _ _ context) = do
+        Control.Concurrent.threadDelay 5000000
+          |> Task.enter
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
           |> Task.enter
           |> Task.andThen (print context)

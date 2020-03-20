@@ -447,7 +447,7 @@ context namespace context task =
           , _kCallstack =
               case Stack.getCallStack Stack.callStack of
                 ( function, location ) : _ ->
-                  Stack.pushCallStack ( Data.Text.unpack (knamespace ++ "/" ++ namespace), location ) kCallstack
+                  Stack.pushCallStack ( Data.Text.unpack namespace, location ) kCallstack
 
                 _ ->
                   kCallstack
@@ -488,7 +488,7 @@ instance Show Exception where
           T.indent 4 ++ name ++ ": " ++ value
 
         viewStack ( function, location ) =
-          "    context \"" ++ function ++ "\" at " ++ Stack.srcLocFile location ++ ":" ++ show (Stack.srcLocStartLine location) ++ ":" ++ show (Stack.srcLocStartCol location)
+          "    \"" ++ function ++ "\" at " ++ Stack.srcLocFile location ++ ":" ++ show (Stack.srcLocStartLine location) ++ ":" ++ show (Stack.srcLocStartCol location)
     in
     T.message color title namespace
       [ message

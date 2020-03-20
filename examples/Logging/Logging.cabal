@@ -10,7 +10,7 @@ extra-source-files:  CHANGELOG.md
 
 executable Logging
   main-is:             Main.hs
-  build-depends:       base >=4.12 && <4.13, cherry-core, HTTP
+  build-depends:       base >=4.12 && <4.13, cherry-core, HTTP, safe-exceptions
   hs-source-dirs:      src
   default-extensions:  OverloadedStrings
   default-language:    Haskell2010

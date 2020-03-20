@@ -6,6 +6,7 @@ import qualified Cherry.Program as Program
 import qualified Cherry.Log as Log
 import qualified Cherry.Terminal as T
 import qualified Control.Concurrent
+import qualified Control.Exception.Safe as Exception
 import qualified Keys
 import qualified Settings
 import qualified Logging
@@ -25,17 +26,18 @@ app keys =
     debug "print" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
     good "> hello 2"
     bad "> hello 3"
-    Task.enter (Control.Concurrent.threadDelay 1000000)
     good "> hello 4"
+    info "other" "Something." []
     context "dying" [] <| do
-      Task.enter (Prelude.error "noooo!!")
-    debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
+      context "more" [] <| do
+        good "> hello 5"
+        Task.enter (Exception.throwString "noooo!!")
+    debug "namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
 good :: Stack.HasCallStack => Text -> Task () ()
 good string =
   context "good" [ ( "is_ok", "true" ) ] <| do
-    Task.enter (Prelude.error "what is going on!!")
     T.write (T.green ++ string ++ T.reset ++ T.newline)
 
 
