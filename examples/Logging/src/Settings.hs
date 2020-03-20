@@ -1,6 +1,6 @@
 module Settings (Settings(..), decoder) where
 
-import qualified Cherry.Settings as S
+import qualified Cherry.Settings as Settings
 import qualified Cherry.Text as Text
 import qualified Prelude
 import Cherry.Text (Text)
@@ -16,8 +16,8 @@ data Settings =
 
 
 {-| -}
-decoder :: S.Decoder Settings
+decoder :: Settings.Decoder Settings
 decoder =
-  S.succeed Settings
-    |> S.optional "ENVIRONMENT" S.text "DEVELOPMENT"
-    |> S.optional "PORT" S.int 9000
+  Settings.succeed Settings
+    |> Settings.optional "ENVIRONMENT" Settings.text "DEVELOPMENT"
+    |> Settings.optional "PORT" Settings.int 9000

@@ -26,8 +26,8 @@ import qualified Cherry.Text as Text
 import qualified Cherry.List as List
 import qualified System.Environment
 import qualified Prelude
-import Cherry.Maybe (Maybe(..))
 import Cherry.Result (Result(..))
+import Cherry.Maybe (Maybe(..))
 import Cherry.Dict (Dict)
 import Cherry.Task (Task)
 import Cherry.List (List)
