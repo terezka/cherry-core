@@ -10,4 +10,3 @@ import qualified Logging
 main :: Program.Program
 main =
   Program.program Settings.decoder Keys.init Logging.outputs App.app
-
