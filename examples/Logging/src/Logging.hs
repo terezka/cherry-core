@@ -31,8 +31,8 @@ bugsnag =
 
       print context _ =
         case Dict.get "user" context of
-          Just "tereza" -> T.write "tereza"
-          _ -> T.write "no user"
+          Just "tereza" -> T.write "tereza\n"
+          _ -> T.write "no user\n"
 
       close _ =
         Task.succeed ()

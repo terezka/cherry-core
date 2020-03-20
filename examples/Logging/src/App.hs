@@ -10,6 +10,7 @@ import qualified Keys
 import qualified Settings
 import qualified Logging
 import qualified Prelude
+import qualified GHC.Stack as Stack
 import Cherry.Basics
 import Cherry.Log
 import Cherry.Text (Text)
@@ -31,17 +32,14 @@ app keys =
     debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
-good :: Text -> Task () ()
+good :: Stack.HasCallStack => Text -> Task () ()
 good string =
   context "good" [ ( "is_ok", "true" ) ] <| do
+    Task.enter (Prelude.error "what is going on!!")
     T.write (T.green ++ string ++ T.reset ++ T.newline)
-      |> Log.onOk (\_ -> info "good" "Good print succeeded." [])
-      |> Log.onErr (\_ -> info "good" "Good print errored." [])
 
 
 bad :: Text -> Task () ()
 bad string =
   context "bad" [ ( "is_ok", "false" ) ] <| do
     Task.succeed ()
-      |> Log.onOk (\_ -> info "bad" "Bad print succeeded." [])
-      |> Log.onErr (\_ -> error "bad" "Bad print errored." [])

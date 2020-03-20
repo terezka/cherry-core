@@ -4,7 +4,6 @@ module Cherry.Log
     Output, none, terminal, file, custom, message, json, compact
   , Task.Entry(..), Task.Severity(..)
   , debug, info, warning, error, alert
-  , onOk, onErr
   , Context, context
   ) where
 
@@ -144,21 +143,9 @@ alert =
   >      actualLogin id
 
 -}
-context :: Text.Text -> List Context -> Task x a -> Task x a
+context :: Stack.HasCallStack => Text.Text -> List Context -> Task x a -> Task x a
 context =
-  Task.context
-
-
-{-| -}
-onOk :: (a -> Task () ()) -> Task x a -> Task x a
-onOk =
-  Task.onOk
-
-
-{-| -}
-onErr :: (x -> Task () ()) -> Task x a -> Task x a
-onErr =
-  Task.onErr
+  Stack.withFrozenCallStack Task.context
 
 
 {-| A log entry.

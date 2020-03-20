@@ -1,4 +1,6 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Cherry.Internal.Task
   ( -- * Tasks
@@ -12,7 +14,6 @@ module Cherry.Internal.Task
   , Output, none, terminal, custom, file, message, json, compact
   , Entry(..), Severity(..)
   , debug, info, warning, error, alert
-  , onOk, onErr
   , Context, context
   ) where
 
@@ -26,6 +27,7 @@ import qualified Data.ByteString.Lazy as ByteString
 import qualified Data.Text.Encoding
 import qualified Data.Time.Clock as Clock
 import qualified Control.Exception.Safe as Exception
+import qualified Control.Exception
 import qualified Control.Concurrent.Async as Async
 import qualified Control.Concurrent.STM as STM
 import qualified Control.Concurrent.STM.TBQueue as BQ
@@ -41,12 +43,13 @@ import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
 import qualified System.IO
-import Prelude (IO, Show, Functor, Monad, Applicative, pure, return, fmap)
+import Control.Monad.Except (MonadError (catchError, throwError))
+import Prelude (IO, Show, Functor, Monad, Applicative, pure, return, fmap, show)
 import Data.ByteString.Lazy (ByteString)
 import Control.Monad (void)
-import Control.Exception (bracket, bracket_)
+import Control.Exception.Safe (bracket, bracket_)
 import Control.Concurrent.STM.TBQueue (TBQueue)
-import Prelude (IO, FilePath, (<>))
+import Prelude (IO, FilePath)
 import Network.HostName (HostName)
 import System.Posix.Types (ProcessID)
 import Data.Aeson ((.=))
@@ -68,6 +71,7 @@ data Key = Key
   , _kHost :: HostName
   , _kPID :: ProcessID
   , _kQueue :: List (TBQueue Message)
+  , _kCallstack :: Stack.CallStack
   }
 
 data Message
@@ -123,6 +127,19 @@ instance Monad (Task a) where
       onResult result
 
 
+instance MonadError e (Task e) where
+  throwError err =
+    Task <| \_ ->
+      return (Err err)
+
+  catchError task handler =
+    Task <| \key -> do
+      result <- _run task key
+      case result of
+        Ok x -> return (Ok x)
+        Err err -> _run (handler err) key
+
+
 
 -- BASICS
 
@@ -131,7 +148,7 @@ perform :: List Output -> Task x a -> IO (Result x a)
 perform outputs task = do
   host <- HostName.getHostName
   pId <- Process.getProcessID
-  let emptyKey = Key "" Dict.empty host pId []
+  let emptyKey = Key "" Dict.empty host pId [] Stack.emptyCallStack
 
   ( queues, quiters ) <-
       outputs
@@ -141,7 +158,7 @@ perform outputs task = do
 
   let init :: IO Key
       init =
-        return (Key "" Dict.empty host pId queues)
+        return (Key "" Dict.empty host pId queues Stack.emptyCallStack)
 
   let exit :: Key -> IO ()
       exit _ = do
@@ -359,7 +376,7 @@ message (Entry severity namespace message time host context) =
           |> Text.join T.newline
 
       viewContext ( name, value ) = do
-        T.indent 4 <> name <> ": " <> value
+        T.indent 4 ++ name ++ ": " ++ value
 
       defaults =
         [ ( "host", Debug.toString host )
@@ -379,8 +396,8 @@ json =
 
 compact :: Entry -> Text
 compact (Entry severity namespace message time host context) =
-  let anything c = "[" <> Debug.toString c <> "]"
-      string c = "[" <> c <> "]"
+  let anything c = "[" ++ Debug.toString c ++ "]"
+      string c = "[" ++ c ++ "]"
   in
   Text.concat
     [ anything severity
@@ -421,42 +438,93 @@ alert =
   log Alert
 
 
-{-| -}
-onOk :: (a -> Task () ()) -> Task x a -> Task x a
-onOk log task =
-  Task <| \key -> do
-    result <- _run task key
-    case result of
-      Ok ok -> do
-        _ <- _run (log ok) key
-        return ()
-
-      Err _ ->
-        return ()
-
-    return result
-
-
-{-| -}
-onErr :: (x -> Task () ()) -> Task x a -> Task x a
-onErr log task =
-  Task <| \key -> do
-    result <- _run task key
-    case result of
-      Ok _ ->
-        return ()
-
-      Err err -> do
-        _ <- _run (log err) key
-        return ()
-
-    return result
-
-
 context :: Stack.HasCallStack => Text -> List Context -> Task x a -> Task x a
 context namespace context task =
-  Task <| \key@(Key knamespace kcontext _ _ _) ->
-    _run task <| key { _kNamespace = knamespace <> "/" <> namespace, _kContext = merge kcontext context }
+  Task <| \key@(Key knamespace kcontext _ _ _ kCallstack) ->
+    let new = key
+          { _kNamespace = knamespace ++ "/" ++ namespace
+          , _kContext = merge kcontext context
+          , _kCallstack =
+              case Stack.getCallStack Stack.callStack of
+                ( function, location ) : _ ->
+                  Stack.pushCallStack ( Data.Text.unpack (knamespace ++ "/" ++ namespace), location ) kCallstack
+
+                _ ->
+                  kCallstack
+          }
+    in
+    Exception.catches (_run task new)
+      [ Exception.Handler (Exception.throwIO :: Exception -> IO a)
+      , Exception.Handler (Exception.throwIO << fromSomeException new :: Exception.SomeException -> IO a)
+      ]
+
+
+data Exception
+  = Exception
+      { eTitle :: Text
+      , eSeverity :: Severity
+      , eMessage :: Text
+      , eNamespace :: Text
+      , eContext :: List Context
+      , eCallstack :: Stack.CallStack
+      , eOriginal :: Maybe Control.Exception.SomeException
+      }
+
+
+instance Control.Exception.Exception Exception
+
+
+instance Show Exception where
+  show (Exception title severity message namespace context_ callstack original) =
+    let color =
+          case severity of
+            Debug -> T.cyan
+            Info -> T.cyan
+            Warning -> T.yellow
+            Error -> T.magenta
+            Alert -> T.red
+
+        viewContext ( name, value ) = do
+          T.indent 4 ++ name ++ ": " ++ value
+
+        viewStack ( function, location ) =
+          "    context \"" ++ function ++ "\" at " ++ Stack.srcLocFile location ++ ":" ++ show (Stack.srcLocStartLine location) ++ ":" ++ show (Stack.srcLocStartCol location)
+    in
+    T.message color title namespace
+      [ message
+      , "For context:"
+      , List.map viewContext context_
+          |> Text.join T.newline
+      , "Checkpoints:"
+      , Stack.getCallStack callstack
+          |> List.map (Data.Text.pack << viewStack)
+          |> Text.join T.newline
+      ]
+      |> Text.append "\n"
+      |> Data.Text.unpack
+
+
+fromSomeException :: Key -> Control.Exception.SomeException -> Exception
+fromSomeException key exception =
+  let formatted =
+        Control.Exception.displayException exception
+          |> Data.Text.pack
+          |> Text.lines
+          |> List.map (Text.append " >    ")
+          |> Text.join "\n"
+  in
+  Exception
+    "Unknown error"
+    Alert
+    formatted
+    (_kNamespace key)
+    (_kContext key |> Dict.toList)
+    (_kCallstack key)
+    (Just exception)
+
+
+
+-- ENTRY
 
 
 data Entry = Entry
@@ -507,9 +575,9 @@ type Context =
 
 log :: Severity -> Text -> Text -> List Context -> Task x ()
 log severity namespace message context =
-  Task <| \(Key knamespace kcontext host pid queue) -> do
+  Task <| \(Key knamespace kcontext host pid queue callstack) -> do
     time <- Clock.getCurrentTime
-    let entry = Entry severity (knamespace <> "/" <> namespace) message time host (merge kcontext context)
+    let entry = Entry severity (knamespace ++ "/" ++ namespace) message time host (merge kcontext context)
     P.sequence <| List.map (send entry >> STM.atomically) queue
     return (Ok ())
 
