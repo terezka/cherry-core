@@ -17,8 +17,6 @@ module Cherry.Internal.Task
   ) where
 
 
--- TODO: Add `attempt`
-
 import qualified Prelude as P
 import qualified Data.Text
 import qualified Data.List
@@ -43,6 +41,7 @@ import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
 import qualified System.IO
+import Prelude (IO, Show, Functor, Monad, Applicative, pure, return, fmap)
 import Data.ByteString.Lazy (ByteString)
 import Control.Monad (void)
 import Control.Exception (bracket, bracket_)
@@ -60,7 +59,7 @@ import Cherry.Maybe (Maybe(..))
 
 
 newtype Task x a =
-  Task { _run :: Key -> P.IO (Result x a) }
+  Task { _run :: Key -> IO (Result x a) }
 
 
 data Key = Key
@@ -75,7 +74,7 @@ data Message
   = NewEntry Entry
   | Done
 
-instance P.Functor (Task a) where
+instance Functor (Task a) where
   fmap func task =
     Task <| \key ->
       let onResult result =
@@ -84,10 +83,10 @@ instance P.Functor (Task a) where
               Err x -> Err x
       in
       _run task key
-        |> P.fmap onResult
+        |> fmap onResult
 
 
-instance P.Applicative (Task a) where
+instance Applicative (Task a) where
   pure a =
     succeed a
 
@@ -106,10 +105,10 @@ instance P.Applicative (Task a) where
       in do
       func_ <- _run func key
       task_ <- _run task key
-      P.return (onResult func_ task_)
+      return (onResult func_ task_)
 
 
-instance P.Monad (Task a) where
+instance Monad (Task a) where
   task >>= func =
     Task <| \key ->
       let onResult result =
@@ -118,7 +117,7 @@ instance P.Monad (Task a) where
                 _run (func ok) key
 
               Err err ->
-                P.return (Err err)
+                return (Err err)
       in do
       result <- _run task key
       onResult result
@@ -138,16 +137,16 @@ perform outputs task = do
       outputs
         |> List.map (toQueueAndQuit emptyKey)
         |> P.sequence
-        |> P.fmap List.unzip
+        |> fmap List.unzip
 
   let init :: IO Key
       init =
-        P.return (Key "" Dict.empty host pId queues)
+        return (Key "" Dict.empty host pId queues)
 
   let exit :: Key -> IO ()
       exit _ = do
         _ <- P.sequence quiters
-        P.return ()
+        return ()
 
   bracket init exit (_run task)
 
@@ -165,9 +164,9 @@ toQueueAndQuit emptyKey (Output settings) = do
         _ <- STM.atomically (BQ.writeTBQueue queue Done)
         _ <- Async.waitCatch worker
         _ <- close
-        P.return ()
+        return ()
 
-  P.return ( queue, quit )
+  return ( queue, quit )
 
 
 toWorker :: (Entry -> IO ()) -> TBQueue Message -> IO (Async.Async ())
@@ -180,19 +179,19 @@ toWorker write queue =
             loop
 
           Done ->
-            P.return ()
+            return ()
   in do
   Async.async loop
 
 
 succeed :: a -> Task x a
 succeed a =
-  Task <| \_ -> P.return (Ok a)
+  Task <| \_ -> return (Ok a)
 
 
 fail :: x -> Task x a
 fail x =
-  Task <| \_ -> P.return (Err x)
+  Task <| \_ -> return (Err x)
 
 
 
@@ -244,7 +243,7 @@ onError func task =
   Task <| \key ->
     let onResult result =
           case result of
-            Ok ok -> P.return (Ok ok)
+            Ok ok -> return (Ok ok)
             Err err -> _run (func err) key
     in do
     result <- _run task key
@@ -290,9 +289,9 @@ data OutputSettings x resource =
 none :: Output
 none =
   Output <| OutputSettings
-    { _open = P.return ()
-    , _write = \_ _ -> P.return ()
-    , _close = \_ -> P.return ()
+    { _open = return ()
+    , _write = \_ _ -> return ()
+    , _close = \_ -> return ()
     }
 
 
@@ -301,7 +300,7 @@ terminal write =
   Output <| OutputSettings
     { _open = do
         System.IO.hSetBuffering System.IO.stdout System.IO.LineBuffering
-        P.return System.IO.stdout
+        return System.IO.stdout
 
     , _write = \handle entry -> do
         System.IO.hPutStr handle (Data.Text.unpack (write entry))
@@ -319,7 +318,7 @@ file filepath write = -- TODO check color if terminal
         handle <- System.IO.openFile filepath System.IO.AppendMode
         System.IO.hSetBuffering handle System.IO.LineBuffering
         lock <- MVar.newMVar ()
-        P.return ( handle, lock )
+        return ( handle, lock )
 
     , _write = \( handle, lock ) entry -> do
         bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
@@ -337,7 +336,7 @@ custom open write close =
     { _open = do
         result <- exit open
         case result of
-          Ok resource -> P.return resource
+          Ok resource -> return resource
           Err _ -> P.error "Could not initiate logger."
     , _write = \r e -> exit (write r e) |> void
     , _close = \r -> exit (close r) |> void
@@ -430,12 +429,12 @@ onOk log task =
     case result of
       Ok ok -> do
         _ <- _run (log ok) key
-        P.return ()
+        return ()
 
       Err _ ->
-        P.return ()
+        return ()
 
-    P.return result
+    return result
 
 
 {-| -}
@@ -445,16 +444,16 @@ onErr log task =
     result <- _run task key
     case result of
       Ok _ ->
-        P.return ()
+        return ()
 
       Err err -> do
         _ <- _run (log err) key
-        P.return ()
+        return ()
 
-    P.return result
+    return result
 
 
-context :: Text -> List Context -> Task x a -> Task x a
+context :: Stack.HasCallStack => Text -> List Context -> Task x a -> Task x a
 context namespace context task =
   Task <| \key@(Key knamespace kcontext _ _ _) ->
     _run task <| key { _kNamespace = knamespace <> "/" <> namespace, _kContext = merge kcontext context }
@@ -495,7 +494,7 @@ data Severity
   | Warning
   | Error
   | Alert
-  deriving (P.Show)
+  deriving (Show)
 
 
 type Context =
@@ -512,17 +511,17 @@ log severity namespace message context =
     time <- Clock.getCurrentTime
     let entry = Entry severity (knamespace <> "/" <> namespace) message time host (merge kcontext context)
     P.sequence <| List.map (send entry >> STM.atomically) queue
-    P.return (Ok ())
+    return (Ok ())
 
 
 send :: Entry -> TBQueue Message -> STM.STM Bool
 send entry queue = do
   full <- BQ.isFullTBQueue queue
   if full then
-    P.return (not full)
+    return (not full)
   else do
     BQ.writeTBQueue queue (NewEntry entry)
-    P.return (not full)
+    return (not full)
 
 
 merge :: Dict Text Text -> List Context -> Dict Text Text

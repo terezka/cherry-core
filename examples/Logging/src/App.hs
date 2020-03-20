@@ -26,6 +26,8 @@ app keys =
     bad "> hello 3"
     Task.enter (Control.Concurrent.threadDelay 1000000)
     good "> hello 4"
+    context "dying" [] <| do
+      Task.enter (Prelude.error "noooo!!")
     debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
