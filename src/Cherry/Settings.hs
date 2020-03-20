@@ -8,6 +8,8 @@ module Cherry.Settings
 
     -- * Parser
   , Parser
+  , map
+  , andThen
   , text
   , int
   , float
@@ -92,6 +94,24 @@ decode (Decoder decoder) =
 {-| -}
 newtype Parser a
   = Parser (Text -> Result Text a)
+
+
+{-| -}
+map :: (a -> b) -> Parser a -> Parser b
+map f (Parser a) =
+  Parser <| \text ->
+    case a text of
+      Ok ok -> Ok (f ok)
+      Err err -> Err err
+
+
+{-| -}
+andThen :: (a -> Result Text b) -> Parser a -> Parser b
+andThen f (Parser a) =
+  Parser <| \text ->
+    case a text of
+      Ok ok -> f ok
+      Err err -> Err err
 
 
 {-| -}
