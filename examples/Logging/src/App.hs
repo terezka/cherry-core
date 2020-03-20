@@ -20,24 +20,26 @@ import Keys (Keys)
 app :: Keys -> Task () ()
 app keys =
   context "messages" [ ( "online", "true" ) ] <| do
-    good "> hello first first!"
+    good "> hello 1"
     debug "print" "Beginning the printing." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
-    good "> hello first!"
-    bad "> hello second!"
+    good "> hello 2"
+    bad "> hello 3"
     Task.enter (Control.Concurrent.threadDelay 1000000)
-    good "> hello again!"
+    good "> hello 4"
     debug "/namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
 good :: Text -> Task () ()
-good string = do
-  T.write (T.green ++ string ++ T.reset ++ T.newline)
-    |> Log.onOk (\_ -> info "good" "Good print succeeded." [])
-    |> Log.onErr (\_ -> info "good" "Good print errored." [])
+good string =
+  context "good" [ ( "is_ok", "true" ) ] <| do
+    T.write (T.green ++ string ++ T.reset ++ T.newline)
+      |> Log.onOk (\_ -> info "good" "Good print succeeded." [])
+      |> Log.onErr (\_ -> info "good" "Good print errored." [])
 
 
 bad :: Text -> Task () ()
 bad string =
-  Task.fail ()
-    |> Log.onOk (\_ -> info "bad" "Bad print succeeded." [])
-    |> Log.onErr (\_ -> error "bad" "Bad print errored." [])
+  context "bad" [ ( "is_ok", "false" ) ] <| do
+    Task.succeed ()
+      |> Log.onOk (\_ -> info "bad" "Bad print succeeded." [])
+      |> Log.onErr (\_ -> error "bad" "Bad print errored." [])
