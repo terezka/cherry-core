@@ -8,6 +8,8 @@ module Cherry.Internal.Settings
 
     -- * Parser
   , Parser
+  , succeed
+  , fail
   , map
   , andThen
   , text

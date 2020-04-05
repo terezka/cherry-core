@@ -115,10 +115,7 @@ init (Settings env port) =
 
 {-| -}
 data Settings =
-  Settings
-    { sEnvironment :: Environment
-    , sPort :: Int
-    }
+  Settings Environment Int
 
 
 {-| -}
