@@ -1,8 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Cherry.Basics
-  ( -- Tons of useful functions that get imported by default.
-    -- * Math
+  ( -- * Math
     Int, Float, (+), (-), (*), (/), (//), (^)
 
     -- * Int to Float / Float to Int
@@ -30,9 +29,6 @@ module Cherry.Basics
 
     -- * Function Helpers
   , identity, always, (<|), (|>), (<<), (>>), Never, never
-
-    -- * Text helpers
-  , (<>)
   ) where
 
 
@@ -59,10 +55,8 @@ infixr 9 >>
 (>>) = composeR
 
 infixr 5 ++
-
 (++) :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
-(++) =
-  (Prelude.<>)
+(++) = append
 
 
 -- MATHEMATICS
@@ -76,14 +70,7 @@ infixr 5 ++
   >  0xFF   -- 255 in hexadecimal
   >  0x000A --  10 in hexadecimal
 
-**Note:** `Int` math is well-defined in the range `-2^31` to `2^31 - 1`. Outside
-of that range, the behavior is determined by the compilation target. When
-generating JavaScript, the safe range expands to `-2^53` to `2^53 - 1` for some
-operations, but if we generate WebAssembly some day, we would do the traditional
-[integer overflow](https://en.wikipedia.org/wiki/Integer_overflow). This quirk is necessary to get good performance on
-quirky compilation targets.
-
-**Historical Note:** The name `Int` comes from the term [integer](https://en.wikipedia.org/wiki/Integer). It appears
+__Historical Note:__ The name `Int` comes from the term [integer](https://en.wikipedia.org/wiki/Integer). It appears
 that the `int` abbreviation was introduced in [ALGOL 68](https://en.wikipedia.org/wiki/ALGOL_68), shortening it
 from `integer` in [ALGOL 60](https://en.wikipedia.org/wiki/ALGOL_60). Today, almost all programming languages use
 this abbreviation.
@@ -103,7 +90,7 @@ type Int = Prelude.Int
   >  1.602e−19  -- == (1.602 * 10^-19)
   >  1e3        -- == (1 * 10^3) == 1000
 
-**Historical Note:** The particular details of floats (e.g. `NaN`) are
+__Historical Note:__ The particular details of floats (e.g. `NaN`) are
 specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) which is literally hard-coded into almost all
 CPUs in the world. That means if you think `NaN` is weird, you must
 successfully overtake Intel and AMD with a chip that is not backwards
@@ -122,18 +109,13 @@ can do things like this:
   >  3.14 + 3.14 == 6.28  -- all floats
 
 You _cannot_ add an `Int` and a `Float` directly though. Use functions like
-[toFloat](#toFloat) or [round](#round) to convert both values to the same type.
+`toFloat` or `round` to convert both values to the same type.
 So if you needed to add a list length to a `Float` for some reason, you
 could say one of these:
 
   >  3.14 + toFloat (List.length [1,2,3]) == 6.14
   >  round 3.14 + List.length [1,2,3]     == 6
 
-**Note:** Languages like Java and JavaScript automatically convert `Int` values
-to `Float` values when you mix and match. This can make it difficult to be sure
-exactly what type of number you are dealing with. When you try to _infer_ these
-conversions (as Scala does) it can be even more confusing. Elm has opted for a
-design that makes all conversions explicit.
 -}
 add :: Prelude.Num number => number -> number -> number
 add =
@@ -142,7 +124,7 @@ add =
 
 {-| Subtract numbers like `4 - 3 == 1`.
 
-See [`(+)`](#+) for docs on the `number` type variable.
+See `(+)` for docs on the `number` type variable.
 -}
 sub :: Prelude.Num number => number -> number -> number
 sub =
@@ -151,7 +133,7 @@ sub =
 
 {-| Multiply numbers like `2 * 3 == 6`.
 
-See [`(+)`](#+) for docs on the `number` type variable.
+See `(+)` for docs on the `number` type variable.
 -}
 mul :: Prelude.Num number => number -> number -> number
 mul =
@@ -275,20 +257,6 @@ truncate =
 
 {-| Check if values are &ldquo;the same&rdquo;.
 
-**Note:** Elm uses structural equality on tuples, records, and user-defined
-union types. This means the values `(3, 4)` and `(3, 4)` are definitely equal.
-This is not true in languages like JavaScript that use reference equality on
-objects.
-
-**Note:** Equality (in the Elm sense) is not possible for certain types. For
-example, the functions `(\n -> n + 1)` and `(\n -> 1 + n)` are &ldquo;the
-same&rdquo; but detecting this in general is [undecidable](https://en.wikipedia.org/wiki/Undecidable_problem). In a future
-release, the compiler will detect when `(==)` is used with problematic
-types and provide a helpful error message. This will require quite serious
-infrastructure work that makes sense to batch with another big project, so the
-stopgap is to crash as quickly as possible. Problematic types include functions
-and JavaScript values like `Json.Encode.Value` which could contain functions
-if passed through a port.
 -}
 eq :: ( Prelude.Ord a, Prelude.Eq a ) => a -> a -> Bool
 eq =
@@ -395,9 +363,9 @@ not =
   >  True  && True  == True
   >  True  && False == False
   >  False && True  == False
-  >  False && False == False
+  >  False && False == _False
 
-**Note:** When used in the infix position, like `(left && right)`, the operator
+__Note:_ When used in the infix position, like `(left && right)`, the operator
 short-circuits. This means if `left` is `False` we do not bother evaluating `right`
 and just return `False` overall.
 
@@ -414,7 +382,7 @@ and =
   >  False || True  == True
   >  False || False == False
 
-**Note:** When used in the infix position, like `(left || right)`, the operator
+__Note:__ When used in the infix position, like `(left || right)`, the operator
 short-circuits. This means if `left` is `True` we do not bother evaluating `right`
 and just return `True` overall.
 
@@ -434,9 +402,9 @@ or =
   >  [1,1,2] ++ [3,5,8] == [1,1,2,3,5,8]
 
 -}
-append :: [a] -> [a] -> [a]
+append :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
 append =
-  (++)
+  (Prelude.<>)
 
 
 
@@ -457,7 +425,7 @@ negative numbers:
   >  List.map (modBy 4) [ -5, -4, -3, -2, -1,  0,  1,  2,  3,  4,  5 ]
   >  --                 [  3,  0,  1,  2,  3,  0,  1,  2,  3,  0,  1 ]
 
-Use [`remainderBy`](#remainderBy) for a different treatment of negative numbers,
+Use `remainderBy` for a different treatment of negative numbers,
 or read Daan Leijen’s [Division and Modulus for Computer Scientists](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf) for more
 information.
 
@@ -472,7 +440,7 @@ modBy =
   >  List.map (remainderBy 4) [ -5, -4, -3, -2, -1,  0,  1,  2,  3,  4,  5 ]
   >  --                       [ -1,  0, -3, -2, -1,  0,  1,  2,  3,  0,  1 ]
 
-Use [`modBy`](#modBy) for a different treatment of negative numbers,
+Use `modBy` for a different treatment of negative numbers,
 or read Daan Leijen’s [Division and Modulus for Computer Scientists](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/divmodnote-letter.pdf) for more
 information.
 
@@ -623,8 +591,8 @@ asin =
 
 
 {-| This helps you find the angle (in radians) to an `(x,y)` coordinate, but
-in a way that is rarely useful in programming. **You probably want
-[`atan2`](#atan2) instead!**
+in a way that is rarely useful in programming. _You probably want
+`atan2` instead!_
 
 This version takes `y/x` as its argument, so there is no way to know whether
 the negative signs comes from the `y` or `x` value. So as we go counter-clockwise
@@ -638,7 +606,7 @@ not get angles that go in the full circle:
 
 Notice that everything is between `pi/2` and `-pi/2`. That is pretty useless
 for figuring out angles in any sort of visualization, so again, check out
-[`atan2`](#atan2) instead!
+`atan2` instead!
 
 -}
 atan :: Float -> Float
@@ -687,8 +655,8 @@ isNaN =
   >  isInfinite (1/0)     == True
   >  isInfinite 1         == False
 
-Notice that NaN is not infinite! For float `n` to be finite implies that
-`not (isInfinite n || isNaN n)` evaluates to `True`.
+Notice that NaN is not infinite! For float `n` to be finite implies
+that `not (isInfinite n || isNaN n)` evaluates to `True`.
 -}
 isInfinite :: Float -> Bool
 isInfinite =
@@ -752,7 +720,7 @@ Totally equivalent! I recommend trying to rewrite code that uses `x |> f`
 into code like `f x` until there are no pipes left. That can help you build
 your intuition.
 
-**Note:** This can be overused! I think folks find it quite neat, but when you
+__Note:__ This can be overused! I think folks find it quite neat, but when you
 have three or four steps, the code often gets clearer if you break out a
 top-level helper function. Now the transformation has a name. The arguments are
 named. It has a type annotation. It is much more self-documenting that way!
@@ -784,7 +752,7 @@ identity x =
   x
 
 
-{-| Create a function that *always* returns the same value. Useful with
+{-| Create a function that __always__ returns the same value. Useful with
 functions like `map`:
 
   >  List.map (always 0) [1,2,3,4,5] == [0,0,0,0,0]
@@ -825,6 +793,7 @@ messages. And say you want to use it in some other HTML that *does* produce
 messages. You could say:
 
   >  import Html exposing (..)
+  >
   >  embedHtml :: Html Never -> Html msg
   >  embedHtml staticStuff =
   >    div []

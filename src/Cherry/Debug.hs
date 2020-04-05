@@ -1,10 +1,7 @@
--- | This module can be useful while _developing_ an application. It is not
--- available for use in packages or production.
---
--- Debugging
--- @docs toString, log, todo
 module Cherry.Debug
-  ( toString,
+  ( -- This module can be useful while _developing_ an application.
+    -- * Debugging
+    toString,
     log,
     todo,
   )

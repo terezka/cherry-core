@@ -1,26 +1,6 @@
--- | Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
---
--- Characters
--- @docs Char
---
--- ASCII Letters
--- @docs isUpper, isLower, isAlpha, isAlphaNum
---
--- Digits
--- @docs isDigit, isOctDigit, isHexDigit
---
--- Conversion
--- @docs toUpper, toLower
---
--- Unicode Code Points
--- @docs toCode, fromCode
---
--- Unsupported functions Since we don't have a browser and we don't have a
--- default locale, functions like `toLocaleUpper` and `toLocaleUpper` are not
--- supported. If you need something like that you can check out the `text-icu`
--- package which provides functions like `toUpper :: LocaleName -> Text -> Text`.
 module Cherry.Char
-  ( -- * Characters
+  ( -- Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
+    -- * Characters
     Char
 
     -- * ASCII Letters
@@ -57,11 +37,7 @@ import qualified Data.Char
   >  '\''
   >  '\u{1F648}' -- '🙈'
 
-**Note 1:** You _cannot_ use single quotes around multiple characters like in
-JavaScript. This is how we distinguish [`String`](String#String) and `Char`
-values in syntax.
-
-**Note 2:** You can use the unicode escapes from `\u{0000}` to `\u{10FFFF}` to
+__Note 2:__ You can use the unicode escapes from `\u{0000}` to `\u{10FFFF}` to
 represent characters by their code point. You can also include the unicode
 characters directly. Using the escapes can be better if you need one of the
 many whitespace characters with different widths.

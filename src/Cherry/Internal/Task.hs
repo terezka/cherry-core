@@ -11,7 +11,7 @@ module Cherry.Internal.Task
   , onError, mapError
 
   -- * Logging
-  , Output, none, terminal, custom, file, message, json, compact
+  , Target, terminal, custom, file, pretty, json, compact
   , Entry(..), Severity(..)
   , debug, info, warning, error, alert
   , Context, context
@@ -43,7 +43,6 @@ import qualified Cherry.Result as Result
 import qualified Network.HostName as HostName
 import qualified System.Posix.Process as Process
 import qualified System.IO
-import Control.Monad.Except (MonadError (catchError, throwError))
 import Prelude (IO, Show, Functor, Monad, Applicative, pure, return, fmap, show)
 import Data.ByteString.Lazy (ByteString)
 import Control.Monad (void)
@@ -61,6 +60,11 @@ import Cherry.Result (Result(..))
 import Cherry.Maybe (Maybe(..))
 
 
+{-| A task is a __description__ of what you need to do. Like a todo
+list. Or like a grocery list. Or like GitHub issues. So saying "the task is
+to tell me the current POSIX time" does not complete the task! You need
+`perform` tasks or `attempt` tasks.
+-}
 newtype Task x a =
   Task { _run :: Key -> IO (Result x a) }
 
@@ -127,24 +131,11 @@ instance Monad (Task a) where
       onResult result
 
 
-instance MonadError e (Task e) where
-  throwError err =
-    Task <| \_ ->
-      return (Err err)
-
-  catchError task handler =
-    Task <| \key -> do
-      result <- _run task key
-      case result of
-        Ok x -> return (Ok x)
-        Err err -> _run (handler err) key
-
-
 
 -- BASICS
 
 
-perform :: List Output -> Task x a -> IO (Result x a)
+perform :: List Target -> Task x a -> IO (Result x a)
 perform outputs task = do
   host <- HostName.getHostName
   pId <- Process.getProcessID
@@ -168,8 +159,8 @@ perform outputs task = do
   bracket init exit (_run task)
 
 
-toQueueAndQuit :: Key -> Output -> IO ( TBQueue Message, IO () )
-toQueueAndQuit emptyKey (Output settings) = do
+toQueueAndQuit :: Key -> Target -> IO ( TBQueue Message, IO () )
+toQueueAndQuit emptyKey (Target settings) = do
   resource <- (_open settings)
   let write = (_write settings) resource
   let close = (_close settings) resource
@@ -284,37 +275,31 @@ enter io =
 
 exit :: Task x a -> IO (Result x a)
 exit =
-  perform [none]
+  perform []
 
 
 
 -- LOGGING
 
 
-data Output where
-  Output :: OutputSettings x resource -> Output
+{-| A target is a place where your entries are sent. This could be the terminal, a file, or
+a custom target like New Relic, Bugsnag, or whatever you use for logging.
+-}
+data Target where
+  Target :: TargetSettings x resource -> Target
 
 
-data OutputSettings x resource =
-  OutputSettings
+data TargetSettings x resource =
+  TargetSettings
     { _open :: IO resource
     , _write :: resource -> Entry -> IO ()
     , _close :: resource -> IO ()
     }
 
 
-none :: Output
-none =
-  Output <| OutputSettings
-    { _open = return ()
-    , _write = \_ _ -> return ()
-    , _close = \_ -> return ()
-    }
-
-
-terminal :: (Entry -> Text) -> Output
+terminal :: (Entry -> Text) -> Target
 terminal write =
-  Output <| OutputSettings
+  Target <| TargetSettings
     { _open = do
         System.IO.hSetBuffering System.IO.stdout System.IO.LineBuffering
         return System.IO.stdout
@@ -328,9 +313,9 @@ terminal write =
     }
 
 
-file :: FilePath -> (Entry -> Text) -> Output
+file :: FilePath -> (Entry -> Text) -> Target
 file filepath write = -- TODO check color if terminal
-  Output <| OutputSettings
+  Target <| TargetSettings
     { _open = do
         handle <- System.IO.openFile filepath System.IO.AppendMode
         System.IO.hSetBuffering handle System.IO.LineBuffering
@@ -347,9 +332,9 @@ file filepath write = -- TODO check color if terminal
     }
 
 
-custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Output
+custom :: Task x r -> (r -> Entry -> Task x ()) -> (r -> Task x ()) -> Target
 custom open write close =
-  Output <| OutputSettings
+  Target <| TargetSettings
     { _open = do
         result <- exit open
         case result of
@@ -360,8 +345,8 @@ custom open write close =
     }
 
 
-message :: Entry -> Text
-message (Entry severity namespace message time host context) =
+pretty :: Entry -> Text
+pretty (Entry severity namespace message time host context) =
   let ( color, title ) =
         case severity of
           Debug -> ( T.cyan, "Debug" )
@@ -527,6 +512,9 @@ fromSomeException key exception =
 -- ENTRY
 
 
+{-| An entry is a single log item. It has a bunch of standard info as well as details you have defined.
+
+-}
 data Entry = Entry
   { _severity :: Severity
   , _namespace :: Text
@@ -565,6 +553,8 @@ data Severity
   deriving (Show)
 
 
+{-| A key value pair comprising a piece of context.
+-}
 type Context =
   ( Text, Text )
 

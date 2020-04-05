@@ -1,6 +1,6 @@
 module Cherry.Array
-  ( -- * Arrays
-    -- Fast immutable arrays. The elements in an array must have the same type.
+  ( -- Fast immutable arrays. The elements in an array must have the same type.
+    -- * Arrays
     Array
 
     -- * Creation
@@ -28,9 +28,13 @@ import Cherry.List (List)
 import Cherry.Maybe (Maybe (..))
 import qualified Data.Vector
 import qualified Data.Foldable
+import qualified Data.Maybe
 import qualified Cherry.List as List
 import qualified Cherry.Tuple as Tuple
 
+
+{-| An array.
+-}
 newtype Array a = Array (Data.Vector.Vector a)
   deriving (Eq, Show)
 
@@ -42,6 +46,7 @@ newtype Array a = Array (Data.Vector.Vector a)
 empty :: Array a
 empty =
   Array Data.Vector.empty
+
 
 {-| Determine if an array is empty.
 
@@ -77,6 +82,7 @@ initialize n f =
       (fromIntegral n)
       (fromIntegral >> f)
 
+
 {-| Creates an array with a given length, filled with a default element.
 
   >  repeat 5 0     == fromList [0,0,0,0,0]
@@ -89,11 +95,13 @@ repeat n e =
   Array
     <| Data.Vector.replicate (fromIntegral n) e
 
+
 {-| Create an array from a `List`.
 -}
 fromList :: List a -> Array a
 fromList =
   Data.Vector.fromList >> Array
+
 
 {-| Return `Just` the element at the index or `Nothing` if the index is out of
 range.
@@ -105,7 +113,8 @@ range.
 -}
 get :: Int -> Array a -> Maybe a
 get i array =
-  unwrap array !? fromIntegral i
+  fromHMaybe (unwrap array !? fromIntegral i)
+
 
 {-| Set the element at a particular index. Returns an updated array.
 If the index is out of range, the array is unaltered.
@@ -121,6 +130,7 @@ set i value array = Array result
       | 0 <= i && i < len = vector // [(fromIntegral i, value)]
       | otherwise = vector
 
+
 {-| Push an element onto the end of an array.
 
   >  push 3 (fromList [1,2]) == fromList [1,2,3]
@@ -129,12 +139,14 @@ push :: a -> Array a -> Array a
 push a (Array vector) =
   Array (Data.Vector.snoc vector a)
 
+
 {-| Create a list of elements from an array.
 
   >  toList (fromList [3,5,8]) == [3,5,8]
 -}
 toList :: Array a -> List a
 toList = unwrap >> Data.Vector.toList
+
 
 {-| Create an indexed list from an array. Each element of the array will be
 paired with its index.
@@ -148,12 +160,14 @@ toIndexedList =
     >> Data.Vector.toList
     >> List.map (Tuple.mapFirst fromIntegral)
 
+
 {-| Reduce an array from the right. Read `foldr` as fold from the right.
 
   >  foldr (+) 0 (repeat 3 5) == 15
 -}
 foldr :: (a -> b -> b) -> b -> Array a -> b
 foldr f value array = Data.Foldable.foldr f value (unwrap array)
+
 
 {-| Reduce an array from the left. Read `foldl` as fold from the left.
 
@@ -245,3 +259,16 @@ slice from to (Array vector)
 unwrap :: Array a -> Data.Vector.Vector a
 unwrap (Array v) = v
 
+
+toHMaybe :: Maybe a -> Data.Maybe.Maybe a
+toHMaybe maybe =
+  case maybe of
+    Just a -> Data.Maybe.Just a
+    Nothing -> Data.Maybe.Nothing
+
+
+fromHMaybe :: Data.Maybe.Maybe a -> Maybe a
+fromHMaybe maybe =
+  case maybe of
+    Data.Maybe.Just a -> Just a
+    Data.Maybe.Nothing -> Nothing

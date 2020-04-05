@@ -38,9 +38,10 @@ import Cherry.Basics ((+), (-), (<), (<=), (>>), Bool, Float, Int, clamp, (|>))
 import Prelude (otherwise)
 import Cherry.Char (Char)
 import Cherry.List (List)
-import Cherry.Maybe (Maybe)
+import Cherry.Maybe (Maybe(..))
 import qualified Prelude
 import qualified Data.Text
+import qualified Data.Maybe
 import qualified Text.Read
 import qualified Text.Show
 import qualified Cherry.List as List
@@ -63,13 +64,12 @@ import qualified Cherry.List as List
   >  can have unescaped quotes and newlines.
   >  """
 
-A `Text` can represent any sequence of [unicode characters][u]. You can use
+A `Text` can represent any sequence of [unicode characters](https://en.wikipedia.org/wiki/Unicode). You can use
 the unicode escapes from `\u{0000}` to `\u{10FFFF}` to represent characters
 by their code point. You can also include the unicode characters directly.
 Using the escapes can be better if you need one of the many whitespace
 characters with different widths.
 
-[u]: https://en.wikipedia.org/wiki/Unicode
 -}
 type Text =
   Data.Text.Text
@@ -396,12 +396,13 @@ want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 -}
 toInt :: Text -> Maybe Int
 toInt text =
+  let str = Data.Text.unpack text
+      str' = case str of
+        '+' : rest -> rest
+        other -> other
+  in
   Text.Read.readMaybe str'
-  where
-    str = Data.Text.unpack text
-    str' = case str of
-      '+' : rest -> rest
-      other -> other
+    |> fromHMaybe
 
 
 {-| Convert an `Int` to a `Text`.
@@ -433,13 +434,14 @@ want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 -}
 toFloat :: Text -> Maybe Float
 toFloat text =
+  let str = Data.Text.unpack text
+      str' = case str of
+        '+' : rest -> rest
+        '.' : rest -> '0' : '.' : rest
+        other -> other
+  in
   Text.Read.readMaybe str'
-  where
-    str = Data.Text.unpack text
-    str' = case str of
-      '+' : rest -> rest
-      '.' : rest -> '0' : '.' : rest
-      other -> other
+    |> fromHMaybe
 
 
 {-| Convert a `Float` to a `Text`.
@@ -503,7 +505,7 @@ pattern match on strings exactly as you would with lists.
   >  uncons ""    == Nothing
 -}
 uncons :: Text -> Maybe (Char, Text)
-uncons = Data.Text.uncons
+uncons = Data.Text.uncons >> fromHMaybe
 
 
 
@@ -560,3 +562,21 @@ any = Data.Text.any
 -}
 all :: (Char -> Bool) -> Text -> Bool
 all = Data.Text.all
+
+
+
+-- INTERNAL
+
+
+toHMaybe :: Maybe a -> Data.Maybe.Maybe a
+toHMaybe maybe =
+  case maybe of
+    Just a -> Data.Maybe.Just a
+    Nothing -> Data.Maybe.Nothing
+
+
+fromHMaybe :: Data.Maybe.Maybe a -> Maybe a
+fromHMaybe maybe =
+  case maybe of
+    Data.Maybe.Just a -> Just a
+    Data.Maybe.Nothing -> Nothing

@@ -12,5 +12,5 @@ executable Logging
   main-is:             Main.hs
   build-depends:       base >=4.12 && <4.13, cherry-core, HTTP, safe-exceptions
   hs-source-dirs:      src
-  default-extensions:  OverloadedStrings
+  default-extensions:  OverloadedStrings, NoImplicitPrelude
   default-language:    Haskell2010

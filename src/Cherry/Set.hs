@@ -142,11 +142,11 @@ map =
 
   >  import Set exposing (Set)
   >
-  >  numbers : Set Int
+  >  numbers :: Set Int
   >  numbers =
   >    Set.fromList [-2,-1,0,1,2]
   >
-  >  positives : Set Int
+  >  positives :: Set Int
   >  positives =
   >    Set.filter (\x -> x > 0) numbers
   >

@@ -12,6 +12,10 @@ category:            Development
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
+source-repository head
+  type:     git
+  location: https://github.com/cherry-haskell/cherry-core
+
 library
   exposed-modules:
     Cherry.Basics,
@@ -35,9 +39,23 @@ library
   other-modules:
     Cherry.Internal.Shortcut,
     Cherry.Internal.Task,
+    Cherry.Internal.Settings,
     Cherry.Internal.Terminal
-  other-extensions:    RankNTypes
-  default-extensions:  OverloadedStrings
-  build-depends:       base >=4.12 && <4.13, text >=1.2 && <1.3, containers >=0.6 && <0.7, mtl, vector, safe-exceptions, async, stm, unix, hostname, time, aeson, bytestring, mtl
+  default-extensions:  OverloadedStrings, NoImplicitPrelude
+  other-extensions:    RankNTypes, GADTs, FlexibleInstances, MultiParamTypeClasses
+  build-depends:
+    base >=4.12 && <4.13,
+    text >=1.2 && <1.3,
+    containers >=0.6 && <0.7,
+    vector >=0.12 && <0.13,
+    safe-exceptions,
+    async >=2.2 && <2.3,
+    mtl,
+    stm,
+    unix,
+    time,
+    bytestring,
+    hostname >=1.0 && <1.1,
+    aeson >=1.4 && <1.5
   hs-source-dirs:      src
   default-language:    Haskell2010

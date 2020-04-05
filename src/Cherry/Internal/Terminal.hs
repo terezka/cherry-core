@@ -107,7 +107,7 @@ message color title location content =
 
 header :: Text.Text -> Text.Text -> Text.Text -> Text.Text
 header color title location =
-  color <> "-- " <> Text.toUpper title <> " " <> dashes title location <> " " <> location <> " " <> reset
+  color ++ "-- " ++ Text.toUpper title ++ " " ++ dashes title location ++ " " ++ location ++ " " ++ reset
 
 
 dashes :: Text.Text -> Text.Text -> Text.Text
@@ -124,4 +124,4 @@ dashes title location =
 -}
 paragraphs :: List Text.Text -> Text.Text
 paragraphs =
-  Text.join (newline <> newline)
+  Text.join (newline ++ newline)

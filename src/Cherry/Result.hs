@@ -114,23 +114,23 @@ map5 =
 {-| Chain together a sequence of computations that may fail. It is helpful
 to see its definition:
 
-  >  andThen : (a -> Result e b) -> Result e a -> Result e b
+  >  andThen :: (a -> Result e b) -> Result e a -> Result e b
   >  andThen callback result =
   >      case result of
   >        Ok value -> callback value
   >        Err msg -> Err msg
 
 This means we only continue with the callback if things are going well. For
-example, say you need to use (`toInt : String -> Result String Int`) to parse
+example, say you need to use (`toInt :: String -> Result String Int`) to parse
 a month and make sure it is between 1 and 12:
 
-  >  toValidMonth : Int -> Result String Int
+  >  toValidMonth :: Int -> Result String Int
   >  toValidMonth month =
   >      if month >= 1 && month <= 12
   >          then Ok month
   >          else Err "months must be between 1 and 12"
 
-  >  toMonth : String -> Result String Int
+  >  toMonth :: String -> Result String Int
   >  toMonth rawString =
   >      toInt rawString
   >        |> andThen toValidMonth
@@ -153,16 +153,16 @@ andThen =
 {-| Transform an `Err` value. For example, say the errors we get have too much
 information:
 
-  >  parseInt : String -> Result ParseError Int
+  >  parseInt :: String -> Result ParseError Int
   >
-  >  type alias ParseError =
-  >      { message : String
-  >      , code : Int
-  >      , position : (Int,Int)
+  >  data ParseError = ParseError
+  >      { message :: String
+  >      , code :: Int
+  >      , position :: (Int,Int)
   >      }
   >
-  >  mapError .message (parseInt "123") == Ok 123
-  >  mapError .message (parseInt "abc") == Err "char 'a' is not a number"
+  >  mapError message (parseInt "123") == Ok 123
+  >  mapError message (parseInt "abc") == Err "char 'a' is not a number"
 -}
 mapError :: (a -> b) -> Result a c -> Result b c
 mapError func result =
@@ -174,9 +174,9 @@ mapError func result =
 {-| Convert to a simpler `Maybe` if the actual error message is not needed or
 you need to interact with some code that primarily uses maybes.
 
-  >  parseInt : String -> Result ParseError Int
+  >  parseInt :: String -> Result ParseError Int
   >
-  >  maybeParseInt : String -> Maybe Int
+  >  maybeParseInt :: String -> Maybe Int
   >  maybeParseInt string =
   >      toMaybe (parseInt string)
 -}
@@ -190,9 +190,9 @@ toMaybe result =
 {-| Convert from a simple `Maybe` to interact with some code that primarily
 uses `Results`.
 
-  >  parseInt : String -> Maybe Int
+  >  parseInt :: String -> Maybe Int
   >
-  >  resultParseInt : String -> Result String Int
+  >  resultParseInt :: String -> Result String Int
   >  resultParseInt string =
   >      fromMaybe ("error parsing string: " ++ toString string) (parseInt string)
 -}

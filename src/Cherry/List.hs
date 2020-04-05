@@ -1,9 +1,5 @@
 module Cherry.List
-  ( -- You can create a `List` in Elm with the `[1,2,3]` syntax, so lists are
-    -- used all over the place. This module has a bunch of functions to help you work
-    -- with them!
-
-    -- * Create
+  ( -- * Create
     List, singleton, repeat, range
 
     -- * Transform
@@ -32,7 +28,8 @@ import qualified Data.Maybe
 import qualified Cherry.Internal.Shortcut as Shortcut
 
 
-{-| -}
+{-| A list.
+-}
 type List a = [a]
 
 
@@ -78,7 +75,7 @@ range lo hi =
 {-| Apply a function to every element of a list.
 
   >  map sqrt [1,4,9] == [1,2,3]
-
+  >
   >  map not [True,False,True] == [False,True,False]
 
 So `map func [ a, b, c ]` is the same as `[ func a, func b, func c ]`
@@ -103,7 +100,7 @@ indexedMap f xs =
   >  foldl (+)  0  [1,2,3] == 6
   >  foldl (::) [] [1,2,3] == [3,2,1]
 
-So `foldl step state [1,2,3]` is like saying:
+So 'foldl step state [1,2,3]' is like saying:
 
   >  state
   >    |> step 1
@@ -147,7 +144,7 @@ filter =
 {-| Filter out certain values. For example, maybe you have a bunch of strings
 from an untrusted source and you want to turn them into numbers:
 
-  >  numbers : List Int
+  >  numbers :: List Int
   >  numbers =
   >    filterMap String.toInt ["3", "hi", "12", "4th", "May"]
   >
@@ -155,8 +152,8 @@ from an untrusted source and you want to turn them into numbers:
 
 -}
 filterMap :: (a -> Maybe b) -> List a -> List b
-filterMap =
-  Data.Maybe.mapMaybe
+filterMap a =
+  Data.Maybe.mapMaybe (a >> toHMaybe)
 
 
 
@@ -222,6 +219,7 @@ maximum list =
   case list of
     [] ->
       Nothing
+
     _ ->
       Just (Data.List.maximum list)
 
@@ -236,6 +234,7 @@ minimum list =
   case list of
     [] ->
       Nothing
+
     _ ->
       Just (Data.List.minimum list)
 
@@ -310,13 +309,13 @@ intersperse =
 {-| Combine two lists, combining them with the given function.
 If one list is longer, the extra elements are dropped.
 
-  >  totals : List Int -> List Int -> List Int
+  >  totals :: List Int -> List Int -> List Int
   >  totals xs ys =
   >    List.map2 (+) xs ys
   >
   >  -- totals [1,2,3] [4,5,6] == [5,7,9]
   >
-  >  pairs : List a -> List b -> List (a,b)
+  >  pairs :: List a -> List b -> List (a,b)
   >  pairs xs ys =
   >    List.map2 Tuple.pair xs ys
   >
@@ -402,7 +401,7 @@ sortWith =
 
   >  isEmpty [] == True
 
-**Note:** It is usually preferable to use a `case` to test this so you do not
+__Note:__ It is usually preferable to use a `case` to test this so you do not
 forget to handle the `(x :: xs)` case as well!
 -}
 isEmpty :: List a -> Bool
@@ -415,7 +414,7 @@ isEmpty =
   >  head [1,2,3] == Just 1
   >  head [] == Nothing
 
-**Note:** It is usually preferable to use a `case` to deconstruct a `List`
+__Note:__ It is usually preferable to use a `case` to deconstruct a `List`
 because it gives you `(x :: xs)` and you can work with both subparts.
 -}
 head :: List a -> Maybe a
@@ -423,6 +422,7 @@ head xs =
   case xs of
     x : _ ->
       Just x
+
     [] ->
       Nothing
 
@@ -432,7 +432,7 @@ head xs =
   >  tail [1,2,3] == Just [2,3]
   >  tail [] == Nothing
 
-**Note:** It is usually preferable to use a `case` to deconstruct a `List`
+__Note:__ It is usually preferable to use a `case` to deconstruct a `List`
 because it gives you `(x :: xs)` and you can work with both subparts.
 -}
 tail :: List a -> Maybe (List a)
@@ -440,6 +440,7 @@ tail list =
   case list of
     _ : xs ->
       Just xs
+
     [] ->
       Nothing
 
@@ -480,3 +481,14 @@ partition =
 unzip :: List (a, b) -> (List a, List b)
 unzip =
   Data.List.unzip
+
+
+
+-- INTERNAL
+
+
+toHMaybe :: Maybe a -> Data.Maybe.Maybe a
+toHMaybe maybe =
+  case maybe of
+    Just a -> Data.Maybe.Just a
+    Nothing -> Data.Maybe.Nothing

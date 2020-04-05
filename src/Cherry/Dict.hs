@@ -29,6 +29,7 @@ import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fro
 import Cherry.Basics
 import Cherry.List (List)
 import Cherry.Maybe (Maybe (..))
+import qualified Data.Maybe
 import qualified Data.Map.Strict
 import qualified Cherry.List as List
 
@@ -42,7 +43,7 @@ that lets you look up a `String` (such as user names) and find the associated
 
   >  import Dict exposing (Dict)
   >
-  >  users : Dict String User
+  >  users :: Dict String User
   >  users =
   >    Dict.fromList
   >      [ ("Alice", User "Alice" 28 1.65)
@@ -50,10 +51,10 @@ that lets you look up a `String` (such as user names) and find the associated
   >      , ("Chuck", User "Chuck" 33 1.75)
   >      ]
   >
-  >  type alias User =
-  >    { name : String
-  >    , age : Int
-  >    , height : Float
+  >  data User = User
+  >    { name :: String
+  >    , age :: Int
+  >    , height :: Float
   >    }
 
 -}
@@ -79,8 +80,8 @@ dictionary.
 
 -}
 get :: Ord comparable => comparable -> Dict comparable v -> Maybe v
-get =
-  Data.Map.Strict.lookup
+get a =
+  Data.Map.Strict.lookup a >> fromHMaybe
 
 
 {-| Determine if a key is in a dictionary. -}
@@ -122,7 +123,7 @@ remove =
 update :: Ord comparable => comparable -> (Maybe v -> Maybe v) -> Dict comparable v -> Dict comparable v
 update targetKey alter dictionary =
   let maybeItemToSet =
-        Data.Map.Strict.lookup targetKey dictionary |> alter
+        Data.Map.Strict.lookup targetKey dictionary |> fromHMaybe |> alter
    in case maybeItemToSet of
         Just itemToSet ->
           Data.Map.Strict.insert targetKey itemToSet dictionary
@@ -210,13 +211,13 @@ map = Data.Map.Strict.mapWithKey
 
   >  import Dict exposing (Dict)
   >
-  >  getAges : Dict String User -> List String
+  >  getAges :: Dict String User -> List String
   >  getAges users =
   >    Dict.foldl addAge [] users
   >
-  >  addAge : String -> User -> List String -> List String
+  >  addAge :: String -> User -> List String -> List String
   >  addAge _ user ages =
-  >    user.age :: ages
+  >    user.age : ages
   >
   >  -- getAges users == [33,19,28]
 
@@ -232,13 +233,13 @@ foldl fun =
 
   >  import Dict exposing (Dict)
   >
-  >  getAges : Dict String User -> List String
+  >  getAges :: Dict String User -> List String
   >  getAges users =
   >    Dict.foldr addAge [] users
   >
-  >  addAge : String -> User -> List String -> List String
+  >  addAge :: String -> User -> List String -> List String
   >  addAge _ user ages =
-  >    user.age :: ages
+  >    user.age : ages
   >
   >  -- getAges users == [28,19,33]
 
@@ -288,3 +289,14 @@ toList = Data.Map.Strict.toList
 {-| Convert an association list into a dictionary. -}
 fromList :: Ord comparable => List (comparable, v) -> Dict comparable v
 fromList = Data.Map.Strict.fromList
+
+
+
+-- INTERNAL
+
+
+fromHMaybe :: Data.Maybe.Maybe a -> Maybe a
+fromHMaybe maybe =
+  case maybe of
+    Data.Maybe.Just a -> Just a
+    Data.Maybe.Nothing -> Nothing

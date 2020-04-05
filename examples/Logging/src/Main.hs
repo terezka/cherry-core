@@ -5,29 +5,21 @@ import qualified Cherry.Text as Text
 import qualified Cherry.Task as Task
 import qualified Cherry.List as List
 import qualified Cherry.Dict as Dict
-import qualified Cherry.Program as Program
 import qualified Cherry.Settings as Settings
 import qualified Cherry.Log as Log
 import qualified Cherry.Terminal as T
 import qualified Control.Concurrent
 import qualified Control.Exception.Safe as Exception
-import qualified Prelude
 import qualified GHC.Stack as Stack
 import qualified Network.HTTP as HTTP
 import Cherry.Basics
 import Cherry.Log
-import Cherry.Program (Program)
-import Cherry.Text (Text)
-import Cherry.Task (Task)
-import Cherry.List (List)
-import Cherry.Dict (Dict)
-import Cherry.Maybe (Maybe(..))
-import Cherry.Result (Result(..))
+import Cherry.Prelude
 
 
 main :: Program
 main =
-  Program.program decoder init outputs app
+  Program.program decoder init targets app
 
 
 
@@ -43,10 +35,6 @@ app keys =
     bad "> hello 3"
     good "> hello 4"
     info "other" "Something." []
-    context "dying" [] <| do
-      context "more" [] <| do
-        good "> hello 5"
-        Task.enter (Exception.throwString "noooo!!")
     debug "namespace" "Last one." [ ( "user", "tereza" ), ( "email", "terezasokol@gmail.com" ) ]
 
 
@@ -67,21 +55,21 @@ bad string =
 -- LOGGING
 
 
-outputs :: Keys -> List Output
-outputs keys =
+targets :: Keys -> List Target
+targets keys =
   [ bugsnag keys
-  , terminal message
+  , terminal pretty
   , file "log.txt" compact
   ]
 
 
-bugsnag :: Keys -> Output
+bugsnag :: Keys -> Target
 bugsnag keys =
   let open =
         Task.succeed ()
 
       write _ (Entry _ _ _ _ _ context) = do
-        Control.Concurrent.threadDelay 5000000
+        Control.Concurrent.threadDelay 1000000
           |> Task.enter
         HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
           |> Task.enter
@@ -95,48 +83,13 @@ bugsnag keys =
               _ -> T.write "no user\n"
 
           Production ->
-            T.write "Production!\n"
+            Task.succeed ()
 
       close _ =
         Task.succeed ()
   in
   custom open write close
 
-
-
--- SETTINGS
-
-
-{-| -}
-data Settings =
-  Settings
-    { sEnvironment :: Environment
-    , sPort :: Int
-    }
-
-
-{-| -}
-decoder :: Settings.Decoder Settings
-decoder =
-  Settings.succeed Settings
-    |> Settings.optional "ENVIRONMENT" parseEnvironment Production
-    |> Settings.optional "PORT" Settings.int 9000
-
-
-data Environment
-  = Development
-  | Production
-
-
-parseEnvironment :: Settings.Parser Environment
-parseEnvironment =
-  let toEnv text =
-        case Text.toUpper text of
-          "DEVELOPMENT" -> Ok Development
-          "PRODUCTION" -> Ok Production
-          _ -> Err "Invalid environment."
-  in
-  Settings.text |> Settings.andThen toEnv
 
 
 -- KEYS
@@ -155,3 +108,38 @@ init :: Settings -> Task Text Keys
 init (Settings env port) =
   Task.succeed (Keys env port)
 
+
+
+-- SETTINGS
+
+
+{-| -}
+data Settings =
+  Settings
+    { sEnvironment :: Environment
+    , sPort :: Int
+    }
+
+
+{-| -}
+decoder :: Settings.Decoder Settings
+decoder =
+  Settings.decode Settings
+    |> Settings.optional "ENVIRONMENT" parseEnvironment Production
+    |> Settings.optional "PORT" Settings.int 9000
+
+
+data Environment
+  = Development
+  | Production
+
+
+parseEnvironment :: Settings.Parser Environment
+parseEnvironment =
+  let toEnv text =
+        case Text.toUpper text of
+          "DEVELOPMENT" -> Ok Development
+          "PRODUCTION" -> Ok Production
+          _ -> Err "Invalid environment."
+  in
+  Settings.text |> Settings.andThen toEnv

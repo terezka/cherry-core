@@ -16,7 +16,7 @@ import Cherry.Result (Result(..))
 
   > import qualified Cherry.Terminal as T
   >
-  > T.write <| T.green <> "What is your name?" <> T.reset <> T.newline
+  > T.write <| T.green ++ "What is your name?" ++ T.reset ++ T.newline
   >
 
 -}
