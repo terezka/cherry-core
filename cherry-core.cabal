@@ -18,20 +18,29 @@ library
     Cherry.Basics,
     Cherry.Text,
     Cherry.Prelude,
-    Cherry.Debug,
-    Cherry.Result,
-    Cherry.Array,
-    Cherry.Set,
-    Cherry.Dict,
-    Cherry.List,
-    Cherry.Bitwise,
-    Cherry.Task,
-    Cherry.Tuple,
-    Cherry.Maybe,
-    Cherry.Char
-  -- other-modules:
-  other-extensions:    RankNTypes
-  default-extensions:  OverloadedStrings
-  build-depends:       base >=4.12 && <4.13, text >=1.2 && <1.3, containers >=0.6 && <0.7, mtl, vector, safe-exceptions, async, stm, unix, hostname, time
+    Array,
+    Basics,
+    Bitwise,
+    Char,
+    Debug,
+    Dict,
+    List,
+    Maybe,
+    Result,
+    Set,
+    Text,
+    Tuple
+  other-modules:
+    Internal.Shortcut
+  default-extensions:
+    OverloadedStrings,
+    NoImplicitPrelude
+  other-extensions:
+    RankNTypes
+  build-depends:
+    base >=4.12 && <4.13,
+    text >=1.2 && <1.3,
+    containers >=0.6 && <0.7,
+    vector >=0.12 && <0.13
   hs-source-dirs:      src
   default-language:    Haskell2010
