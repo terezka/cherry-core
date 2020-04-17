@@ -1,10 +1,7 @@
--- | This module can be useful while _developing_ an application. It is not
--- available for use in packages or production.
---
--- Debugging
--- @docs toString, log, todo
-module Cherry.Debug
-  ( toString,
+module Debug
+  ( -- This module can be useful while _developing_ an application.
+    -- * Debugging
+    toString,
     log,
     todo,
   )
@@ -12,8 +9,8 @@ where
 
 import Prelude (Show, error, show)
 import Data.Text (pack, unpack)
-import Cherry.Basics ((>>))
-import Cherry.Text (Text, concat)
+import Basics ((>>))
+import Text (Text, concat)
 import qualified Debug.Trace
 
 

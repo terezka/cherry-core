@@ -2,21 +2,22 @@ cabal-version:       >=1.10
 name:                cherry-core
 version:             0.1.0.0
 synopsis:            The core library for Cherry Haskell.
--- description:
--- bug-reports:
+description:         The core library for Cherry Haskell. For effect handling and logging, see cherry-effect.
 license:             BSD3
 license-file:        LICENSE
 author:              Tereza Sokol
 maintainer:          terezasokol@gmail.com
--- copyright:
+copyright:           Tereza Sokol
 category:            Development
 build-type:          Simple
 extra-source-files:  CHANGELOG.md, README.md
 
+source-repository head
+  type:     git
+  location: https://github.com/cherry-haskell/cherry-core
+
 library
   exposed-modules:
-    Cherry.Basics,
-    Cherry.Text,
     Cherry.Prelude,
     Array,
     Basics,
