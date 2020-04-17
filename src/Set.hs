@@ -1,4 +1,4 @@
-module Cherry.Set
+module Set
   ( -- * Sets
     Set
 
@@ -19,8 +19,8 @@ module Cherry.Set
   )
 where
 
-import Cherry.Basics ((>>), Bool, Int)
-import Cherry.List (List)
+import Basics ((>>), Bool, Int)
+import List (List)
 import qualified Data.Set
 import qualified Prelude
 
@@ -142,11 +142,11 @@ map =
 
   >  import Set exposing (Set)
   >
-  >  numbers : Set Int
+  >  numbers :: Set Int
   >  numbers =
   >    Set.fromList [-2,-1,0,1,2]
   >
-  >  positives : Set Int
+  >  positives :: Set Int
   >  positives =
   >    Set.filter (\x -> x > 0) numbers
   >

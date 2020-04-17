@@ -1,4 +1,4 @@
-module Cherry.Bitwise
+module Bitwise
   ( and,
     or,
     xor,
@@ -10,29 +10,36 @@ module Cherry.Bitwise
 where
 
 import Data.Bits ((.&.), (.|.))
-import Cherry.Basics (Int)
+import Basics (Int)
 import qualified Prelude
 import qualified Data.Bits
+
 
 {-| Bitwise AND
 -}
 and :: Int -> Int -> Int
-and = (.&.)
+and =
+  (.&.)
+
 
 {-| Bitwise OR
 -}
 or :: Int -> Int -> Int
-or = (.|.)
+or =
+  (.|.)
+
 
 {-| Bitwise XOR
 -}
 xor :: Int -> Int -> Int
 xor = Data.Bits.xor
 
+
 {-| Flip each bit individually, often called bitwise NOT
 -}
 complement :: Int -> Int
 complement = Data.Bits.complement
+
 
 {-| Shift bits to the left by a given offset, filling new bits with zeros.
 This can be used to multiply numbers by powers of two.
@@ -43,6 +50,7 @@ This can be used to multiply numbers by powers of two.
 shiftLeftBy :: Int -> Int -> Int
 shiftLeftBy offset value =
   Data.Bits.shift value (Prelude.fromIntegral offset)
+
 
 {-| Shift bits to the right by a given offset, filling new bits with
 whatever is the topmost bit. This can be used to divide numbers by powers of two.
@@ -59,6 +67,7 @@ with copies of the highest bit.
 shiftRightBy :: Int -> Int -> Int
 shiftRightBy offset value =
   Data.Bits.shiftR value (Prelude.fromIntegral offset)
+
 
 {-| Shift bits to the right by a given offset, filling new bits with zeros.
 

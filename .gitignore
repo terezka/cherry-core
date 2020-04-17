@@ -1,3 +1,6 @@
+cache
+packagedb
+build
 dist
 dist-*
 cabal-dev

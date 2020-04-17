@@ -1,9 +1,9 @@
-module Cherry.Maybe
-  ( -- This library fills a bunch of important niches in Cherry. A `Maybe` can help
+module Maybe
+  ( -- This library fills a bunch of important niches in  A `Maybe` can help
     -- you with optional arguments, error handling, and records with optional fields.
 
     -- * Definition
-    Data.Maybe.Maybe(..)
+    Maybe(..)
 
     -- * Common Helpers
   , withDefault, map, map2, map3, map4, map5
@@ -14,10 +14,8 @@ module Cherry.Maybe
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Data.Maybe (fromMaybe)
 import qualified Prelude
-import qualified Data.Maybe
-import qualified Cherry.Internal.Shortcut as Shortcut
+import qualified Internal.Shortcut as Shortcut
 
 
 {-| Represent values that may or may not exist. It can be useful if you have a
@@ -25,15 +23,42 @@ record field that is only filled in sometimes. Or if a function takes a value
 sometimes, but does not absolutely need it.
 
   >  -- A person, but maybe we do not know their age.
-  >  type alias Person =
-  >      { name : String
-  >      , age : Maybe Int
+  >  data Person = Person
+  >      { name :: String
+  >      , age :: Maybe Int
   >      }
   >
   >  tom = { name = "Tom", age = Just 42 }
   >  sue = { name = "Sue", age = Nothing }
 -}
-type Maybe a = Data.Maybe.Maybe a
+data Maybe a
+  = Just a
+  | Nothing
+  deriving (Prelude.Show, Prelude.Eq)
+
+
+instance Functor Maybe where
+  fmap func maybe =
+    case maybe of
+      Just a -> Just (func a)
+      Nothing -> Nothing
+
+
+instance Applicative Maybe where
+  pure a =
+    Just a
+
+  (<*>) func maybe =
+    case (func, maybe) of
+      (Just f, Just a) -> Just (f a)
+      _ -> Nothing
+
+
+instance Monad Maybe where
+  maybe >>= func =
+   case maybe of
+      Just a -> func a
+      Nothing -> Nothing
 
 
 {-| Provide a default value, turning an optional value into a normal
@@ -45,13 +70,15 @@ value.  This comes in handy when paired with functions like
   >
   >  withDefault "unknown" (Dict.get "Tom" Dict.empty)   -- "unknown"
 
-**Note:** This can be overused! Many cases are better handled by a `case`
+Note: This can be overused! Many cases are better handled by a `case`
 expression. And if you end up using `withDefault` a lot, it can be a good sign
 that a [custom type](https://guide.elm-lang.org/types/custom_types.html) will clean your code up quite a bit!
 -}
 withDefault :: a -> Maybe a -> a
-withDefault =
-  fromMaybe
+withDefault value maybe =
+  case maybe of
+    Just a -> a
+    Nothing -> value
 
 
 {-| Transform a `Maybe` value with a given function:
@@ -65,7 +92,7 @@ withDefault =
 -}
 map :: (a -> b) -> Maybe a -> Maybe b
 map =
-  Prelude.fmap
+  Shortcut.map
 
 
 {-| Apply a function if all the arguments are `Just` a value.
@@ -82,25 +109,29 @@ map2 :: (a -> b -> value) -> Maybe a -> Maybe b -> Maybe value
 map2 =
   Shortcut.map2
 
+
 {-|-}
 map3 :: (a -> b -> c -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe value
 map3 =
   Shortcut.map3
+
 
 {-|-}
 map4 :: (a -> b -> c -> d -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe d -> Maybe value
 map4 =
   Shortcut.map4
 
+
 {-|-}
 map5 :: (a -> b -> c -> d -> e -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe d -> Maybe e -> Maybe value
 map5 =
   Shortcut.map5
 
+
 {-| Chain together many computations that may fail. It is helpful to see its
 definition:
 
-  >  andThen : (a -> Maybe b) -> Maybe a -> Maybe b
+  >  andThen :: (a -> Maybe b) -> Maybe a -> Maybe b
   >  andThen callback maybe =
   >      case maybe of
   >          Just value ->
@@ -112,12 +143,12 @@ definition:
 This means we only continue with the callback if things are going well. For
 example, say you need to parse some user input as a month:
 
-  >  parseMonth : String -> Maybe Int
+  >  parseMonth :: String -> Maybe Int
   >  parseMonth userInput =
   >      String.toInt userInput
   >        |> andThen toValidMonth
   >
-  >  toValidMonth : Int -> Maybe Int
+  >  toValidMonth :: Int -> Maybe Int
   >  toValidMonth month =
   >      if 1 <= month && month <= 12 then
   >          Just month
