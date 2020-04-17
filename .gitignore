@@ -4,6 +4,7 @@ build
 dist
 build
 cache
+tmp
 dist-*
 cabal-dev
 *.o
