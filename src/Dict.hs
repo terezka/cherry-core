@@ -1,4 +1,4 @@
-module Cherry.Dict
+module Dict
   ( -- A dictionary mapping unique keys to values. The keys can be any comparable
     -- type. This includes `Int`, `Float`, `Time`, `Char`, `String`, and tuples or
     -- lists of comparable types.
@@ -26,12 +26,12 @@ module Cherry.Dict
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Cherry.Basics
-import Cherry.List (List)
-import Cherry.Maybe (Maybe (..))
+import Basics
+import List (List)
+import Maybe (Maybe (..))
 import qualified Data.Maybe
 import qualified Data.Map.Strict
-import qualified Cherry.List as List
+import qualified List as List
 
 
 -- DICTIONARIES
@@ -188,13 +188,16 @@ merge leftStep bothStep rightStep leftDict rightDict initialResult =
         case list of
           [] ->
             (list, rightStep rKey rValue result)
-          (lKey, lValue) : rest
-            | lKey < rKey -> stepState rKey rValue (rest, leftStep lKey lValue result)
-            | lKey > rKey -> (list, rightStep rKey rValue result)
-            | otherwise -> (rest, bothStep lKey lValue rValue result)
+
+          (lKey, lValue) : rest ->
+            if lKey < rKey then stepState rKey rValue (rest, leftStep lKey lValue result)
+            else if lKey > rKey then (list, rightStep rKey rValue result)
+            else (rest, bothStep lKey lValue rValue result)
+
       (leftovers, intermediateResult) =
         foldl stepState (toList leftDict, initialResult) rightDict
-   in List.foldl (\(k, v) result -> leftStep k v result) intermediateResult leftovers
+   in
+   List.foldl (\(k, v) result -> leftStep k v result) intermediateResult leftovers
 
 
 
@@ -224,9 +227,9 @@ map = Data.Map.Strict.mapWithKey
 -}
 foldl :: (k -> v -> b -> b) -> b -> Dict k v -> b
 foldl fun =
+  let flippedFun acc key value = fun key value acc
+  in
   Data.Map.Strict.foldlWithKey' flippedFun
-  where
-    flippedFun acc key value = fun key value acc
 
 
 {-| Fold over the key-value pairs in a dictionary from highest key to lowest key.
@@ -245,12 +248,14 @@ foldl fun =
 
 -}
 foldr :: (k -> v -> b -> b) -> b -> Dict k v -> b
-foldr = Data.Map.Strict.foldrWithKey
+foldr =
+  Data.Map.Strict.foldrWithKey
 
 
 {-| Keep only the key-value pairs that pass the given test. -}
 filter :: (comparable -> v -> Bool) -> Dict comparable v -> Dict comparable v
-filter = Data.Map.Strict.filterWithKey
+filter =
+  Data.Map.Strict.filterWithKey
 
 
 {-| Partition a dictionary according to some test. The first dictionary
@@ -258,7 +263,8 @@ contains all key-value pairs which passed the test, and the second contains
 the pairs that did not.
 -}
 partition :: (comparable -> v -> Bool) -> Dict comparable v -> (Dict comparable v, Dict comparable v)
-partition = Data.Map.Strict.partitionWithKey
+partition =
+  Data.Map.Strict.partitionWithKey
 
 
 
@@ -270,7 +276,8 @@ partition = Data.Map.Strict.partitionWithKey
   >  keys (fromList [(0,"Alice"),(1,"Bob")]) == [0,1]
 -}
 keys :: Dict k v -> List k
-keys = Data.Map.Strict.keys
+keys =
+  Data.Map.Strict.keys
 
 
 {-| Get all of the values in a dictionary, in the order of their keys.
@@ -278,17 +285,20 @@ keys = Data.Map.Strict.keys
   >  values (fromList [(0,"Alice"),(1,"Bob")]) == ["Alice", "Bob"]
 -}
 values :: Dict k v -> List v
-values = Data.Map.Strict.elems
+values =
+  Data.Map.Strict.elems
 
 
 {-| Convert a dictionary into an association list of key-value pairs, sorted by keys. -}
 toList :: Dict k v -> List (k, v)
-toList = Data.Map.Strict.toList
+toList =
+  Data.Map.Strict.toList
 
 
 {-| Convert an association list into a dictionary. -}
 fromList :: Ord comparable => List (comparable, v) -> Dict comparable v
-fromList = Data.Map.Strict.fromList
+fromList =
+  Data.Map.Strict.fromList
 
 
 

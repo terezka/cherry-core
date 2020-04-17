@@ -1,4 +1,4 @@
-module Cherry.List
+module List
   ( -- * Create
     List, singleton, repeat, range
 
@@ -20,12 +20,12 @@ module Cherry.List
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Cherry.Basics ((-), (>>), Bool (..), Int, Order (..))
-import Cherry.Maybe (Maybe (..))
+import Basics ((-), (>>), Bool (..), Int, Order (..))
+import Maybe (Maybe (..))
 import qualified Prelude
 import qualified Data.List
 import qualified Data.Maybe
-import qualified Cherry.Internal.Shortcut as Shortcut
+import qualified Internal.Shortcut as Shortcut
 
 
 {-| A list.
@@ -44,7 +44,8 @@ type List a = [a]
 
 -}
 singleton :: a -> List a
-singleton value = [value]
+singleton value =
+  [value]
 
 
 {-| Create a list with *n* copies of a value:
@@ -401,7 +402,7 @@ sortWith =
 
   >  isEmpty [] == True
 
-__Note:__ It is usually preferable to use a `case` to test this so you do not
+Note: It is usually preferable to use a `case` to test this so you do not
 forget to handle the `(x :: xs)` case as well!
 -}
 isEmpty :: List a -> Bool
@@ -414,7 +415,7 @@ isEmpty =
   >  head [1,2,3] == Just 1
   >  head [] == Nothing
 
-__Note:__ It is usually preferable to use a `case` to deconstruct a `List`
+Note: It is usually preferable to use a `case` to deconstruct a `List`
 because it gives you `(x :: xs)` and you can work with both subparts.
 -}
 head :: List a -> Maybe a
@@ -432,7 +433,7 @@ head xs =
   >  tail [1,2,3] == Just [2,3]
   >  tail [] == Nothing
 
-__Note:__ It is usually preferable to use a `case` to deconstruct a `List`
+Note: It is usually preferable to use a `case` to deconstruct a `List`
 because it gives you `(x :: xs)` and you can work with both subparts.
 -}
 tail :: List a -> Maybe (List a)

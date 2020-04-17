@@ -1,4 +1,4 @@
-module Cherry.Char
+module Char
   ( -- Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
     -- * Characters
     Char
@@ -18,7 +18,7 @@ module Cherry.Char
 where
 
 import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Cherry.Basics ((&&), (<<), (<=), Bool (..), Int)
+import Basics ((&&), (<<), (<=), Bool (..), Int)
 import qualified Data.Char
 
 
@@ -37,7 +37,7 @@ import qualified Data.Char
   >  '\''
   >  '\u{1F648}' -- '🙈'
 
-__Note 2:__ You can use the unicode escapes from `\u{0000}` to `\u{10FFFF}` to
+Note 2: You can use the unicode escapes from `\u{0000}` to `\u{10FFFF}` to
 represent characters by their code point. You can also include the unicode
 characters directly. Using the escapes can be better if you need one of the
 many whitespace characters with different widths.
@@ -61,7 +61,8 @@ type Char =
 
 -}
 isUpper :: Char -> Bool
-isUpper = Data.Char.isUpper
+isUpper =
+  Data.Char.isUpper
 
 
 {-| Detect lower case ASCII characters.
@@ -78,7 +79,8 @@ isUpper = Data.Char.isUpper
 
 -}
 isLower :: Char -> Bool
-isLower = Data.Char.isLower
+isLower =
+  Data.Char.isLower
 
 
 {-| Detect upper case and lower case ASCII characters.
@@ -94,7 +96,8 @@ isLower = Data.Char.isLower
 
 -}
 isAlpha :: Char -> Bool
-isAlpha = Data.Char.isAlpha
+isAlpha =
+  Data.Char.isAlpha
 
 
 {-| Detect upper case and lower case ASCII characters.
@@ -111,7 +114,8 @@ isAlpha = Data.Char.isAlpha
 
 -}
 isAlphaNum :: Char -> Bool
-isAlphaNum = Data.Char.isAlphaNum
+isAlphaNum =
+  Data.Char.isAlphaNum
 
 
 {-| Detect digits `0123456789`
@@ -127,7 +131,8 @@ isAlphaNum = Data.Char.isAlphaNum
 
 -}
 isDigit :: Char -> Bool
-isDigit = Data.Char.isDigit
+isDigit =
+  Data.Char.isDigit
 
 
 {-| Detect octal digits `01234567`
@@ -143,23 +148,27 @@ isDigit = Data.Char.isDigit
 
 -}
 isOctDigit :: Char -> Bool
-isOctDigit = Data.Char.isOctDigit
+isOctDigit =
+  Data.Char.isOctDigit
 
 
 {-| Detect hexadecimal digits `0123456789abcdefABCDEF`
 -}
 isHexDigit :: Char -> Bool
-isHexDigit = Data.Char.isHexDigit
+isHexDigit =
+  Data.Char.isHexDigit
 
 
 {-| Convert to upper case. -}
 toUpper :: Char -> Char
-toUpper = Data.Char.toUpper
+toUpper =
+  Data.Char.toUpper
 
 
 {-| Convert to lower case. -}
 toLower :: Char -> Char
-toLower = Data.Char.toLower
+toLower =
+  Data.Char.toLower
 
 
 {-| Convert to the corresponding Unicode [code point](https://en.wikipedia.org/wiki/Code_point).
@@ -172,7 +181,8 @@ toLower = Data.Char.toLower
 
 -}
 toCode :: Char -> Int
-toCode = fromIntegral << Data.Char.ord
+toCode =
+  fromIntegral << Data.Char.ord
 
 
 {-| Convert a Unicode [code point](https://en.wikipedia.org/wiki/Code_point) to a character.

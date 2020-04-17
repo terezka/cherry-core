@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Cherry.Basics
+module Basics
   ( -- * Math
     Int, Float, (+), (-), (*), (/), (//), (^)
 
@@ -21,6 +21,7 @@ module Cherry.Basics
 
     -- * Fancier Math
   , modBy, remainderBy, negate, abs, clamp, sqrt, logBase
+
     -- * Trigonometry
   , pi, cos, sin, tan, acos, asin, atan, atan2
 
@@ -70,7 +71,7 @@ infixr 5 ++
   >  0xFF   -- 255 in hexadecimal
   >  0x000A --  10 in hexadecimal
 
-__Historical Note:__ The name `Int` comes from the term [integer](https://en.wikipedia.org/wiki/Integer). It appears
+Historical Note: The name `Int` comes from the term [integer](https://en.wikipedia.org/wiki/Integer). It appears
 that the `int` abbreviation was introduced in [ALGOL 68](https://en.wikipedia.org/wiki/ALGOL_68), shortening it
 from `integer` in [ALGOL 60](https://en.wikipedia.org/wiki/ALGOL_60). Today, almost all programming languages use
 this abbreviation.
@@ -90,7 +91,7 @@ type Int = Prelude.Int
   >  1.602e−19  -- == (1.602 * 10^-19)
   >  1e3        -- == (1 * 10^3) == 1000
 
-__Historical Note:__ The particular details of floats (e.g. `NaN`) are
+Historical Note: The particular details of floats (e.g. `NaN`) are
 specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) which is literally hard-coded into almost all
 CPUs in the world. That means if you think `NaN` is weird, you must
 successfully overtake Intel and AMD with a chip that is not backwards
@@ -365,7 +366,7 @@ not =
   >  False && True  == False
   >  False && False == _False
 
-__Note:_ When used in the infix position, like `(left && right)`, the operator
+Note:_ When used in the infix position, like `(left && right)`, the operator
 short-circuits. This means if `left` is `False` we do not bother evaluating `right`
 and just return `False` overall.
 
@@ -382,7 +383,7 @@ and =
   >  False || True  == True
   >  False || False == False
 
-__Note:__ When used in the infix position, like `(left || right)`, the operator
+Note: When used in the infix position, like `(left || right)`, the operator
 short-circuits. This means if `left` is `True` we do not bother evaluating `right`
 and just return `True` overall.
 
@@ -720,7 +721,7 @@ Totally equivalent! I recommend trying to rewrite code that uses `x |> f`
 into code like `f x` until there are no pipes left. That can help you build
 your intuition.
 
-__Note:__ This can be overused! I think folks find it quite neat, but when you
+Note: This can be overused! I think folks find it quite neat, but when you
 have three or four steps, the code often gets clearer if you break out a
 top-level helper function. Now the transformation has a name. The arguments are
 named. It has a type annotation. It is much more self-documenting that way!
@@ -752,7 +753,7 @@ identity x =
   x
 
 
-{-| Create a function that __always__ returns the same value. Useful with
+{-| Create a function that always returns the same value. Useful with
 functions like `map`:
 
   >  List.map (always 0) [1,2,3,4,5] == [0,0,0,0,0]
@@ -771,20 +772,14 @@ always a _ =
   - The unit type `()` has one value: `()`
   - The never type `Never` has no values!
 
-You may see it in the wild in `Html Never` which means this HTML will never
-produce any messages. You would need to write an event handler like
-`onClick ??? :: Attribute Never` but how can we fill in the question marks?!
-So there cannot be any event handlers on that HTML.
-
-You may also see this used with tasks that never fail, like `Task Never ()`.
-
 The `Never` type is useful for restricting *arguments* to a function. Maybe my
-API can only accept HTML without event handlers, so I require `Html Never` and
-users can give `Html msg` and everything will go fine. Generally speaking, you
+API can only accept a result which never fails, so I require `Result Never a` and
+users can give `Result msg` and everything will go fine. Generally speaking, you
 do not want `Never` in your return types though.
 
 -}
-data Never = JustOneMore Never
+data Never
+  = JustOneMore Never
 
 
 {-| A function that can never be called. Seems extremely pointless, but it

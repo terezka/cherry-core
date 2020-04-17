@@ -1,18 +1,15 @@
 module Cherry.Prelude
-  ( module Cherry.Basics
-  , Program, Task, Maybe (..), Result (..), Dict, Text, List, Array, Set, Char, Target
+  ( module Basics
+  , Maybe (..), Result (..), Dict, Text, List, Array, Set, Char
   )
 where
 
-import Cherry.Basics
-import Cherry.Maybe (Maybe (..))
-import Cherry.Result (Result (..))
-import Cherry.Program (Program)
-import Cherry.Log (Target)
-import Cherry.Task (Task)
-import Cherry.Text (Text)
-import Cherry.Dict (Dict)
-import Cherry.List (List)
-import Cherry.Array (Array)
-import Cherry.Set (Set)
-import Cherry.Char (Char)
+import Basics
+import Maybe (Maybe (..))
+import Result (Result (..))
+import Text (Text)
+import Dict (Dict)
+import List (List)
+import Array (Array)
+import Set (Set)
+import Char (Char)

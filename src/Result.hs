@@ -1,6 +1,6 @@
-module Cherry.Result
+module Result
   ( -- A `Result` is the result of a computation that may fail. This is a great
-    -- way to manage errors in Cherry.
+    -- way to manage errors in
     --
     -- * Type and Constructors
     Result(..)
@@ -17,8 +17,8 @@ module Cherry.Result
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure, (<*>), (>>=), fmap)
-import Cherry.Maybe (Maybe(Just, Nothing))
-import qualified Cherry.Internal.Shortcut as Shortcut
+import Maybe (Maybe(Just, Nothing))
+import qualified Internal.Shortcut as Shortcut
 
 
 {-| A `Result` is either `Ok` meaning the computation succeeded, or it is an

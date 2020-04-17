@@ -2,7 +2,7 @@ cabal-version:       >=1.10
 name:                cherry-core
 version:             0.1.0.0
 synopsis:            The core library for Cherry Haskell.
-description:         The core library for Cherry Haskell, including logging and other.
+description:         The core library for Cherry Haskell. For effect handling and logging, see cherry-effect.
 license:             BSD3
 license-file:        LICENSE
 author:              Tereza Sokol
@@ -18,44 +18,27 @@ source-repository head
 
 library
   exposed-modules:
-    Cherry.Basics,
-    Cherry.Text,
     Cherry.Prelude,
-    Cherry.Debug,
-    Cherry.Result,
-    Cherry.Array,
-    Cherry.Set,
-    Cherry.Dict,
-    Cherry.List,
-    Cherry.Bitwise,
-    Cherry.Task,
-    Cherry.Tuple,
-    Cherry.Maybe,
-    Cherry.Char,
-    Cherry.Settings,
-    Cherry.Program,
-    Cherry.Terminal,
-    Cherry.Log
+    Array,
+    Basics,
+    Bitwise,
+    Char,
+    Debug,
+    Dict,
+    List,
+    Maybe,
+    Result,
+    Set,
+    Text,
+    Tuple
   other-modules:
-    Cherry.Internal.Shortcut,
-    Cherry.Internal.Task,
-    Cherry.Internal.Settings,
-    Cherry.Internal.Terminal
+    Internal.Shortcut
   default-extensions:  OverloadedStrings, NoImplicitPrelude
-  other-extensions:    RankNTypes, GADTs, FlexibleInstances, MultiParamTypeClasses
+  other-extensions:    RankNTypes
   build-depends:
     base >=4.12 && <4.13,
     text >=1.2 && <1.3,
     containers >=0.6 && <0.7,
-    vector >=0.12 && <0.13,
-    safe-exceptions,
-    async >=2.2 && <2.3,
-    mtl,
-    stm,
-    unix,
-    time,
-    bytestring,
-    hostname >=1.0 && <1.1,
-    aeson >=1.4 && <1.5
+    vector >=0.12 && <0.13
   hs-source-dirs:      src
   default-language:    Haskell2010

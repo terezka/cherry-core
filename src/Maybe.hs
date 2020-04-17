@@ -1,5 +1,5 @@
-module Cherry.Maybe
-  ( -- This library fills a bunch of important niches in Cherry. A `Maybe` can help
+module Maybe
+  ( -- This library fills a bunch of important niches in  A `Maybe` can help
     -- you with optional arguments, error handling, and records with optional fields.
 
     -- * Definition
@@ -14,10 +14,8 @@ module Cherry.Maybe
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Data.Maybe (fromMaybe)
 import qualified Prelude
-import qualified Data.Maybe
-import qualified Cherry.Internal.Shortcut as Shortcut
+import qualified Internal.Shortcut as Shortcut
 
 
 {-| Represent values that may or may not exist. It can be useful if you have a
@@ -72,7 +70,7 @@ value.  This comes in handy when paired with functions like
   >
   >  withDefault "unknown" (Dict.get "Tom" Dict.empty)   -- "unknown"
 
-__Note:__ This can be overused! Many cases are better handled by a `case`
+Note: This can be overused! Many cases are better handled by a `case`
 expression. And if you end up using `withDefault` a lot, it can be a good sign
 that a [custom type](https://guide.elm-lang.org/types/custom_types.html) will clean your code up quite a bit!
 -}
@@ -111,20 +109,24 @@ map2 :: (a -> b -> value) -> Maybe a -> Maybe b -> Maybe value
 map2 =
   Shortcut.map2
 
+
 {-|-}
 map3 :: (a -> b -> c -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe value
 map3 =
   Shortcut.map3
+
 
 {-|-}
 map4 :: (a -> b -> c -> d -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe d -> Maybe value
 map4 =
   Shortcut.map4
 
+
 {-|-}
 map5 :: (a -> b -> c -> d -> e -> value) -> Maybe a -> Maybe b -> Maybe c -> Maybe d -> Maybe e -> Maybe value
 map5 =
   Shortcut.map5
+
 
 {-| Chain together many computations that may fail. It is helpful to see its
 definition:

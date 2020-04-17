@@ -1,4 +1,4 @@
-module Cherry.Debug
+module Debug
   ( -- This module can be useful while _developing_ an application.
     -- * Debugging
     toString,
@@ -9,8 +9,8 @@ where
 
 import Prelude (Show, error, show)
 import Data.Text (pack, unpack)
-import Cherry.Basics ((>>))
-import Cherry.Text (Text, concat)
+import Basics ((>>))
+import Text (Text, concat)
 import qualified Debug.Trace
 
 

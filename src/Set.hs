@@ -1,4 +1,4 @@
-module Cherry.Set
+module Set
   ( -- * Sets
     Set
 
@@ -19,8 +19,8 @@ module Cherry.Set
   )
 where
 
-import Cherry.Basics ((>>), Bool, Int)
-import Cherry.List (List)
+import Basics ((>>), Bool, Int)
+import List (List)
 import qualified Data.Set
 import qualified Prelude
 

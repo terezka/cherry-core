@@ -1,4 +1,4 @@
-module Cherry.Array
+module Array
   ( -- Fast immutable arrays. The elements in an array must have the same type.
     -- * Arrays
     Array
@@ -23,19 +23,20 @@ where
 import Data.Foldable (foldl', product, sum)
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Data.Vector ((!?), (++), (//))
-import Cherry.Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
-import Cherry.List (List)
-import Cherry.Maybe (Maybe (..))
+import Basics ((&&), (+), (-), (<), (<=), (<|), (>>), Bool, Int, clamp)
+import List (List)
+import Maybe (Maybe (..))
 import qualified Data.Vector
 import qualified Data.Foldable
-import qualified Data.Maybe
-import qualified Cherry.List as List
-import qualified Cherry.Tuple as Tuple
+import qualified Data.Maybe as HM
+import qualified List as List
+import qualified Tuple as Tuple
 
 
 {-| An array.
 -}
-newtype Array a = Array (Data.Vector.Vector a)
+newtype Array a
+  = Array (Data.Vector.Vector a)
   deriving (Eq, Show)
 
 
@@ -54,7 +55,8 @@ empty =
 
 -}
 isEmpty :: Array a -> Bool
-isEmpty = unwrap >> Data.Vector.null
+isEmpty =
+  unwrap >> Data.Vector.null
 
 {-| Return the length of an array.
 
@@ -113,7 +115,9 @@ range.
 -}
 get :: Int -> Array a -> Maybe a
 get i array =
-  fromHMaybe (unwrap array !? fromIntegral i)
+  case unwrap array !? fromIntegral i of
+    HM.Just a -> Just a
+    HM.Nothing -> Nothing
 
 
 {-| Set the element at a particular index. Returns an updated array.
@@ -122,13 +126,15 @@ If the index is out of range, the array is unaltered.
   >  set 1 7 (fromList [1,2,3]) == fromList [1,7,3]
 -}
 set :: Int -> a -> Array a -> Array a
-set i value array = Array result
-  where
-    len = length array
-    vector = unwrap array
-    result
-      | 0 <= i && i < len = vector // [(fromIntegral i, value)]
-      | otherwise = vector
+set i value array =
+  let len = length array
+      vector = unwrap array
+      result =
+        if 0 <= i && i < len
+          then vector // [(fromIntegral i, value)]
+          else vector
+  in
+  Array result
 
 
 {-| Push an element onto the end of an array.
@@ -145,7 +151,8 @@ push a (Array vector) =
   >  toList (fromList [3,5,8]) == [3,5,8]
 -}
 toList :: Array a -> List a
-toList = unwrap >> Data.Vector.toList
+toList =
+  unwrap >> Data.Vector.toList
 
 
 {-| Create an indexed list from an array. Each element of the array will be
@@ -166,7 +173,8 @@ toIndexedList =
   >  foldr (+) 0 (repeat 3 5) == 15
 -}
 foldr :: (a -> b -> b) -> b -> Array a -> b
-foldr f value array = Data.Foldable.foldr f value (unwrap array)
+foldr f value array =
+  Data.Foldable.foldr f value (unwrap array)
 
 
 {-| Reduce an array from the left. Read `foldl` as fold from the left.
@@ -232,21 +240,17 @@ This makes it pretty easy to `pop` the last element off of an array:
 `slice 0 -1 array`
 -}
 slice :: Int -> Int -> Array a -> Array a
-slice from to (Array vector)
-  | sliceLen <= 0 = empty
-  | otherwise = Array <| Data.Vector.slice from' sliceLen vector
-  where
-    len = Data.Vector.length vector
-    handleNegative value
-      | value < 0 = len + value
-      | otherwise = value
-    normalize =
-      fromIntegral
-        >> handleNegative
-        >> clamp 0 len
-    from' = normalize from
-    to' = normalize to
-    sliceLen = to' - from'
+slice from to (Array vector) =
+  let len = Data.Vector.length vector
+      handleNegative value = if value < 0 then len + value else value
+      normalize = fromIntegral >> handleNegative  >> clamp 0 len
+      from' = normalize from
+      to' = normalize to
+      sliceLen = to' - from'
+  in
+  if sliceLen <= 0
+    then empty
+    else Array <| Data.Vector.slice from' sliceLen vector
 
 
 
@@ -257,18 +261,5 @@ slice from to (Array vector)
 
 -}
 unwrap :: Array a -> Data.Vector.Vector a
-unwrap (Array v) = v
-
-
-toHMaybe :: Maybe a -> Data.Maybe.Maybe a
-toHMaybe maybe =
-  case maybe of
-    Just a -> Data.Maybe.Just a
-    Nothing -> Data.Maybe.Nothing
-
-
-fromHMaybe :: Data.Maybe.Maybe a -> Maybe a
-fromHMaybe maybe =
-  case maybe of
-    Data.Maybe.Just a -> Just a
-    Data.Maybe.Nothing -> Nothing
+unwrap (Array v) =
+  v
