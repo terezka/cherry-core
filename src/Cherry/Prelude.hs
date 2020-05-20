@@ -1,6 +1,6 @@
 module Cherry.Prelude
   ( module Basics
-  , Maybe (..), Result (..), Dict, Text, List, Array, Set, Char
+  , Maybe(..), Result(..), Dict, Text, List, Array, Set, Char, Task
   )
 where
 
@@ -13,3 +13,4 @@ import List (List)
 import Array (Array)
 import Set (Set)
 import Char (Char)
+import Task (Task)

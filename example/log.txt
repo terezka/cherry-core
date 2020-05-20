@@ -1,0 +1,31 @@
+[Unknown Error][app][TRACER IS BAD
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:50:9 in main:Main][[("time","\"2020-05-20 21:19:50.279546 UTC\""),("tracer","\"bad-tracer\"")]]
+[Unknown Error][app/good][TRACER IS BAD
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:50:9 in main:Main][[("online","false"),("time","\"2020-05-20 21:19:50.279576 UTC\""),("tracer","\"bad-tracer\"")]]
+[Debug][app][LOG 1. This is a really long message
+ This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message][[("email","\"terezasokol@gmail.com\""),("time","\"2020-05-20 21:19:50.279809 UTC\""),("user","\"tereza\"")]]
+[Unknown Error][app/good][TRACER IS BAD
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:50:9 in main:Main][[("online","false"),("time","\"2020-05-20 21:19:50.279813 UTC\""),("tracer","\"bad-tracer\"")]]
+[Unknown Error][app/bad][TRACER IS BAD
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:50:9 in main:Main][[("is_ok","12.1"),("time","\"2020-05-20 21:19:50.279898 UTC\""),("tracer","\"bad-tracer\"")]]
+[Unknown Error][app/bad][this is fine
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:95:5 in main:Main][[("is_ok","12.1"),("library","\"bad-library\""),("time","\"2020-05-20 21:19:50.2799 UTC\"")]]
+[Error][app/bad][LOG 2.][[("is_ok","12.1"),("time","\"2020-05-20 21:19:50.279904 UTC\"")]]
+[Unknown Error][app/good][TRACER IS BAD
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:50:9 in main:Main][[("online","false"),("time","\"2020-05-20 21:19:50.27996 UTC\""),("tracer","\"bad-tracer\"")]]
+[Info][app][LOG 3.][[("time","\"2020-05-20 21:19:50.280036 UTC\"")]]
+[Debug][app][LOG 4.][[("time","\"2020-05-20 21:19:50.280037 UTC\"")]]
+[Debug][app][LOG 1. This is a really long message
+ This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message][[("email","\"terezasokol@gmail.com\""),("time","\"2020-05-20 21:20:13.818964 UTC\""),("user","\"tereza\"")]]
+[Unknown Error][app/bad][this is fine
+CallStack (from HasCallStack):
+  error, called at src/Main.hs:92:5 in main:Main][[("is_ok","12.1"),("library","\"bad-library\""),("time","\"2020-05-20 21:20:13.819092 UTC\"")]]
+[Error][app/bad][LOG 2.][[("is_ok","12.1"),("time","\"2020-05-20 21:20:13.819093 UTC\"")]]
+[Info][app][LOG 3.][[("time","\"2020-05-20 21:20:13.819214 UTC\"")]]
+[Debug][app][LOG 4.][[("time","\"2020-05-20 21:20:13.819217 UTC\"")]]
