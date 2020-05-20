@@ -228,8 +228,7 @@ escape chrs =
 -- ENCODE
 
 
-{-| Convert a `Value` into a prettified string. The first argument specifies
-the amount of indentation in the resulting string.
+{-| Convert a `Value` into a bytestring.
 
  > import Json.Encode as Encode
  >
@@ -240,8 +239,9 @@ the amount of indentation in the resulting string.
  >     , ( "age", Encode.int 42 )
  >     ]
  >
- > compact = Encode.toByteString tom
- > -- {"name":"Tom","age":42}
+ > compact =
+ >   Encode.toByteString tom
+ >   -- {"name":"Tom","age":42}
 -}
 toByteString :: Value -> BL.ByteString
 toByteString value =
@@ -290,7 +290,7 @@ encodeArray =
 
 arrayOpen :: B.Builder
 arrayOpen =
-  B.string7 "[\n"
+  B.string7 "["
 
 
 arrayClose :: B.Builder
@@ -309,7 +309,7 @@ encodeObject =
 
 objectOpen :: B.Builder
 objectOpen =
-  B.string7 "{\n"
+  B.string7 "{"
 
 
 objectClose :: B.Builder
@@ -319,7 +319,7 @@ objectClose =
 
 encodeField :: BSC.ByteString -> (ByteString.ByteString, Value) -> B.Builder
 encodeField indent (key, value) =
-  B.char7 '"' <> B.byteString key <> B.string7 "\": " <> encodeHelp indent value
+  B.char7 '"' <> B.byteString key <> B.string7 "\":" <> encodeHelp indent value
 
 
 
@@ -330,13 +330,13 @@ encodeSequence :: B.Builder -> B.Builder -> (BSC.ByteString -> a -> B.Builder) -
 encodeSequence open close encodeEntry indent first rest =
   let
     newIndent =
-      indent <> "    "
+      indent
 
     newIndentBuilder =
       B.byteString newIndent
 
     closer =
-      newline <> B.byteString indent <> close
+      B.byteString indent <> close
 
     addValue field builder =
       commaNewline
@@ -352,9 +352,4 @@ encodeSequence open close encodeEntry indent first rest =
 
 commaNewline :: B.Builder
 commaNewline =
-  B.string7 ",\n"
-
-
-newline :: B.Builder
-newline =
-  B.char7 '\n'
+  B.string7 ","

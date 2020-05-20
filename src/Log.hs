@@ -11,8 +11,8 @@ module Log
     -- * Sending an entry
   , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception, Task.segment
 
-    -- * Adding extra context
-  , Entry.value, Entry.int, Entry.float, Entry.text, Entry.lookup
+    -- * Adding context
+  , Entry.value, Entry.lookup
 
     -- * Tracer
   , Task.Tracer, Task.tracer

@@ -404,11 +404,14 @@ log severity context message =
 segment :: Stack.HasCallStack => Text -> List Entry.Context -> Task x a -> Task x a
 segment namespace context task =
   Task <| \key ->
-    let new =
+    let newNamespace =
+          Utils.appendNamespace (key_namespace key) namespace
+
+        new =
           key
-            { key_namespace = Utils.appendNamespace (key_namespace key) namespace
+            { key_namespace = newNamespace
             , key_context = Utils.appendContext (key_context key) context
-            , key_callstack = Utils.appendStack (key_namespace key) (key_callstack key)
+            , key_callstack = Stack.withFrozenCallStack Utils.appendStack newNamespace (key_callstack key)
             }
 
         contextAsJson =

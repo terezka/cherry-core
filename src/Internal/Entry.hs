@@ -2,7 +2,7 @@ module Internal.Entry
   ( Entry(..), Severity(..), Context
   , toColor, toTitle
   , pretty, compact, json
-  , value, int, float, text, lookup
+  , value, lookup
   ) where
 
 
@@ -16,8 +16,8 @@ import qualified Text
 import qualified Result
 import qualified List
 import qualified Json.Encode as Json
-import qualified Json.Encode as Json.Encode
-import qualified Json.Decode as Json.Decode
+import qualified Json.Encode
+import qualified Json.Decode
 import qualified Internal.Utils as U
 import Basics
 import Maybe (Maybe (..))
@@ -28,9 +28,15 @@ import List (List)
 import Array (Array)
 import Set (Set)
 import Char (Char)
+import Json.Encode (Encodable)
+import Json.Decode (Decodable)
 
 
-{-| An entry is a single log item. It has a bunch of standard info as well as details you have defined.
+{-| An entry is a single log item. You send an entry to your
+logging targets every time your program executes one of the following
+functions: `debug`, `info`, `error`, `alert`, or `exception`.
+
+  > error [ value "is_premium" isPremium ] "Could not find user wishlist."
 
 -}
 data Entry = Entry
@@ -97,8 +103,8 @@ toTitle severity =
 -- TO STRING
 
 
-{-| Pretty formatting of the entry. Can be used with
-`terminal`, `file`, or a custom output.
+{-| Pretty formatting of the entry. Can be used with `terminal`,
+`file`, or inside a custom target.
 
 -}
 pretty :: Entry -> Text
@@ -119,12 +125,11 @@ pretty (Entry severity namespace message context callstack) =
 
       viewContextList =
         Dict.toList context
-          |> List.map (\(a, b) -> ( a, toText b))
           |> List.map viewContext
           |> Text.join U.newline
 
       viewContext ( name, value ) = do
-        U.indent 2 ++ name ++ ": " ++ value
+        U.indent 2 ++ name ++ ": " ++ toText value
 
       viewSegments =
         Stack.getCallStack callstack
@@ -147,14 +152,13 @@ pretty (Entry severity namespace message context callstack) =
     ]
 
 
-{-| Compact one-line formatting of the entry. Can be used with
-`terminal`, `file`, or a custom output.
+{-| Compact one-line formatting of the entry. Can be used with `terminal`,
+`file`, or inside a custom target.
 
 -}
 compact :: Entry -> Text
 compact (Entry severity namespace message context _) =
-  let anything c = "[" ++ Debug.toString c ++ "]"
-      string c = "[" ++ c ++ "]"
+  let string c = "[" ++ c ++ "]"
   in
   Text.concat
     [ string (toTitle severity)
@@ -162,7 +166,8 @@ compact (Entry severity namespace message context _) =
     , string message
     , Dict.toList context
           |> List.map (\(a, b) -> ( a, toText b ))
-          |> anything
+          |> Debug.toString
+          |> string
     ]
 
 
@@ -171,9 +176,8 @@ toText =
   Data.Text.Encoding.decodeUtf8 << ByteString.toStrict << Json.toByteString
 
 
-{-| JSON formatting of the entry. Can be used with
-`terminal`, `file`, or a custom output.
-
+{-| JSON formatting of the entry. Can be used with `terminal`, `file`,
+or inside a custom target.
 -}
 json :: Entry -> Text
 json =
@@ -184,33 +188,71 @@ json =
 -- CONTEXT HELPERS
 
 
-{-| -}
-value :: Json.Encode.Encodable a => Text -> a -> Context
+{-| Use to create a piece of context for your logging statement.
+
+    > info [ value "user" user ] "User visited the referrals page."
+
+To use this function, the second argument but be `Encodable`. This means
+it must add a encoder like this:
+
+    > import qualified Json.Encode as Json
+    >
+    > instance Json.Encodable User where
+    >   encoder (User name age) =
+    >     Json.object
+    >       [ ( "name", Json.string name )
+    >       , ( "age", Json.int age )
+    >       ]
+
+This lets me know how to encode your data!
+
+Note: The compiler will sometimes not be able to guess the type of `a` if you try
+to log a constant number like `12`. Is it a float or an integer? To fix this,
+add a type signature.
+
+    > info [ value "attempts" (12 :: Int) ] "User visited the referrals page."
+
+This may happend with strings too. The remedy is the same!
+
+Warning: Watch out for adding the same key twice!
+
+    > info [ value "name" "tereza", value "name" "evan" ] "User logged in"
+    > -- only the last "name" value will survive!
+
+-}
+value :: Encodable a => Text -> a -> Context
 value key value =
   ( key, Json.encoder value )
 
 
-{-| -}
-int :: Text -> Int -> Context
-int key value =
-  ( key, Json.int value )
+{-| Inside your custom target, you can access the enitre Entry, including the
+context you attached using `value`. With this function, you can find a certain
+piece of context that you added.
 
+  > bugsnag :: Log.Target
+  > bugsnag =
+  >   Log.custom <| entry ->
+  >     case Log.lookup "user" entry of
+  >       Ok name -> Bugsnag.send name
+  >       Err _ -> Task.succeed ()
 
-{-| -}
-float :: Text -> Float -> Context
-float key value =
-  ( key, Json.float value )
+To use this, the value you expect your retrieve must be `Decodable`. This means
+it must add a decoder like this:
 
+    > import qualified Json.Decode as Json
+    >
+    > instance Json.Decodable User where
+    >   decoder =
+    >     Json.map2 User
+    >       (Json.field "name" Json.string)
+    >       (Json.field "age" Json.int)
 
-{-| -}
-text :: Text -> Text -> Context
-text key value =
-  ( key, Json.string value )
+This lets me know how to decode your data! REMEMBER: The decoder must match the
+encoder used with `value`.
 
-
-{-| -}
-lookup :: Json.Decode.Decodable a => Text -> Dict Text Json.Value -> Result Text a
-lookup key contexts =
-  Dict.get key contexts
+-}
+lookup :: Decodable a => Text -> Entry -> Result Text a
+lookup key Entry{context = cx} =
+  Dict.get key cx
     |> Result.fromMaybe ("Could not find key: " ++ key)
     |> Result.andThen (Json.Decode.fromValue Json.Decode.decoder >> Result.mapError Debug.toString)
