@@ -76,7 +76,7 @@ main = hspec $ do
       let bytestring = Text.encodeUtf8 "0.1274960773527468635486"
           decoder = Decode.float
       in
-      Decode.fromByteString decoder bytestring `shouldBe` Ok 0.1274961
+      Decode.fromByteString decoder bytestring `shouldBe` Ok 0.12749607735274687
 
     it "can decode true" $
       let bytestring = Text.encodeUtf8 "true"
