@@ -1,11 +1,10 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE OverloadedStrings, TypeSynonymInstances #-}
 
-
 {-|
 
 Module      : Json.Encode
-Description : Encode JSON in an elmish way.
+Description : Encode JSON.
 License     : BSD 3
 Maintainer  : terezasokol@gmail.com
 Stability   : experimental

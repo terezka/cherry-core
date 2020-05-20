@@ -18,6 +18,16 @@ module Log
   , Task.Tracer, Task.tracer
   ) where
 
+{-|
+
+Module      : Log
+Description : Helpers for logging.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import qualified List
 import qualified GHC.Stack as Stack

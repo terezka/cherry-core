@@ -1,6 +1,5 @@
 module Char
-  ( -- Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
-    -- * Characters
+  ( -- * Characters
     Char
 
     -- * ASCII Letters
@@ -16,6 +15,17 @@ module Char
   , toCode, fromCode
   )
 where
+
+{-|
+
+Module      : Char
+Description : Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Basics ((&&), (<<), (<=), Bool (..), Int)

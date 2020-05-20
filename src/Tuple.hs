@@ -31,6 +31,16 @@ module Tuple
   )
 where
 
+{-|
+
+Module      : Tuples
+Description : Work with several values without creating a new data structure.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 
 -- CREATE

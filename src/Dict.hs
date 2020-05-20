@@ -1,11 +1,5 @@
 module Dict
-  ( -- A dictionary mapping unique keys to values. The keys can be any comparable
-    -- type. This includes `Int`, `Float`, `Time`, `Char`, `String`, and tuples or
-    -- lists of comparable types.
-    --
-    -- Insert, remove, and query operations all take *O(log n)* time.
-    --
-    -- * Dictionaries
+  ( -- * Dictionaries
     Dict
 
     -- * Build
@@ -24,6 +18,17 @@ module Dict
   , union, intersect, diff, merge
   )
 where
+
+{-|
+
+Module      : Dict
+Description : A dictionary mapping unique keys to values. The keys can be any comparable type. This includes `Int`, `Float`, `Time`, `Char`, `String`, and tuples or lists of comparable types. Insert, remove, and query operations all take *O(log n)* time.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Basics

@@ -1,11 +1,21 @@
 module Debug
-  ( -- This module can be useful while _developing_ an application.
-    -- * Debugging
+  ( -- * Debugging
     toString,
     log,
     todo,
   )
 where
+
+{-|
+
+Module      : Debug
+Description : This module can be useful while _developing_ an application.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import Prelude (Show, error, show)
 import Data.Text (pack, unpack)

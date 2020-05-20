@@ -19,6 +19,17 @@ module List
   )
 where
 
+{-|
+
+Module      : List
+Description : Work with lists.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Basics ((-), (>>), Bool (..), Int, Order (..))
 import Maybe (Maybe (..))

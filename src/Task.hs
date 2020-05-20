@@ -1,7 +1,5 @@
 module Task
   ( -- * Tasks
-    -- Tasks make it easy to describe asynchronous operations that may fail, like
-    -- HTTP requests or writing to a database.
     Task.Task, Task.attempt, Task.perform
 
     -- * Chains
@@ -17,6 +15,16 @@ module Task
   , Task.Exception
   ) where
 
+{-|
+
+Module      : Task
+Description : Tasks make it easy to describe asynchronous operations that may fail, like HTTP requests or writing to a database.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import qualified Internal.Task as Task
 import qualified Internal.Shortcut as Shortcut

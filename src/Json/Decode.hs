@@ -4,7 +4,7 @@
 {-|
 
 Module      : Json.Decode
-Description : Decode JSON in an elmish way.
+Description : Decode JSON.
 License     : BSD 3
 Maintainer  : terezasokol@gmail.com
 Stability   : experimental
@@ -28,7 +28,6 @@ module Json.Decode
   )
   where
 
-import qualified Data.Map.Strict as Map
 import qualified Data.Either as Either
 import qualified Data.List as List hiding (map)
 import qualified Data.Maybe as Maybe
@@ -41,6 +40,7 @@ import qualified Json.Encode as Json
 import qualified Parser.Keyword as K
 import qualified Parser.Primitives as P
 import qualified Parser.Variable as V
+import qualified Dict
 import Parser.Primitives (Row, Col)
 import Json.Ast (AST(..))
 
@@ -51,6 +51,7 @@ import Data.Word (Word16)
 import Prelude hiding (maybe, map, fail, null, Float)
 import Basics (Float)
 import Result (Result(..))
+import Dict (Dict)
 
 
 
@@ -76,7 +77,14 @@ fromByteString (Decoder decode) src =
       Err (ParseProblem problem)
 
 
-{-| -}
+{-| Parse the given string into a JSON value and then run the `Decoder` on it.
+This will fail if the string is not well-formed JSON or if the `Decoder`
+fails for some reason.
+
+ > fromValue int (Encode.int 4)     == Ok 4
+ > fromValue int (Encode.bool True) == Err ...
+
+-}
 fromValue :: Decoder a -> Json.Value -> Result Error a
 fromValue (Decoder decode) ast =
   decode ast Ok (Err . DecodeProblem)
@@ -527,7 +535,6 @@ pair (Decoder decodeA) (Decoder decodeB) =
 
 
 
-
 -- OBJECTS
 
 
@@ -580,9 +587,9 @@ are turned into dictionary values like
 
 if you need that.
 -}
-dict :: Decoder a -> Decoder (Map.Map Text.Text a)
+dict :: Decoder a -> Decoder (Dict Text.Text a)
 dict valueDecoder =
-  map Map.fromList (pairs valueDecoder)
+  map Dict.fromList (pairs valueDecoder)
 
 
 pairs :: Decoder a -> Decoder [( Text.Text, a )]

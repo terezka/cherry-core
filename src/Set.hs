@@ -19,6 +19,17 @@ module Set
   )
 where
 
+{-|
+
+Module      : Set
+Description : Work with sets.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 import Basics ((>>), Bool, Int)
 import List (List)
 import qualified Data.Set

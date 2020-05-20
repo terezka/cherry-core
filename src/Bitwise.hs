@@ -9,6 +9,17 @@ module Bitwise
   )
 where
 
+{-|
+
+Module      : Bitwise
+Description : Work with bits.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 import Data.Bits ((.&.), (.|.))
 import Basics (Int)
 import qualified Prelude

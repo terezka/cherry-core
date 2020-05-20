@@ -1,8 +1,5 @@
 module Maybe
-  ( -- This library fills a bunch of important niches in  A `Maybe` can help
-    -- you with optional arguments, error handling, and records with optional fields.
-
-    -- * Definition
+  ( -- * Definition
     Maybe(..)
 
     -- * Common Helpers
@@ -12,6 +9,17 @@ module Maybe
   , andThen
   )
 where
+
+{-|
+
+Module      : Maybe
+Description : This library fills a bunch of important niches in  A `Maybe` can help you with optional arguments, error handling, and records with optional fields.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import qualified Prelude
