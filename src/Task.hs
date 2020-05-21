@@ -1,6 +1,6 @@
 module Task
   ( -- * Tasks
-    Task.Task, Task.attempt, Task.perform
+    Task.Task, Task.attempt, Task.perform, Task.custom
 
     -- * Chains
   , andThen, Task.succeed, Task.fail, Task.sequence
@@ -11,8 +11,13 @@ module Task
     -- * Errors
   , Task.onError, Task.mapError
 
-    -- * Exception handling
-  , Task.Exception
+    -- * Logging
+  , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception
+  , Task.segment
+
+  -- * Adding context
+  , Entry.value
+
   ) where
 
 {-|
@@ -27,9 +32,9 @@ Portability : POSIX
 -}
 
 import qualified Internal.Task as Task
+import qualified Internal.Entry as Entry
 import qualified Internal.Shortcut as Shortcut
 import Internal.Task (Task)
-
 
 
 -- MAPS

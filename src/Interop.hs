@@ -1,4 +1,11 @@
-module Interop (Key, key, enter, exit) where
+module Interop
+  ( Key, key
+
+  , enter, exit
+
+  -- * Exception handling
+  , Task.Exception
+  ) where
 
 {-|
 
@@ -50,4 +57,4 @@ You shouldn't usually need to use this!
 -}
 exit :: Key -> Task x a -> IO (Result x a)
 exit _ =
-  Task.attempt Nothing []
+  Task.attempt

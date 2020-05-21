@@ -102,7 +102,7 @@ data Key = Key
   , key_context :: Dict Text Json.Value
   , key_queues :: List Queue
   , key_callstack :: Stack.CallStack
-  , key_tracer :: Maybe Tracer
+  , key_tracer :: Tracer
   }
 
 
@@ -116,12 +116,18 @@ tracer =
   Tracer
 
 
-empty :: Maybe Tracer -> List Queue -> Key
+{-| -}
+tracerless :: Tracer
+tracerless =
+  Tracer (\_ _ -> succeed ()) (\_ -> succeed ())
+
+
+empty :: Tracer -> List Queue -> Key
 empty tracer queues =
   Key "" Dict.empty queues Stack.emptyCallStack tracer
 
 
-init :: Maybe Tracer -> List Target -> IO ( Key, IO () )
+init :: Tracer -> List Target -> IO ( Key, IO () )
 init tracer targets =
   let execute settings resource queue = do
         Queue.execute (write settings resource) queue
@@ -147,24 +153,38 @@ init tracer targets =
 
 {-| Just having a `Task` does not mean it is done. We must `perform` the task:
 
-  >  import Cherry.Task
-  >  import Cherry.Task
+  >  import Cherry.Prelude
   >
   >  main :: IO ()
   >  main =
-  >    Task.perform [] Time.now
+  >    Task.perform Time.now
 
 -}
-perform :: Maybe Tracer -> List Target -> Task Never a -> IO a
-perform tracer targets task = do
-  Ok a <- attempt tracer targets task
+perform :: Task Never a -> IO a
+perform task = do
+  Ok a <- attempt task
   return a
 
 
 {-| Like `perform`, except for tasks which can fail.
 -}
-attempt :: Maybe Tracer -> List Target -> Task x a -> IO (Result x a)
-attempt tracer targets task =
+attempt :: Task x a -> IO (Result x a)
+attempt =
+  custom tracerless [ terminal Entry.pretty ]
+
+
+{-| Customize your logging preferences.
+
+  >  import Cherry.Prelude
+  >  import Log
+  >
+  >  main :: IO ()
+  >  main =
+  >    Task.custom Log.tracerless [ bugsnag, Log.file Log.compact ] (Http.send request)
+
+-}
+custom :: Tracer -> List Target -> Task x a -> IO (Result x a)
+custom tracer targets task =
   bracket (init tracer targets) Tuple.second (Tuple.first >> toIO task)
 
 
@@ -307,15 +327,15 @@ which you want to send your log entries to. The first argument allows
 you to access any resource you might need to send the entry, the second
 is actually sending it, and the last is what do do when the target is shut down.
 
-  >   Log.custom write
+  >   Log.target write
 
 -}
-custom :: (Entry -> Task x ()) -> Target
-custom write =
+target :: (Entry -> Task x ()) -> Target
+target write =
   Target <| Settings
     { open = return ()
     , write = \_ ->
-        write >> attempt Nothing [ terminal Entry.pretty ] >> void
+        write >> attempt >> void
     , close = \_ -> return ()
     }
 
@@ -326,14 +346,14 @@ custom write =
 
 {-| Send a debug log entry.
 
-  >  main :: Program
+  >  main :: IO ()
   >  main =
-  >    Program.program decoder keys [ Log.terminal Log.pretty ] app
+  >    Task.perform [ Log.terminal Log.pretty ] app
   >
-  >  doThings :: Task x ()
-  >  doThings = do
+  >  app :: Task x ()
+  >  app = do
   >    Http.send request
-  >    Log.debug "Hello!" [ ( "user", "terezka" ) ]
+  >    Log.debug "Hello!" [ value "user" ("terezka" :: Text) ]
   >
 -}
 debug :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
@@ -341,28 +361,28 @@ debug =
   log Entry.Debug
 
 
-{-| Same as `debug`, but sends am `Info` log entry.
+{-| Same as `debug`, but sends an entry with severity `Info`.
 -}
 info :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
 info =
   log Entry.Info
 
 
-{-| Same as `debug`, but sends a `Warning` log entry.
+{-| Same as `debug`, but sends an entry with severity `Warning`.
 -}
 warning :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
 warning =
   log Entry.Warning
 
 
-{-| Same as `debug`, but sends an `Error` log entry.
+{-| Same as `debug`, but sends an entry with severity `Error`.
 -}
 error :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
 error =
   log Entry.Error
 
 
-{-| Same as `debug`, but sends an `Alert` log entry.
+{-| Same as `debug`, but sends an entry with severity `Alert`.
 -}
 alert :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
 alert =
@@ -395,10 +415,9 @@ log severity context message =
 
   >  login :: User.Id -> Task Entry Error User.User
   >  login id =
-  >    context "login" [ ( "user_id", id ) ] <|
-  >      actualLogin id
-  >      Log.debug "Hello!" [ context "user" "terezka" ] -- Resulting entry includes "user_id" in context
-  >      Log.debug "Hello!" [ context "referrals" 12, context "color" Blue ]
+  >    context "login" [ value "user_id" id ] <|
+  >      actuallyLogin id
+  >      debug "Hello!" [ value "color" Blue ] -- This entry inherits the "user_id" context from the segment
 
 -}
 segment :: Stack.HasCallStack => Text -> List Entry.Context -> Task x a -> Task x a
@@ -417,18 +436,13 @@ segment namespace context task =
         contextAsJson =
           Json.object (Dict.toList (key_context new))
 
-        perform =
-          case key_tracer new of
-            Just tracer -> withTracer tracer
-            Nothing -> toIO task new
-
-        withTracer (Tracer before after) = do
+        perform (Tracer before after) = do
           stuff <- toIO (before (key_namespace new) contextAsJson) new
           result <- toIO task new
           toIO (after stuff) new
           return result
     in
-    Control.catches perform
+    Control.catches (perform <| key_tracer new)
       [ Control.Handler (Control.throw :: Exception -> IO a)
       , Control.Handler (Control.throw << fromSomeException new :: Control.SomeException -> IO a)
       ]

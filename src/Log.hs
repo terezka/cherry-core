@@ -1,27 +1,23 @@
 module Log
-  ( -- * Entries
-    Entry.Entry(..), Entry.Severity(..)
+  ( -- * Customization
+    -- * Tracer
+    Task.Tracer, Task.tracerless, Task.tracer
 
     -- * Targets
-  , Task.Target, Task.terminal, Task.file, Task.custom
+  , Task.Target, Task.terminal, Task.file, Task.target
 
     -- * Formatting
   , Entry.pretty, Entry.compact, Entry.json
 
-    -- * Sending an entry
-  , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception, Task.segment
+    -- * Entry
+  , Entry.Entry(..), Entry.Severity(..), Entry.lookup
 
-    -- * Adding context
-  , Entry.value, Entry.lookup
-
-    -- * Tracer
-  , Task.Tracer, Task.tracer
   ) where
 
 {-|
 
-Module      : Log
-Description : Helpers for logging.
+Module      : Entry
+Description : Work with a logging entry.
 License     : BSD 3
 Maintainer  : terezasokol@gmail.com
 Stability   : experimental
@@ -29,16 +25,7 @@ Portability : POSIX
 
 -}
 
-import qualified List
-import qualified GHC.Stack as Stack
 import qualified Internal.Entry as Entry
-import qualified Internal.Queue as Queue
 import qualified Internal.Task as Task
-import qualified Control.Exception.Safe as Control
-import qualified Json.Encode as Json
-import Control.Monad (void)
-import Internal.Entry (Entry)
-import Internal.Task (Task)
-import Cherry.Prelude
-import Prelude (IO, return, sequence_)
+
 
