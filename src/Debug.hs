@@ -18,9 +18,9 @@ Portability : POSIX
 -}
 
 import Prelude (Show, error, show)
-import Data.Text (pack, unpack)
 import Basics ((>>))
-import Text (Text, concat)
+import String (String)
+import qualified String
 import qualified Debug.Trace
 
 
@@ -32,9 +32,9 @@ import qualified Debug.Trace
   >  toString "he said, \"hi\"" == "\"he said, \\\"hi\\\"\""
 
 -}
-toString :: Show a => a -> Text
-toString =
-  show >> pack
+toString :: Show a => a -> String
+toString value =
+  String.fromList (show value)
 
 
 {-| Log a tagged value on the developer console, and then return the value.
@@ -46,9 +46,9 @@ It is often possible to sprinkle this around to see if values are what you
 expect. It is kind of old-school to do it this way, but it works!
 
 -}
-log :: Show a => Text -> a -> a
+log :: Show a => String -> a -> a
 log message value =
-  Debug.Trace.trace (unpack (concat [message, ": ", toString value])) value
+  Debug.Trace.trace (String.toList (String.concat [message, ": ", toString value])) value
 
 
 {-| This is a placeholder for code that you will write later.
@@ -71,6 +71,6 @@ completed a case expression, it may make sense to do this:
   >
 
 -}
-todo :: Text -> a
-todo =
-  unpack >> error
+todo :: String -> a
+todo msg =
+  error (String.toList msg)
