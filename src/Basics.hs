@@ -445,8 +445,8 @@ information.
 
 -}
 modBy :: Int -> Int -> Int
-modBy =
-  Prelude.mod
+modBy modulus n =
+  n `Prelude.mod` modulus
 
 
 {-| Get the remainder after division. Here are bunch of examples of dividing by four:
@@ -460,8 +460,8 @@ information.
 
 -}
 remainderBy :: Int -> Int -> Int
-remainderBy =
-  Prelude.rem
+remainderBy divisor numerator =
+  numerator `Prelude.rem` divisor
 
 
 {-| Negate a number.
