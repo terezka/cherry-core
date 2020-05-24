@@ -43,7 +43,7 @@ Portability : POSIX
 
 -}
 
-import Prelude ((&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
+import Prelude (Bool)
 import qualified Prelude
 import qualified List
 import qualified String
@@ -119,36 +119,36 @@ could say one of these:
   >  round 3.14 + List.length [1,2,3]     == 6
 
 -}
-add :: Prelude.Num number => number -> number -> number
-add =
-  (+)
+(+) :: Prelude.Num number => number -> number -> number
+(+) =
+  (Prelude.+)
 
 
 {-| Subtract numbers like `4 - 3 == 1`.
 
 See `(+)` for docs on the `number` type variable.
 -}
-sub :: Prelude.Num number => number -> number -> number
-sub =
-  (-)
+(-) :: (Prelude.Num number) => number -> number -> number
+(-) =
+  (Prelude.-)
 
 
 {-| Multiply numbers like `2 * 3 == 6`.
 
 See `(+)` for docs on the `number` type variable.
 -}
-mul :: Prelude.Num number => number -> number -> number
-mul =
-  (*)
+(*) :: (Prelude.Num number) => number -> number -> number
+(*) =
+  (Prelude.*)
 
 
 {-| Floating-point division:
 
   >  3.14 / 2 == 1.57
 -}
-fdiv :: Float -> Float -> Float
-fdiv =
-  (/)
+(/) :: Float -> Float -> Float
+(/) =
+  (Prelude./)
 
 
 {-| Integer division:
@@ -167,9 +167,9 @@ Notice that the remainder is discarded.
   >  3^2 == 9
   >  3^3 == 27
 -}
-pow :: ( Prelude.Num number, Prelude.Integral number ) => number -> number -> number
-pow =
-  (^)
+(^) :: (Prelude.Num number, Prelude.Integral number) => number -> number -> number
+(^) =
+  (Prelude.^)
 
 
 
@@ -260,18 +260,18 @@ truncate =
 {-| Check if values are &ldquo;the same&rdquo;.
 
 -}
-eq :: ( Prelude.Ord a, Prelude.Eq a ) => a -> a -> Bool
-eq =
-  (==)
+(==) :: (Prelude.Eq a) => a -> a -> Bool
+(==) =
+  (Prelude.==)
 
 
 {-| Check if values are not &ldquo;the same&rdquo;.
 
 So `(a /= b)` is the same as `(not (a == b))`.
 -}
-neq :: ( Prelude.Ord a, Prelude.Eq a ) => a -> a -> Bool
-neq =
-  (/=)
+(/=) :: (Prelude.Eq a) => a -> a -> Bool
+(/=) =
+  (Prelude./=)
 
 
 
@@ -279,27 +279,27 @@ neq =
 
 
 {-|-}
-lt :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-lt =
-  (<)
+(<) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(<) =
+  (Prelude.<)
 
 
 {-|-}
-gt :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-gt =
-  (>)
+(>) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(>) =
+  (Prelude.>)
 
 
 {-|-}
-le :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-le =
-  (<=)
+(<=) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(<=) =
+  (Prelude.<=)
 
 
 {-|-}
-ge :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-ge =
-  (>=)
+(>=) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(>=) =
+  (Prelude.>=)
 
 
 {-| Find the smaller of two comparables.
@@ -308,9 +308,9 @@ ge =
   >  min "abc" "xyz" == "abc"
 
 -}
-min :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> comparable
-min x y =
-  if lt x y then x else y
+min :: (Prelude.Ord comparable) => comparable -> comparable -> comparable
+min =
+  Prelude.min
 
 
 {-| Find the larger of two comparables.
@@ -319,9 +319,9 @@ min x y =
   >  max "abc" "xyz" == "xyz"
 
 -}
-max :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> comparable
-max x y =
-  if gt x y then x else y
+max :: (Prelude.Ord comparable) => comparable -> comparable -> comparable
+max =
+  Prelude.max
 
 
 {-| Compare any two comparable values. Comparable values include `String`,
@@ -372,9 +372,9 @@ short-circuits. This means if `left` is `False` we do not bother evaluating `rig
 and just return `False` overall.
 
 -}
-and :: Bool -> Bool -> Bool
-and =
-  (&&)
+(&&) :: Bool -> Bool -> Bool
+(&&) =
+  (Prelude.&&)
 
 
 {-| The logical OR operator. `True` if one or both inputs are `True`.
@@ -389,9 +389,9 @@ short-circuits. This means if `left` is `True` we do not bother evaluating `righ
 and just return `True` overall.
 
 -}
-or :: Bool -> Bool -> Bool
-or =
-  (||)
+(||) :: Bool -> Bool -> Bool
+(||) =
+  (Prelude.||)
 
 
 
@@ -471,9 +471,9 @@ remainderBy =
   >  negate 0 == 0
 
 -}
-negate :: Prelude.Num number => number -> number
-negate n =
-  -n
+negate :: (Prelude.Num number) => number -> number
+negate =
+  Prelude.negate
 
 
 {-| Get the [absolute value](https://en.wikipedia.org/wiki/Absolute_value) of a number.
@@ -484,9 +484,9 @@ negate n =
   >  abs 3.14 == 3.14
 
 -}
-abs :: ( Prelude.Num number, Prelude.Ord number, Prelude.Eq number ) => number -> number
-abs n =
-  if lt n 0 then -n else n
+abs :: (Prelude.Num number) => number -> number
+abs =
+  Prelude.abs
 
 
 {-| Clamps a number within a given range. With the expression
@@ -497,11 +497,11 @@ abs n =
   >  200     if 200 <= x
 
 -}
-clamp :: ( Prelude.Num number, Prelude.Ord number, Prelude.Eq number ) => number -> number -> number -> number
+clamp :: (Prelude.Num number, Prelude.Ord number) => number -> number -> number -> number
 clamp low high number =
-  if lt number low then
+  if number < low then
     low
-  else if gt number high then
+  else if number > high then
     high
   else
     number
