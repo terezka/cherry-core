@@ -52,12 +52,17 @@ import qualified String
 -- INFIX OPERATORS
 
 
-infixr 0 <|
-infixl 0 |>
-infixr 5 ++
-infixl 7 //
-infixl 9 <<
-infixr 9 >>
+infixr 0  <|
+infixl 0  |>
+infixr 2  ||
+infixr 3  &&
+infix  4  ==, /=, <, >, <=, >=
+infixr 5  ++
+infixl 6  +, -
+infixl 7  *, /, //
+infixr 8  ^
+infixl 9  <<
+infixr 9  >>
 
 
 
