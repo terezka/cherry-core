@@ -49,6 +49,7 @@ import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
 import qualified Prelude
+import qualified Data.String as HS
 import qualified Data.Text as HT
 import qualified Data.Text.Internal.Search as HTIS
 import qualified Data.Maybe as HM
@@ -82,6 +83,10 @@ characters with different widths.
 -}
 newtype String =
   String HT.Text
+
+
+instance HS.IsString String where
+  fromString = fromList
 
 
 {-| Determine if a string is empty.
