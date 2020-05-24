@@ -83,6 +83,7 @@ characters with different widths.
 -}
 newtype String =
   String HT.Text
+  deriving (Prelude.Eq, Prelude.Ord)
 
 
 instance HS.IsString String where
