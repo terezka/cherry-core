@@ -29,6 +29,9 @@ module String
 
     -- * Higher-Order Functions
   , map, filter, foldl, foldr, any, all
+
+    -- * Conversions to Haskell Types
+  , toTextUtf8, toBuilder
   )
 where
 
@@ -48,8 +51,10 @@ import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
 import qualified Prelude
+import qualified Data.ByteString.Builder as HB
 import qualified Data.String as HS
 import qualified Data.Text as HT
+import qualified Data.Text.Encoding as HTE
 import qualified Data.Text.Internal.Search as HTIS
 import qualified Data.Maybe as HM
 import qualified Text.Read as HTR
@@ -612,3 +617,18 @@ all :: (Char -> Bool) -> String -> Bool
 all isGood (String str) =
   HT.all isGood str
 
+
+{-| The underlying representation of a `String` is currently the `Text` value
+from the `text-utf8` module. From there you can do more conversions if needed.
+-}
+toTextUtf8 :: String -> HT.Text
+toTextUtf8 (String str) =
+  str
+
+
+{-| It is pretty common to use `Data.ByteString.Builder` when generating output
+so this function is compatible with that system, and fast!
+-}
+toBuilder :: String -> HB.Builder
+toBuilder (String str) =
+  HTE.encodeUtf8Builder str
