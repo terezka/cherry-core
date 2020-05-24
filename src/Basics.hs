@@ -17,7 +17,7 @@ module Basics
   , Bool(..), not, (&&), (||)
 
     -- * Append Strings and Lists
-  , (++)
+  , Appendable, (++)
 
     -- * Fancier Math
   , modBy, remainderBy, negate, abs, clamp, sqrt, logBase
@@ -43,8 +43,10 @@ Portability : POSIX
 
 -}
 
-import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
+import Prelude ((&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
 import qualified Prelude
+import qualified List
+import qualified String
 
 
 -- INFIX OPERATORS
@@ -66,8 +68,6 @@ infixr 9 >>
 (>>) = composeR
 
 infixr 5 ++
-(++) :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
-(++) = append
 
 
 -- MATHEMATICS
@@ -407,15 +407,27 @@ or =
 -- APPEND
 
 
-{-| Put two appendable things together. This includes strings, lists, and text.
+{-| Put two appendable things together. This includes strings and lists.
 
   >  "hello" ++ "world" == "helloworld"
   >  [1,1,2] ++ [3,5,8] == [1,1,2,3,5,8]
 
 -}
-append :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
-append =
-  (Prelude.<>)
+(++) :: (Appendable appendable) => appendable -> appendable -> appendable
+(++) =
+  append
+
+
+class Appendable a where
+  append :: a -> a -> a
+
+
+instance Appendable String.String where
+  append = String.append
+
+
+instance Appendable [a] where
+  append = List.append
 
 
 

@@ -43,8 +43,7 @@ Portability : POSIX
 
 -}
 
-import Basics ((+), (-), (<), (<=), (>>), Bool, Float, Int, clamp, (|>))
-import Prelude (otherwise)
+import Prelude (Bool, Float, Int, (+), (<))
 import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
@@ -229,6 +228,16 @@ slice start end (String str) =
   if lo < hi
   then String (HT.drop lo (HT.take hi str))
   else String HT.empty
+
+
+clamp :: Int -> Int -> Int -> Int
+clamp lo hi n =
+  if n < lo then
+    lo
+  else if hi < n then
+    hi
+  else
+    n
 
 
 {-| Take *n* characters from the left side of a string.

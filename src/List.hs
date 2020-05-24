@@ -30,8 +30,7 @@ Portability : POSIX
 
 -}
 
-import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Basics ((-), (>>), Bool (..), Int, Order (..))
+import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, Bool(..), Int, Ordering, (-), flip, mappend, mconcat)
 import Maybe (Maybe (..))
 import qualified Prelude
 import qualified Data.List
@@ -65,7 +64,7 @@ singleton value =
 -}
 repeat :: Int -> a -> List a
 repeat =
-  Prelude.fromIntegral >> Data.List.replicate
+  Data.List.replicate
 
 
 {-| Create a list of numbers, every element increasing by one.
@@ -164,8 +163,8 @@ from an untrusted source and you want to turn them into numbers:
 
 -}
 filterMap :: (a -> Maybe b) -> List a -> List b
-filterMap a =
-  Data.Maybe.mapMaybe (a >> toHMaybe)
+filterMap toMaybe =
+  Data.Maybe.mapMaybe (\a -> toHMaybe (toMaybe a))
 
 
 
@@ -178,7 +177,7 @@ filterMap a =
 -}
 length :: List a -> Int
 length =
-  Data.List.length >> Prelude.fromIntegral
+  Data.List.length
 
 
 {-| Reverse a list.
@@ -400,7 +399,7 @@ sortBy =
 This is also the most general sort function, allowing you
 to define any other: `sort == sortWith compare`
 -}
-sortWith :: (a -> a -> Order) -> List a -> List a
+sortWith :: (a -> a -> Ordering) -> List a -> List a
 sortWith =
   Data.List.sortBy
 
@@ -463,7 +462,7 @@ tail list =
 -}
 take :: Int -> List a -> List a
 take =
-  Prelude.fromIntegral >> Data.List.take
+  Data.List.take
 
 
 {-| Drop the first *n* members of a list.
@@ -472,7 +471,7 @@ take =
 -}
 drop :: Int -> List a -> List a
 drop =
-  Prelude.fromIntegral >> Data.List.drop
+  Data.List.drop
 
 
 {-| Partition a list based on some test. The first list contains all values
