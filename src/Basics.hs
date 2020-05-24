@@ -53,21 +53,12 @@ import qualified String
 
 
 infixr 0 <|
-(<|) = apL
-
 infixl 0 |>
-(|>) = apR
-
-infixl 7 //
-(//) = idiv
-
-infixl 9 <<
-(<<) = composeL
-
-infixr 9 >>
-(>>) = composeR
-
 infixr 5 ++
+infixl 7 //
+infixl 9 <<
+infixr 9 >>
+
 
 
 -- MATHEMATICS
@@ -166,8 +157,8 @@ fdiv =
 
 Notice that the remainder is discarded.
 -}
-idiv :: Int -> Int -> Int
-idiv =
+(//) :: Int -> Int -> Int
+(//) =
   Prelude.quot
 
 
@@ -537,9 +528,7 @@ sqrt =
 -}
 logBase :: Float -> Float -> Float
 logBase base number =
-  fdiv
-    (Prelude.log number)
-    (Prelude.log base)
+  Prelude.log number / Prelude.log base
 
 
 
@@ -704,8 +693,8 @@ So our example expands out to something like this:
   >  \n -> not (isEven (sqrt n))
 
 -}
-composeL :: (b -> c) -> (a -> b) -> (a -> c)
-composeL g f x =
+(<<) :: (b -> c) -> (a -> b) -> (a -> c)
+(<<) g f x =
   g (f x)
 
 
@@ -715,8 +704,8 @@ example, the following code checks if the square root of a number is odd:
   >  sqrt >> isEven >> not
 
 -}
-composeR :: (a -> b) -> (b -> c) -> (a -> c)
-composeR f g x =
+(>>) :: (a -> b) -> (b -> c) -> (a -> c)
+(>>) f g x =
   g (f x)
 
 
@@ -750,8 +739,8 @@ named. It has a type annotation. It is much more self-documenting that way!
 Testing the logic gets easier too. Nice side benefit!
 
 -}
-apR :: a -> (a -> b) -> b
-apR x f =
+(|>) :: a -> (a -> b) -> b
+(|>) x f =
   f x
 
 
@@ -761,8 +750,8 @@ It can help you avoid parentheses, which can be nice sometimes. Maybe you want
 to apply a function to a `case` expression? That sort of thing.
 
 -}
-apL :: (a -> b) -> a -> b
-apL f x =
+(<|) :: (a -> b) -> a -> b
+(<|) f x =
   f x
 
 
