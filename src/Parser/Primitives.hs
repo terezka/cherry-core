@@ -21,6 +21,7 @@ import GHC.Word (Word8(W8#), Word16)
 import qualified Parser.Reporting as R
 import Prelude hiding (length)
 
+import qualified Result as R
 import qualified String
 
 
@@ -198,7 +199,7 @@ instance Monad (Parser x) where
 -- FROM STRING
 
 
-fromString :: Parser x a -> (Row -> Col -> x) -> String.String -> Either x a
+fromString :: Parser x a -> (Row -> Col -> x) -> String.String -> R.Result x a
 fromString (Parser parser) toBadEnd string =
   let
     !(T.Text (T.Array src) pos length) = String.toTextUtf8 string
@@ -207,16 +208,16 @@ fromString (Parser parser) toBadEnd string =
   parser (State src pos (pos + length) 0 1 1) toOk' toOk' toErr toErr
 
 
-toOk :: (Row -> Col -> x) -> a -> State -> Either x a
+toOk :: (Row -> Col -> x) -> a -> State -> R.Result x a
 toOk toBadEnd !a (State _ pos end _ row col) =
   if pos == end
-  then Right a
-  else Left (toBadEnd row col)
+  then R.Ok a
+  else R.Err (toBadEnd row col)
 
 
-toErr :: Row -> Col -> (Row -> Col -> x) -> Either x a
+toErr :: Row -> Col -> (Row -> Col -> x) -> R.Result x a
 toErr row col toError =
-  Left (toError row col)
+  R.Err (toError row col)
 
 
 
