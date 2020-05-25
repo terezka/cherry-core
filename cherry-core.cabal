@@ -67,6 +67,7 @@ library
     binary,
     bytestring,
     containers >=0.6 && <0.7,
+    ghc-prim,
     mtl,
     safe-exceptions,
     scientific,

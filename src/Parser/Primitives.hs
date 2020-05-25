@@ -1,32 +1,27 @@
 {-# OPTIONS_GHC -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
-{-# LANGUAGE BangPatterns, Rank2Types, UnboxedTuples #-}
-{-# LANGUAGE ImplicitPrelude #-}
-
+{-# LANGUAGE BangPatterns, MagicHash, Rank2Types, UnboxedTuples #-}
 module Parser.Primitives
-  ( fromByteString
-  , Parser(..), State(..), Row, Col
+  ( fromString
+  , Parser(..), State(..), Pos, End, Row, Col
   , oneOf, oneOfWithFallback
   , inContext, specialize
   , getPosition, getCol, addLocation, addEnd
   , getIndent, setIndent, withIndent, withBacksetIndent
   , word1, word2
   , unsafeIndex, isWord, getCharWidth
-  , Snippet(..)
-  , fromSnippet
   )
   where
 
 
-import qualified Control.Applicative as Applicative (Applicative(..))
-import qualified Data.ByteString.Internal as B
+import qualified Data.Text.Internal as T
+import qualified Data.Text.Array as T
+import GHC.Prim (ByteArray#, indexWord8Array#)
+import GHC.Types (Int(I#))
+import GHC.Word (Word8(W8#), Word16)
 import qualified Parser.Reporting as R
-import Foreign.Ptr (Ptr, plusPtr)
-import Foreign.Storable (peek)
-import Foreign.ForeignPtr (ForeignPtr, touchForeignPtr)
-import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
-import Data.Word (Word8, Word16)
 import Prelude hiding (length)
 
+import qualified String
 
 
 
@@ -47,14 +42,17 @@ newtype Parser x a =
 
 data State = -- TODO try taking some out to avoid allocation?
   State
-    { _src :: ForeignPtr Word8
-    , _pos :: !(Ptr Word8)
-    , _end :: !(Ptr Word8)
-    , _indent :: !Word16
-    , _row :: !Row
-    , _col :: !Col
+    { _src :: ByteArray#
+    , _pos :: {-# UNPACK #-} !Pos
+    , _end :: {-# UNPACK #-} !End
+    , _indent :: {-# UNPACK #-} !Word16
+    , _row :: {-# UNPACK #-} !Row
+    , _col :: {-# UNPACK #-} !Col
     }
 
+
+type Pos = Int
+type End = Int
 
 type Row = Word16
 type Col = Word16
@@ -79,7 +77,7 @@ instance Functor (Parser x) where
 -- APPLICATIVE
 
 
-instance Applicative.Applicative (Parser x) where
+instance Applicative (Parser x) where
   {-# INLINE pure #-}
   pure = return
 
@@ -197,20 +195,16 @@ instance Monad (Parser x) where
 
 
 
--- FROM BYTESTRING
+-- FROM STRING
 
 
-fromByteString :: Parser x a -> (Row -> Col -> x) -> B.ByteString -> Either x a
-fromByteString (Parser parser) toBadEnd (B.PS fptr offset length) =
-  B.accursedUnutterablePerformIO $
-    let
-      toOk' = toOk toBadEnd
-      !pos = plusPtr (unsafeForeignPtrToPtr fptr) offset
-      !end = plusPtr pos length
-      !result = parser (State fptr pos end 0 1 1) toOk' toOk' toErr toErr
-    in
-    do  touchForeignPtr fptr
-        return result
+fromString :: Parser x a -> (Row -> Col -> x) -> String.String -> Either x a
+fromString (Parser parser) toBadEnd string =
+  let
+    !(T.Text (T.Array src) pos length) = String.toTextUtf8 string
+    toOk' = toOk toBadEnd
+  in
+  parser (State src pos (pos + length) 0 1 1) toOk' toOk' toErr toErr
 
 
 toOk :: (Row -> Col -> x) -> a -> State -> Either x a
@@ -223,33 +217,6 @@ toOk toBadEnd !a (State _ pos end _ row col) =
 toErr :: Row -> Col -> (Row -> Col -> x) -> Either x a
 toErr row col toError =
   Left (toError row col)
-
-
-
--- FROM SNIPPET
-
-
-data Snippet =
-  Snippet
-    { _fptr   :: ForeignPtr Word8
-    , _offset :: Int
-    , _length :: Int
-    , _offRow :: Row
-    , _offCol :: Col
-    }
-
-
-fromSnippet :: Parser x a -> (Row -> Col -> x) -> Snippet -> Either x a
-fromSnippet (Parser parser) toBadEnd (Snippet fptr offset length row col) =
-  B.accursedUnutterablePerformIO $
-    let
-      toOk' = toOk toBadEnd
-      !pos = plusPtr (unsafeForeignPtrToPtr fptr) offset
-      !end = plusPtr pos length
-      !result = parser (State fptr pos end 0 row col) toOk' toOk' toErr toErr
-    in
-    do  touchForeignPtr fptr
-        return result
 
 
 
@@ -358,8 +325,8 @@ specialize addContext (Parser parser) =
 word1 :: Word8 -> (Row -> Col -> x) -> Parser x ()
 word1 word toError =
   Parser $ \(State src pos end indent row col) cok _ _ eerr ->
-    if pos < end && unsafeIndex pos == word then
-      let !newState = State src (plusPtr pos 1) end indent row (col + 1) in
+    if pos < end && unsafeIndex src pos == word then
+      let !newState = State src (pos + 1) end indent row (col + 1) in
       cok () newState
     else
       eerr row col toError
@@ -369,10 +336,10 @@ word2 :: Word8 -> Word8 -> (Row -> Col -> x) -> Parser x ()
 word2 w1 w2 toError =
   Parser $ \(State src pos end indent row col) cok _ _ eerr ->
     let
-      !pos1 = plusPtr pos 1
+      !pos1 = pos + 1
     in
-    if pos1 < end && unsafeIndex pos == w1 && unsafeIndex pos1 == w2 then
-      let !newState = State src (plusPtr pos 2) end indent row (col + 2) in
+    if pos1 < end && unsafeIndex src pos == w1 && unsafeIndex src pos1 == w2 then
+      let !newState = State src (pos + 2) end indent row (col + 2) in
       cok () newState
     else
       eerr row col toError
@@ -382,19 +349,20 @@ word2 w1 w2 toError =
 -- LOW-LEVEL CHECKS
 
 
-unsafeIndex :: Ptr Word8 -> Word8
-unsafeIndex ptr =
-  B.accursedUnutterablePerformIO (peek ptr)
+{-# INLINE unsafeIndex #-}
+unsafeIndex :: ByteArray# -> Pos -> Word8
+unsafeIndex src (I# pos) =
+  W8# (indexWord8Array# src pos)
 
 
 {-# INLINE isWord #-}
-isWord :: Ptr Word8 -> Ptr Word8 -> Word8 -> Bool
-isWord pos end word =
-  pos < end && unsafeIndex pos == word
+isWord :: ByteArray# -> Pos -> End -> Word8 -> Bool
+isWord src pos end word =
+  pos < end && unsafeIndex src pos == word
 
 
-getCharWidth :: Ptr Word8 -> Ptr Word8 -> Word8 -> Int
-getCharWidth _pos _end word -- TODO remove unused variables. Shorter stack?
+getCharWidth :: Word8 -> Int
+getCharWidth word
   | word < 0x80 = 1
   | word < 0xc0 = error "Need UTF-8 encoded input. Ran into unrecognized bits."
   | word < 0xe0 = 2
