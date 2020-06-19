@@ -41,6 +41,7 @@ key =
 transform an `IO` into a `Task`. If that is the case, use this function.
 
 You shouldn't usually need to use this!
+
 -}
 enter :: Key -> IO a -> Task Task.Exception a
 enter _ io =
@@ -54,6 +55,7 @@ enter _ io =
 transform a `Task` into an `IO`. If that is the case, use this function.
 
 You shouldn't usually need to use this!
+
 -}
 exit :: Key -> Task x a -> IO (Result x a)
 exit _ =

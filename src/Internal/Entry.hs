@@ -32,9 +32,9 @@ import Json.Encode (Encodable)
 import Json.Decode (Decodable)
 
 
-{-| An entry is a single log item. You send an entry to your
+{-| An entry is a single log message. You send an entry to your
 logging targets every time your program executes one of the following
-functions: `debug`, `info`, `error`, `alert`, or `exception`.
+functions: `debug`, `info`, `warning`, `error`, `alert`, or `exception`.
 
   > error [ value "is_premium" isPremium ] "Could not find user wishlist."
 
@@ -58,7 +58,7 @@ instance Json.Encodable Entry where
       ]
 
 
-{-| A key value pair comprising a piece of context.
+{-| A key value pair comprising a piece of context for your entry or `segment`.
 -}
 type Context =
   ( Text, Json.Value )
@@ -103,7 +103,7 @@ toTitle severity =
 -- TO STRING
 
 
-{-| Pretty formatting of the entry. Can be used with `terminal`,
+{-| "Pretty" formatting of an entry. Can be used with `terminal`,
 `file`, or inside a custom target.
 
 -}
@@ -188,12 +188,12 @@ json =
 -- CONTEXT HELPERS
 
 
-{-| Use to create a piece of context for your logging statement.
+{-| Use to create a piece of context for your entry or `segment`.
 
     > info [ value "user" user ] "User visited the referrals page."
 
 To use this function, the second argument but be `Encodable`. This means
-it must add a encoder like this:
+it must define an encoder like this:
 
     > import qualified Json.Encode as Json
     >
@@ -206,13 +206,15 @@ it must add a encoder like this:
 
 This lets me know how to encode your data!
 
-Note: The compiler will sometimes not be able to guess the type of `a` if you try
-to log a constant number like `12`. Is it a float or an integer? To fix this,
+Note: If you are trying to log a constant, say `12`, the compiler might not
+be able to quess it's type (is it an integer or float?). To fix this,
 add a type signature.
 
     > info [ value "attempts" (12 :: Int) ] "User visited the referrals page."
 
 This may happend with strings too. The remedy is the same!
+
+    > info [ value "name" ("tereza" :: Int) ] "The user's name."
 
 Warning: Watch out for adding the same key twice!
 
@@ -225,7 +227,7 @@ value key value =
   ( key, Json.encoder value )
 
 
-{-| Inside your custom target, you can access the enitre Entry, including the
+{-| Inside your custom target, you can access the enitre `Entry`, including the
 context you attached using `value`. With this function, you can find a certain
 piece of context that you added.
 
@@ -236,7 +238,7 @@ piece of context that you added.
   >       Ok name -> Bugsnag.send name
   >       Err _ -> Task.succeed ()
 
-To use this, the value you expect your retrieve must be `Decodable`. This means
+To use this, the value you expect to retrieve must be `Decodable`. This means
 it must add a decoder like this:
 
     > import qualified Json.Decode as Json

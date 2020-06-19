@@ -94,17 +94,43 @@ data Key = Key
   }
 
 
+{-| A traces allows you to do something before and after each of
+your `segment`'s have run. This is useful for timing blocks of code.
+
+-}
 data Tracer where
   Tracer :: (Text -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 
 
-{-| -}
+{-| Create a tracer. Arguments:
+
+  1. A task to run before each `segment`. It gets the namespace and context of the
+     `segment` in question. You can lookup stuff in the context using `Entry.lookup`.
+  2. A task to run after each `segment`. It gets the result from the task from the first
+     argument.
+
+  > main =
+  >    Task.customAttempt tracer [ Log.terminal Log.pretty ] app
+  >
+  > {-| A tracer which prints the start and end time of a segment. -}
+  > tracer :: Log.Tracer
+  > tracer =
+  >   let before namespace context =
+  >         Time.now
+  >
+  >       after start = do
+  >         end <- Time.now
+  >         Terminal.line <| Debug.toString start ++ " -> " ++ Debug.String end
+  >  in
+  >  Log.tracer before after
+-}
 tracer :: (Text -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 tracer =
   Tracer
 
 
-{-| -}
+{-| No tracer.
+-}
 tracerless :: Tracer
 tracerless =
   Tracer (\_ _ -> succeed ()) (\_ -> succeed ())
@@ -118,7 +144,6 @@ tracerless =
 
   >  import Cherry.Prelude
   >
-  >  main :: IO ()
   >  main =
   >    Task.perform Time.now
 
@@ -141,10 +166,10 @@ attempt =
   >  import Cherry.Prelude
   >  import Log
   >
-  >  main :: IO ()
   >  main =
-  >    Task.customAttempt Log.tracerless [ bugsnag, Log.file Log.compact ] (Http.send request)
+  >    Task.customAttempt Log.tracerless [ bugsnag, Log.file Log.compact ] app
 
+You can create a custom tracer and custom targets using `tracer` and `target`.
 -}
 customAttempt :: Tracer -> List Target -> Task x a -> IO (Result x a)
 customAttempt tracer targets task =
@@ -164,7 +189,7 @@ customAttempt tracer targets task =
   >  timeInMillis :: Task x Int
   >  timeInMillis =
   >    Time.now
-  >      |> andThen (\t -> succeed (Time.posixToMillis t))
+  >      |> Task.andThen (\t -> succeed (Time.posixToMillis t))
 
 -}
 succeed :: a -> Task x a
@@ -241,19 +266,22 @@ mapError func task =
 -- TARGET
 
 
-{-| A target is a place where your entries are sent. This could be the terminal, a file, or
-a custom target like New Relic, Bugsnag, or whatever you use for logging.
+{-| A target is a place where your log messages ("entries") are sent. This
+could be the terminal, a file, or a custom target like New Relic, Bugsnag,
+or whatever you use for logging.
 -}
 data Target =
     Target (IO Queue)
 
 
-{-| This prints your entries to the terminal.
+{-| This prints your logging entries to the terminal.
 
-  >  main :: Program
   >  main =
-  >    Program.program decoder keys [ Log.terminal Log.pretty ] app
+  >    Task.customAttempt Log.tracerless [ Log.terminal Log.pretty ] app
   >
+
+You can use `debug`, `error`, `info`, `warning`, and `alert` to create
+logging entries of various severities.
 -}
 terminal :: (Entry -> Text) -> Target
 terminal write =
@@ -266,12 +294,14 @@ terminal write =
     return queue
 
 
-{-| This prints the logs to a file.
+{-| This prints your logging entries to a file.
 
-  >  main :: Program
   >  main =
-  >    Program.program decoder keys [ Log.file "logs.txt" Log.compact ] app
+  >    Task.customAttempt Log.tracerless [ Log.file "logs.txt" Log.compact ] app
+  >
 
+You can use `debug`, `error`, `info`, `warning`, and `alert` to create
+logging entries of various severities.
 -}
 file :: FilePath -> (Entry -> Text) -> Target
 file filepath write =
@@ -289,8 +319,19 @@ which you want to send your log entries to. The first argument allows
 you to access any resource you might need to send the entry, the second
 is actually sending it, and the last is what do do when the target is shut down.
 
-  >   Log.target write
+  >  main =
+  >    Task.customAttempt Log.tracerless [bugsnag ] app
+  >
+  > bugsnag :: Log.Target
+  > bugsnag =
+  >   Log.target <| \entry ->
+  >     Bugsnag.send entry
 
+You can use `debug`, `error`, `info`, `warning`, and `alert` to create
+logging entries of various severities.
+
+Notice: You can filter what entries you send by checking the severity
+using `Entry.severity`.
 -}
 target :: (Entry -> Task x ()) -> Target
 target write =
@@ -308,14 +349,13 @@ target write =
 
 {-| Send a debug log entry.
 
-  >  main :: IO ()
   >  main =
-  >    Task.perform [ Log.terminal Log.pretty ] app
+  >    Task.perform app
   >
   >  app :: Task x ()
   >  app = do
-  >    Http.send request
-  >    Log.debug "Hello!" [ value "user" ("terezka" :: Text) ]
+  >    level <- getLevel
+  >    Log.debug [ value "level" level ] "Hello!"
   >
 -}
 debug :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
@@ -351,7 +391,8 @@ alert =
   log Entry.Alert
 
 
-{-| For logging exceptions.
+{-| For logging exceptions. This shouldn't be neccessary unless you're
+doing interop with regular Haskell.
 -}
 exception :: Stack.HasCallStack => List Entry.Context -> Exception -> Task x ()
 exception context exception =
@@ -377,10 +418,13 @@ log severity context message =
 
   >  login :: User.Id -> Task Entry Error User.User
   >  login id =
-  >    context "login" [ value "user_id" id ] <|
+  >    segment "login" [ value "user_id" id ] <|
   >      actuallyLogin id
-  >      debug "Hello!" [ value "color" Blue ] -- This entry inherits the "user_id" context from the segment
+  >      debug [ value "color" Blue ] "Hello!" -- This entry inherits the "user_id" context from the segment
 
+Notice: You can use the `tracer` applied in `customAttempt` to do stuff before and after
+each of these segments. This can be useful if, for example, you'd like to track how long
+your segment takes to finish.
 -}
 segment :: Stack.HasCallStack => Text -> List Entry.Context -> Task x a -> Task x a
 segment namespace context task =
@@ -414,6 +458,9 @@ segment namespace context task =
 -- EXCEPTION
 
 
+{-| An exception with extra info. Only relavant if you're doing interop with
+regular Haskell.
+-}
 data Exception
   = Exception
       { exception_title :: Text
@@ -438,11 +485,6 @@ instance Show Exception where
       , Entry.context = Dict.fromList (exception_context exception)
       , Entry.callstack = exception_callstack exception
       }
-
-
-valueToText :: Json.Value -> Text
-valueToText =
-  Data.Text.Encoding.decodeUtf8 << ByteString.toStrict << Json.toByteString
 
 
 fromSomeException :: Key -> Control.SomeException -> Exception
