@@ -1,6 +1,19 @@
+
+{-|
+
+Module      : Result
+Description : A `Result` is the result of a computation that may fail. This is a great way to manage errors.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A `Result` is the result of a computation that may fail. This is a great way to manage errors.
+
+-}
+
 module Result
-  ( -- * Type and Constructors
-    Result(..)
+  ( Result(..)
 
     -- * Mapping
   , map, map2, map3, map4, map5
@@ -12,17 +25,6 @@ module Result
   , withDefault, toMaybe, fromMaybe, mapError
   )
 where
-
-{-|
-
-Module      : Result
-Description : A `Result` is the result of a computation that may fail. This is a great way to manage errors.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure, (<*>), (>>=), fmap)
 import Maybe (Maybe(Just, Nothing))

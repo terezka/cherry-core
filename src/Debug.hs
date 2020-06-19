@@ -1,10 +1,3 @@
-module Debug
-  ( -- * Debugging
-    toString,
-    log,
-    todo,
-  )
-where
 
 {-|
 
@@ -16,6 +9,14 @@ Stability   : experimental
 Portability : POSIX
 
 -}
+
+
+module Debug
+  ( toString,
+    log,
+    todo,
+  )
+where
 
 import Prelude (Show, error, show)
 import Data.Text (pack, unpack)

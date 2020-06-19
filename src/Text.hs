@@ -1,6 +1,17 @@
+
+{-|
+
+Module      : Text
+Description : A built-in representation for efficient string manipulation. `Text` values are *not* lists of characters.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Text
-  ( -- * Text
-    Text, isEmpty, length, reverse, repeat, replace
+  ( Text, isEmpty, length, reverse, repeat, replace
 
     -- * Building and Splitting
   , append, concat, split, join, words, lines
@@ -31,17 +42,6 @@ module Text
   , map, filter, foldl, foldr, any, all
   )
 where
-
-{-|
-
-Module      : Text
-Description : A built-in representation for efficient string manipulation. `Text` values are *not* lists of characters.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import Basics ((+), (-), (<), (<=), (>>), Bool, Float, Int, clamp, (|>))
 import Prelude (otherwise)

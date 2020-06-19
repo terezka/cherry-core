@@ -1,11 +1,3 @@
-module Interop
-  ( Key, key
-
-  , enter, exit
-
-  -- * Exception handling
-  , Task.Exception
-  ) where
 
 {-|
 
@@ -16,7 +8,18 @@ Maintainer  : terezasokol@gmail.com
 Stability   : experimental
 Portability : POSIX
 
+Interop with third party libraries.
+
 -}
+
+module Interop
+  ( Key, key
+
+  , enter, exit
+
+  -- * Exception handling
+  , Task.Exception
+  ) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Internal.Shortcut as Shortcut

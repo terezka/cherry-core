@@ -1,13 +1,3 @@
-module Bitwise
-  ( and,
-    or,
-    xor,
-    complement,
-    shiftLeftBy,
-    shiftRightBy,
-    shiftRightZfBy,
-  )
-where
 
 {-|
 
@@ -19,6 +9,17 @@ Stability   : experimental
 Portability : POSIX
 
 -}
+
+module Bitwise
+  ( and,
+    or,
+    xor,
+    complement,
+    shiftLeftBy,
+    shiftRightBy,
+    shiftRightZfBy,
+  )
+where
 
 import Data.Bits ((.&.), (.|.))
 import Basics (Int)

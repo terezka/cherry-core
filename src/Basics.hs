@@ -1,5 +1,16 @@
 {-# LANGUAGE RankNTypes #-}
 
+{-|
+
+Module      : Basics
+Description : Basics for working with Cherry.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Basics
   ( -- * Math
     Int, Float, (+), (-), (*), (/), (//), (^)
@@ -31,17 +42,6 @@ module Basics
     -- * Function Helpers
   , identity, always, (<|), (|>), (<<), (>>), Never, never
   ) where
-
-{-|
-
-Module      : Basics
-Description : Basics for working with Cherry.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
 import qualified Prelude

@@ -1,3 +1,15 @@
+
+{-|
+
+Module      : Entry
+Description : Work with a logging entry.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Log
   ( -- * Customization
     -- * Tracer
@@ -13,17 +25,6 @@ module Log
   , Entry.Entry(..), Entry.Severity(..), Entry.lookup
 
   ) where
-
-{-|
-
-Module      : Entry
-Description : Work with a logging entry.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import qualified Internal.Entry as Entry
 import qualified Internal.Task as Task

@@ -1,6 +1,17 @@
+
+{-|
+
+Module      : Set
+Description : Work with sets.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Set
-  ( -- * Sets
-    Set
+  ( Set
 
     -- * Build
   , empty, singleton, insert, remove
@@ -18,17 +29,6 @@ module Set
   , map, foldl, foldr, filter, partition
   )
 where
-
-{-|
-
-Module      : Set
-Description : Work with sets.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import Basics ((>>), Bool, Int)
 import List (List)

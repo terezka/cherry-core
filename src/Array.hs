@@ -1,6 +1,19 @@
+
+{-|
+
+Module      : Array
+Description : Fast immutable arrays. The elements in an array must have the same type.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+Fast immutable arrays. The elements in an array must have the same type.
+
+-}
+
 module Array
-  ( -- * Arrays
-    Array
+  ( Array
 
     -- * Creation
   , empty, initialize, repeat, fromList
@@ -16,19 +29,8 @@ module Array
 
     -- * Transform
   , map, indexedMap, foldr, foldl, filter
-  )
-where
+  ) where
 
-{-|
-
-Module      : Array
-Description : Fast immutable arrays. The elements in an array must have the same type.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import Data.Foldable (foldl', product, sum)
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)

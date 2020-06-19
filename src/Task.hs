@@ -1,6 +1,20 @@
+
+{-|
+
+Module      : Task
+Description : Tasks make it easy to describe asynchronous operations that may fail, like HTTP requests or writing to a database.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+Use tasks to get values that can change over time, like getting the current time,
+fetching data from an external server, talking to the database etc.
+
+-}
+
 module Task
-  ( -- * Tasks
-    Task.Task, Task.attempt, Task.perform, Task.customAttempt
+  ( Task.Task, Task.perform, Task.attempt, Task.customAttempt
 
     -- * Chains
   , andThen, Task.succeed, Task.fail, Task.sequence
@@ -19,17 +33,6 @@ module Task
   , Entry.value
 
   ) where
-
-{-|
-
-Module      : Task
-Description : Tasks make it easy to describe asynchronous operations that may fail, like HTTP requests or writing to a database.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
 
 import qualified Internal.Task as Task
 import qualified Internal.Entry as Entry

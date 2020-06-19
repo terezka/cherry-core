@@ -1,3 +1,17 @@
+
+{-|
+
+Module      : Char
+Description : Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
+
+-}
+
 module Char
   ( -- * Characters
     Char
@@ -13,19 +27,7 @@ module Char
 
     -- * Unicode Code Points
   , toCode, fromCode
-  )
-where
-
-{-|
-
-Module      : Char
-Description : Functions for working with characters. Character literals are enclosed in `'a'` pair of single quotes.
-License     : BSD 3
-Maintainer  : terezasokol@gmail.com
-Stability   : experimental
-Portability : POSIX
-
--}
+  ) where
 
 import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
 import Basics ((&&), (<<), (<=), Bool (..), Int)

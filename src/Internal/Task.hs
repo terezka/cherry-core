@@ -106,6 +106,7 @@ data Tracer where
 
   1. A task to run before each `segment`. It gets the namespace and context of the
      `segment` in question. You can lookup stuff in the context using `Entry.lookup`.
+
   2. A task to run after each `segment`. It gets the result from the task from the first
      argument.
 
