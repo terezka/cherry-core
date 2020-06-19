@@ -35,6 +35,7 @@ library
     Set,
     Text,
     Task,
+    Terminal,
     Tuple
   other-modules:
     Internal.Shortcut,
