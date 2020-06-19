@@ -56,13 +56,8 @@ newtype Task x a =
 instance Functor (Task a) where
   fmap func task =
     Task <| \key ->
-      let onResult result =
-            case result of
-              Ok a -> Ok (func a)
-              Err x -> Err x
-      in
       toIO task key
-        |> fmap onResult
+        |> fmap (Result.map func)
 
 
 instance Applicative (Task a) where
@@ -73,11 +68,8 @@ instance Applicative (Task a) where
     Task <| \key -> do
       rFunc <- toIO func key
       rTask <- toIO task key
-      return <|
-        case (rFunc, rTask) of
-          ( Ok func_, Ok task_ ) -> Ok (func_ task_)
-          ( Err x, _ ) -> Err x
-          ( _, Err x ) -> Err x
+      let apply f t = f t
+      return (Result.map2 apply rFunc rTask)
 
 
 instance Monad (Task a) where
