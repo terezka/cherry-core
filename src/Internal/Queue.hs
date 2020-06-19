@@ -1,10 +1,14 @@
-module Internal.Queue (Queue, init, execute, push) where
+module Internal.Queue (Queue, init, push, close, listen) where
 
 import qualified Control.Exception.Safe as Exception
-import qualified Control.Concurrent.Async as Async
-import qualified Control.Concurrent.STM as STM
-import qualified Control.Concurrent.STM.TBQueue as BQ
-import Control.Concurrent.STM.TBQueue (TBQueue)
+import qualified Control.Concurrent.Chan as Chan
+import qualified Control.Concurrent.MVar as MVar
+import qualified Prelude as P
+import qualified List
+import Control.Concurrent.Chan (Chan)
+import Control.Concurrent.MVar (MVar)
+import Control.Monad (void)
+import Control.Concurrent (forkIO)
 import Prelude (IO, return, fmap, sequence, sequence_)
 import Internal.Entry (Entry)
 import Basics
@@ -20,7 +24,7 @@ import Char (Char)
 
 {-| -}
 data Queue
-  = Queue (TBQueue Message)
+  = Queue (Chan Message) (MVar ())
 
 
 data Message
@@ -31,34 +35,37 @@ data Message
 {-| -}
 init :: IO Queue
 init = do
-  queue <- STM.atomically (BQ.newTBQueue 4096)
-  return (Queue queue)
+  channel <- Chan.newChan
+  lock <- MVar.newEmptyMVar
+  return (Queue channel lock)
 
 
 {-| -}
 push :: Entry -> Queue -> IO ()
-push entry (Queue queue) =
-  STM.atomically <| do
-    full <- BQ.isFullTBQueue queue
-    if not full then
-      BQ.writeTBQueue queue (NewEntry entry)
-    else
-      return ()
+push entry (Queue channel lock) =
+  Chan.writeChan channel (NewEntry entry)
 
 
 {-| -}
-execute :: (Entry -> IO a) -> Queue -> IO ()
-execute write (Queue queue) =
+close :: Queue -> IO ()
+close (Queue channel lock) = do
+  Chan.writeChan channel Done
+  MVar.readMVar lock
+
+
+{-| -}
+listen :: Queue -> (Entry -> IO ()) -> IO () -> IO ()
+listen (Queue channel lock) write close =
   let loop = do
-        next <- STM.atomically (BQ.readTBQueue queue)
-        case next of
+        msg <- Chan.readChan channel
+        case msg of
           NewEntry entry -> do
             Exception.tryAny (write entry)
             loop
 
           Done -> do
-            return ()
-  in do
-  STM.atomically (BQ.writeTBQueue queue Done)
-  loop
+            close
+            MVar.putMVar lock ()
+  in
+  void (forkIO loop)
 

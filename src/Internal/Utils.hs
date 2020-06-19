@@ -7,6 +7,7 @@ import qualified Data.Text
 import qualified GHC.Stack as Stack
 import qualified System.IO
 import qualified Control.Concurrent.MVar as MVar
+import qualified Prelude as P
 import Control.Exception.Safe (bracket_)
 import Prelude (IO, FilePath, return, fmap, putStr, getLine)
 import Basics
@@ -51,7 +52,7 @@ appendStack namespace old =
 openFile :: FilePath -> IO ( System.IO.Handle, MVar.MVar () )
 openFile filepath = do
   handle <- System.IO.openFile filepath System.IO.AppendMode
-  System.IO.hSetBuffering handle System.IO.LineBuffering
+  System.IO.hSetBuffering handle (System.IO.BlockBuffering P.Nothing)
   lock <- MVar.newMVar ()
   return ( handle, lock )
 
@@ -74,7 +75,7 @@ closeFile ( handle, _ ) = do
 
 openTerminal :: IO System.IO.Handle
 openTerminal = do
-  System.IO.hSetBuffering System.IO.stdout System.IO.LineBuffering
+  System.IO.hSetBuffering System.IO.stdout (System.IO.BlockBuffering P.Nothing)
   return System.IO.stdout
 
 
@@ -137,7 +138,7 @@ cyan =
 
 gray :: Text
 gray =
-  "\x1b[90;1m"
+  "\x1b[90m"
 
 
 white :: Text

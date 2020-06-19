@@ -1,6 +1,6 @@
 module Task
   ( -- * Tasks
-    Task.Task, Task.attempt, Task.perform, Task.custom
+    Task.Task, Task.attempt, Task.perform, Task.customAttempt
 
     -- * Chains
   , andThen, Task.succeed, Task.fail, Task.sequence

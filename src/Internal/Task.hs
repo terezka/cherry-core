@@ -26,8 +26,6 @@ import qualified Control.Concurrent.MVar as MVar
 import qualified System.IO
 import qualified Data.Time.Clock as Clock
 import qualified GHC.Stack as Stack
-import qualified Control.Concurrent.Async as Async
-import qualified Internal.Queue as Queue
 import qualified Internal.Queue as Queue
 import qualified Internal.Utils as Utils
 import Prelude (IO, Show, Functor, Monad, Applicative, FilePath, sequence_, pure, return, fmap, show)
@@ -122,31 +120,6 @@ tracerless =
   Tracer (\_ _ -> succeed ()) (\_ -> succeed ())
 
 
-empty :: Tracer -> List Queue -> Key
-empty tracer queues =
-  Key "" Dict.empty queues Stack.emptyCallStack tracer
-
-
-init :: Tracer -> List Target -> IO ( Key, IO () )
-init tracer targets =
-  let execute settings resource queue = do
-        Queue.execute (write settings resource) queue
-        close settings resource
-
-      toQueueAndQuit (Target settings) = do
-        resource <- open settings
-        queue <- Queue.init
-        return ( queue, execute settings resource queue )
-
-      close_ quiters = do
-        quits_ <- P.sequence (List.map Async.async quiters)
-        sequence_ (List.map Async.waitCatch quits_)
-  in do
-  queuesAndQuiters <- P.sequence (List.map toQueueAndQuit targets)
-  let (queues, quiters) = List.unzip queuesAndQuiters
-  return ( empty tracer queues, close_ quiters )
-
-
 
 -- BASICS
 
@@ -170,7 +143,7 @@ perform task = do
 -}
 attempt :: Task x a -> IO (Result x a)
 attempt =
-  custom tracerless [ terminal Entry.pretty ]
+  customAttempt tracerless [ terminal Entry.pretty ]
 
 
 {-| Customize your logging preferences.
@@ -180,12 +153,17 @@ attempt =
   >
   >  main :: IO ()
   >  main =
-  >    Task.custom Log.tracerless [ bugsnag, Log.file Log.compact ] (Http.send request)
+  >    Task.customAttempt Log.tracerless [ bugsnag, Log.file Log.compact ] (Http.send request)
 
 -}
-custom :: Tracer -> List Target -> Task x a -> IO (Result x a)
-custom tracer targets task =
-  bracket (init tracer targets) Tuple.second (Tuple.first >> toIO task)
+customAttempt :: Tracer -> List Target -> Task x a -> IO (Result x a)
+customAttempt tracer targets task =
+  let toQueue (Target io) = io
+  in do
+  queues <- P.sequence (List.map toQueue targets)
+  result <- toIO task (Key "" Dict.empty queues Stack.emptyCallStack tracer)
+  sequence_ (List.map Queue.close queues)
+  return result
 
 
 {-| A task that succeeds immediately when run. It is usually used with
@@ -276,16 +254,8 @@ mapError func task =
 {-| A target is a place where your entries are sent. This could be the terminal, a file, or
 a custom target like New Relic, Bugsnag, or whatever you use for logging.
 -}
-data Target where
-  Target :: Settings x resource -> Target
-
-
-data Settings x resource =
-  Settings
-    { open :: IO resource
-    , write :: resource -> Entry -> IO ()
-    , close :: resource -> IO ()
-    }
+data Target =
+    Target (IO Queue)
 
 
 {-| This prints your entries to the terminal.
@@ -297,12 +267,13 @@ data Settings x resource =
 -}
 terminal :: (Entry -> Text) -> Target
 terminal write =
-  Target <| Settings
-    { open = Utils.openTerminal
-    , write = \handle entry ->
-        Utils.writeTerminal handle (write entry)
-    , close = Utils.closeTerminal
-    }
+  Target <| do
+    queue <- Queue.init
+    handle <- Utils.openTerminal
+    Queue.listen queue
+      (Utils.writeTerminal handle << write)
+      (Utils.closeTerminal handle)
+    return queue
 
 
 {-| This prints the logs to a file.
@@ -314,12 +285,13 @@ terminal write =
 -}
 file :: FilePath -> (Entry -> Text) -> Target
 file filepath write =
-  Target <| Settings
-    { open = Utils.openFile filepath
-    , write = \handle entry ->
-        Utils.writeFile handle (write entry)
-    , close = Utils.closeFile
-    }
+  Target <| do
+    queue <- Queue.init
+    handle <- Utils.openFile filepath
+    Queue.listen queue
+      (Utils.writeFile handle << write)
+      (Utils.closeFile handle)
+    return queue
 
 
 {-| Make your own target. Maybe you have a service like rollbar,
@@ -332,12 +304,12 @@ is actually sending it, and the last is what do do when the target is shut down.
 -}
 target :: (Entry -> Task x ()) -> Target
 target write =
-  Target <| Settings
-    { open = return ()
-    , write = \_ ->
-        write >> attempt >> void
-    , close = \_ -> return ()
-    }
+  Target <| do
+    queue <- Queue.init
+    Queue.listen queue
+      (void << attempt << write)
+      (return ())
+    return queue
 
 
 
