@@ -28,7 +28,6 @@ import qualified GHC.Stack as Stack
 import qualified Internal.Queue as Queue
 import qualified Internal.Utils as Utils
 import Prelude (IO, Show, Functor, Monad, Applicative, FilePath, sequence_, pure, return, fmap, show)
-import Control.Exception.Safe (bracket, bracket_)
 import Control.Monad (void)
 import Internal.Shortcut
 import Internal.Entry (Entry)
