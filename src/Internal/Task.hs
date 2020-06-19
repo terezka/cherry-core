@@ -22,7 +22,6 @@ import qualified Debug
 import qualified Json.Encode as Json
 import qualified Json.Encode as Json.Encode
 import qualified Json.Decode as Json.Decode
-import qualified Control.Concurrent.MVar as MVar
 import qualified System.IO
 import qualified Data.Time.Clock as Clock
 import qualified GHC.Stack as Stack

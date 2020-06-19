@@ -3,13 +3,12 @@ module Internal.Queue (Queue, init, push, close, listen) where
 import qualified Control.Exception.Safe as Exception
 import qualified Control.Concurrent.Chan as Chan
 import qualified Control.Concurrent.MVar as MVar
-import qualified Prelude as P
 import qualified List
 import Control.Concurrent.Chan (Chan)
 import Control.Concurrent.MVar (MVar)
 import Control.Monad (void)
 import Control.Concurrent (forkIO)
-import Prelude (IO, return, fmap, sequence, sequence_)
+import Prelude (IO, return)
 import Internal.Entry (Entry)
 import Basics
 import Maybe (Maybe (..))
