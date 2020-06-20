@@ -482,7 +482,7 @@ fromFloat =
 -- LIST CONVERSIONS
 
 
-{-| Convert a Text to a list of characters.
+{-| Convert a String to a list of characters.
 
   >  toList "abc" == ['a','b','c']
   >  toList "🙈🙉🙊" == ['🙈','🙉','🙊']
@@ -508,7 +508,7 @@ fromList =
 -- CHAR CONVERSIONS
 
 
-{-| Create a Text from a given character.
+{-| Create a String from a given character.
 
   >  fromChar 'a' == "a"
 -}
@@ -526,7 +526,7 @@ cons =
   HT.cons
 
 
-{-| Split a non-empty Text into its head and tail. This lets you
+{-| Split a non-empty String into its head and tail. This lets you
 pattern match on strings exactly as you would with lists.
 
   >  uncons "abc" == Just ('a',"bc")
@@ -543,7 +543,7 @@ uncons text =
 -- HIGHER-ORDER FUNCTIONS
 
 
-{-| Transform every character in a Text
+{-| Transform every character in a String
 
   >  map (\c -> if c == '/' then '.' else c) "a/b/c" == "a.b.c"
 -}
@@ -561,7 +561,7 @@ filter =
   HT.filter
 
 
-{-| Reduce a Text from the left.
+{-| Reduce a String from the left.
 
   >  foldl cons "" "time" == "emit"
 -}
@@ -570,7 +570,7 @@ foldl f =
   HT.foldl' (Prelude.flip f)
 
 
-{-| Reduce a Text from the right.
+{-| Reduce a String from the right.
 
   >  foldr cons "" "time" == "time"
 -}
