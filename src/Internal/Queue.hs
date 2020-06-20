@@ -13,7 +13,6 @@ import Internal.Entry (Entry)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
 import Dict (Dict)
 import List (List)
 import Array (Array)

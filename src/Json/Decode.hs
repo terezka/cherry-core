@@ -48,7 +48,8 @@ import Foreign.Ptr (Ptr, plusPtr, minusPtr)
 import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
 import GHC.Word (Word8)
 import Data.Word (Word16)
-import Prelude hiding (maybe, map, fail, null, Float)
+import Prelude hiding (maybe, map, fail, null, Float, String)
+import String (String)
 import Basics (Float)
 import Result (Result(..))
 import Dict (Dict)
@@ -105,7 +106,7 @@ class Decodable a where
   decoder :: Decoder a
 
 
-instance Decodable Text.Text where
+instance Decodable String where
   decoder = string
 
 
@@ -144,7 +145,7 @@ data Problem
   = Field ByteString.ByteString Problem
   | Index Int Problem
   | OneOf Problem [Problem]
-  | Failure Text.Text
+  | Failure String
   | Expecting DecodeExpectation
   deriving (Eq, Show)
 
@@ -171,7 +172,7 @@ data DecodeExpectation
 
 This function is WORK IN PROGRESS and frankly not very good yet.
 -}
-errorToString :: Error -> Text.Text
+errorToString :: Error -> String
 errorToString error =
   case error of
     DecodeProblem problem ->
@@ -302,7 +303,7 @@ chars =
  > fromByteString string "{ \"hello\": 42 }" == Err ...
 
 -}
-string :: Decoder Text.Text
+string :: Decoder String
 string =
   Decoder $ \ast ok err ->
     case ast of
@@ -587,12 +588,12 @@ are turned into dictionary values like
 
 if you need that.
 -}
-dict :: Decoder a -> Decoder (Dict Text.Text a)
+dict :: Decoder a -> Decoder (Dict String a)
 dict valueDecoder =
   map Dict.fromList (pairs valueDecoder)
 
 
-pairs :: Decoder a -> Decoder [( Text.Text, a )]
+pairs :: Decoder a -> Decoder [( String, a )]
 pairs valueDecoder =
   Decoder $ \ast ok err ->
     case ast of
@@ -603,7 +604,7 @@ pairs valueDecoder =
         err (Expecting TObject)
 
 
-pairsHelp :: Decoder a -> ([( Text.Text, a )] -> b) -> (Problem -> b) -> [( ByteString.ByteString, AST )] -> [( Text.Text, a )] -> b
+pairsHelp :: Decoder a -> ([( String, a )] -> b) -> (Problem -> b) -> [( ByteString.ByteString, AST )] -> [( String, a )] -> b
 pairsHelp valueDecoder@(Decoder decodeA) ok err kvs revs =
   case kvs of
     [] ->
@@ -772,7 +773,7 @@ case.
 
 See the [`andThen`](#andThen) docs for an example.
 -}
-fail :: Text.Text -> Decoder a
+fail :: String -> Decoder a
 fail x =
   Decoder $ \_ _ err ->
     err (Failure x)

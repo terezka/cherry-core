@@ -15,7 +15,7 @@ import qualified Internal.Entry as Entry
 import qualified System.IO
 import qualified List
 import qualified Dict
-import qualified Text
+import qualified String
 import qualified Result
 import qualified Tuple
 import qualified Debug
@@ -35,7 +35,7 @@ import Internal.Queue (Queue)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
+import String (String)
 import Dict (Dict)
 import List (List)
 import Array (Array)
@@ -86,8 +86,8 @@ instance Monad (Task a) where
 
 
 data Key = Key
-  { key_namespace :: Text
-  , key_context :: Dict Text Json.Value
+  { key_namespace :: String
+  , key_context :: Dict String Json.Value
   , key_queues :: List Queue
   , key_callstack :: Stack.CallStack
   , key_tracer :: Tracer
@@ -99,7 +99,7 @@ your `segment`'s have run. This is useful for timing blocks of code.
 
 -}
 data Tracer where
-  Tracer :: (Text -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
+  Tracer :: (String -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 
 
 {-| Create a tracer. Arguments:
@@ -125,7 +125,7 @@ data Tracer where
   >  in
   >  Log.tracer before after
 -}
-tracer :: (Text -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
+tracer :: (String -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 tracer =
   Tracer
 
@@ -182,15 +182,16 @@ customAttempt tracer targets task =
   return result
 
 
-{-| A task that succeeds immediately when run. It is usually used with
-`andThen`. You can use it like `map` if you want:
+{-| A task that succeeds immediately when run. Often useful in the last
+statement of a `do` block.
 
   >  import Time
   >
-  >  timeInMillis :: Task x Int
-  >  timeInMillis =
-  >    Time.now
-  >      |> Task.andThen (\t -> succeed (Time.posixToMillis t))
+  >  timeAndZone :: Task x (Time.Posix, Time.Zone)
+  >  timeAndZone = do
+  >    time <- Time.now
+  >    timezone <- Time.here
+  >    Task.succeed (time, timezone)
 
 -}
 succeed :: a -> Task x a
@@ -284,7 +285,7 @@ data Target =
 You can use `debug`, `error`, `info`, `warning`, and `alert` to create
 logging entries of various severities.
 -}
-terminal :: (Entry -> Text) -> Target
+terminal :: (Entry -> String) -> Target
 terminal write =
   Target <| do
     queue <- Queue.init
@@ -304,7 +305,7 @@ terminal write =
 You can use `debug`, `error`, `info`, `warning`, and `alert` to create
 logging entries of various severities.
 -}
-file :: FilePath -> (Entry -> Text) -> Target
+file :: FilePath -> (Entry -> String) -> Target
 file filepath write =
   Target <| do
     queue <- Queue.init
@@ -356,38 +357,38 @@ target write =
   >  app :: Task x ()
   >  app = do
   >    level <- getLevel
-  >    Log.debug [ value "level" level ] "Hello!"
+  >    Task.debug [ value "level" level ] "Hello!"
   >
 -}
-debug :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
+debug :: Stack.HasCallStack => List Entry.Context -> String -> Task x ()
 debug =
   log Entry.Debug
 
 
 {-| Same as `debug`, but sends an entry with severity `Info`.
 -}
-info :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
+info :: Stack.HasCallStack => List Entry.Context -> String -> Task x ()
 info =
   log Entry.Info
 
 
 {-| Same as `debug`, but sends an entry with severity `Warning`.
 -}
-warning :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
+warning :: Stack.HasCallStack => List Entry.Context -> String -> Task x ()
 warning =
   log Entry.Warning
 
 
 {-| Same as `debug`, but sends an entry with severity `Error`.
 -}
-error :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
+error :: Stack.HasCallStack => List Entry.Context -> String -> Task x ()
 error =
   log Entry.Error
 
 
 {-| Same as `debug`, but sends an entry with severity `Alert`.
 -}
-alert :: Stack.HasCallStack => List Entry.Context -> Text -> Task x ()
+alert :: Stack.HasCallStack => List Entry.Context -> String -> Task x ()
 alert =
   log Entry.Alert
 
@@ -400,7 +401,7 @@ exception context exception =
   log Entry.Unknown context (exception_message exception)
 
 
-log :: Entry.Severity -> List Entry.Context -> Text -> Task x ()
+log :: Entry.Severity -> List Entry.Context -> String -> Task x ()
 log severity context message =
   Task <| \key -> do
     time <- fmap Debug.toString Clock.getCurrentTime
@@ -421,13 +422,13 @@ log severity context message =
   >  login id =
   >    segment "login" [ value "user_id" id ] <|
   >      actuallyLogin id
-  >      debug [ value "color" Blue ] "Hello!" -- This entry inherits the "user_id" context from the segment
+  >      debug [ value "color" Blue ] "Hello!" -- This log entry inherits the "user_id" context from the segment
 
 Notice: You can use the `tracer` applied in `customAttempt` to do stuff before and after
 each of these segments. This can be useful if, for example, you'd like to track how long
 your segment takes to finish.
 -}
-segment :: Stack.HasCallStack => Text -> List Entry.Context -> Task x a -> Task x a
+segment :: Stack.HasCallStack => String -> List Entry.Context -> Task x a -> Task x a
 segment namespace context task =
   Task <| \key ->
     let newNamespace =
@@ -464,10 +465,10 @@ regular Haskell.
 -}
 data Exception
   = Exception
-      { exception_title :: Text
+      { exception_title :: String
       , exception_severity :: Entry.Severity
-      , exception_message :: Text
-      , exception_namespace :: Text
+      , exception_message :: String
+      , exception_namespace :: String
       , exception_context :: List Entry.Context
       , exception_callstack :: Stack.CallStack
       , exception_original :: Maybe Control.SomeException

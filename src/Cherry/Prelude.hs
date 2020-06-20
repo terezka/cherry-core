@@ -1,6 +1,6 @@
 module Cherry.Prelude
   ( module Basics
-  , Prelude.IO, Maybe(..), Result(..), Dict, Text, List, Array, Set, Char, Task, Tracer, Target, Entry
+  , Prelude.IO, Maybe(..), Result(..), Dict, String, List, Array, Set, Char, Task, Tracer, Target, Entry
   , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception, Task.segment, Task.value
   )
 where
@@ -10,7 +10,7 @@ import qualified Task
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
+import String (String)
 import Dict (Dict)
 import List (List)
 import Array (Array)

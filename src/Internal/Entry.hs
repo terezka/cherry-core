@@ -12,7 +12,7 @@ import qualified Data.Text.Encoding
 import qualified Data.ByteString.Lazy as ByteString
 import qualified Debug
 import qualified Dict
-import qualified Text
+import qualified String
 import qualified Result
 import qualified List
 import qualified Json.Encode as Json
@@ -22,7 +22,7 @@ import qualified Internal.Utils as U
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
+import String (String)
 import Dict (Dict)
 import List (List)
 import Array (Array)
@@ -41,9 +41,9 @@ functions: `debug`, `info`, `warning`, `error`, `alert`, or `exception`.
 -}
 data Entry = Entry
   { severity :: Severity
-  , namespace :: Text
-  , message :: Text
-  , context :: Dict Text Json.Value
+  , namespace :: String
+  , message :: String
+  , context :: Dict String Json.Value
   , callstack :: Stack.CallStack
   }
 
@@ -61,7 +61,7 @@ instance Json.Encodable Entry where
 {-| A key value pair comprising a piece of context for your entry or `segment`.
 -}
 type Context =
-  ( Text, Json.Value )
+  ( String, Json.Value )
 
 
 
@@ -77,7 +77,7 @@ data Severity
   | Unknown
 
 
-toColor :: Severity -> Text
+toColor :: Severity -> String
 toColor severity =
   case severity of
     Debug -> U.cyan
@@ -88,7 +88,7 @@ toColor severity =
     Unknown -> U.red
 
 
-toTitle :: Severity -> Text
+toTitle :: Severity -> String
 toTitle severity =
   case severity of
     Debug -> "Debug"
@@ -107,7 +107,7 @@ toTitle severity =
 `file`, or inside a custom target.
 
 -}
-pretty :: Entry -> Text
+pretty :: Entry -> String
 pretty (Entry severity namespace message context callstack) =
   let viewExtra =
         case severity of
@@ -126,7 +126,7 @@ pretty (Entry severity namespace message context callstack) =
       viewContextList =
         Dict.toList context
           |> List.map viewContext
-          |> Text.join U.newline
+          |> String.join U.newline
 
       viewContext ( name, value ) = do
         U.indent 2 ++ name ++ ": " ++ toText value
@@ -134,13 +134,13 @@ pretty (Entry severity namespace message context callstack) =
       viewSegments =
         Stack.getCallStack callstack
           |> List.map viewStack
-          |> Text.join U.newline
+          |> String.join U.newline
 
       viewStack ( function, location ) =
         U.indent 2 ++ "\"" ++ Data.Text.pack function ++ "\" at " ++ viewLocation location
 
       viewLocation location =
-        Text.join ":"
+        String.join ":"
           [ Data.Text.pack (Stack.srcLocFile location)
           , Debug.toString (Stack.srcLocStartLine location)
           , Debug.toString (Stack.srcLocStartCol location)
@@ -156,11 +156,11 @@ pretty (Entry severity namespace message context callstack) =
 `file`, or inside a custom target.
 
 -}
-compact :: Entry -> Text
+compact :: Entry -> String
 compact (Entry severity namespace message context _) =
   let string c = "[" ++ c ++ "]"
   in
-  Text.concat
+  String.concat
     [ string (toTitle severity)
     , string namespace
     , string message
@@ -171,7 +171,7 @@ compact (Entry severity namespace message context _) =
     ]
 
 
-toText :: Json.Value -> Text
+toText :: Json.Value -> String
 toText =
   Data.Text.Encoding.decodeUtf8 << ByteString.toStrict << Json.toByteString
 
@@ -179,7 +179,7 @@ toText =
 {-| JSON formatting of the entry. Can be used with `terminal`, `file`,
 or inside a custom target.
 -}
-json :: Entry -> Text
+json :: Entry -> String
 json =
   Json.encoder >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
 
@@ -222,7 +222,7 @@ Warning: Watch out for adding the same key twice!
     > -- only the last "name" value will survive!
 
 -}
-value :: Encodable a => Text -> a -> Context
+value :: Encodable a => String -> a -> Context
 value key value =
   ( key, Json.encoder value )
 
@@ -253,7 +253,7 @@ This lets me know how to decode your data! REMEMBER: The decoder must match the
 encoder used with `value`.
 
 -}
-lookup :: Decodable a => Text -> Entry -> Result Text a
+lookup :: Decodable a => String -> Entry -> Result String a
 lookup key Entry{context = cx} =
   Dict.get key cx
     |> Result.fromMaybe ("Could not find key: " ++ key)

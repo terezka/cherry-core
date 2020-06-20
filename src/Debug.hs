@@ -21,7 +21,7 @@ where
 import Prelude (Show, error, show)
 import Data.Text (pack, unpack)
 import Basics ((>>))
-import Text (Text, concat)
+import String (String, concat)
 import qualified Debug.Trace
 
 
@@ -33,7 +33,7 @@ import qualified Debug.Trace
   >  toString "he said, \"hi\"" == "\"he said, \\\"hi\\\"\""
 
 -}
-toString :: Show a => a -> Text
+toString :: Show a => a -> String
 toString =
   show >> pack
 
@@ -47,7 +47,7 @@ It is often possible to sprinkle this around to see if values are what you
 expect. It is kind of old-school to do it this way, but it works!
 
 -}
-log :: Show a => Text -> a -> a
+log :: Show a => String -> a -> a
 log message value =
   Debug.Trace.trace (unpack (concat [message, ": ", toString value])) value
 
@@ -72,6 +72,6 @@ completed a case expression, it may make sense to do this:
   >
 
 -}
-todo :: Text -> a
+todo :: String -> a
 todo =
   unpack >> error

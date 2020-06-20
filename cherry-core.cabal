@@ -33,7 +33,7 @@ library
     Maybe,
     Result,
     Set,
-    Text,
+    String,
     Task,
     Terminal,
     Tuple

@@ -30,12 +30,12 @@ import qualified Data.ByteString.UTF8 as BSU
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text as Text
 import qualified Data.Text.Encoding
 import qualified List
 import qualified Dict
+import String (String)
 import Basics (Float)
-import Prelude hiding (null, Float)
+import Prelude hiding (null, Float, String)
 import Data.Monoid ((<>))
 import Json.Ast (AST(..))
 
@@ -45,7 +45,7 @@ class Encodable a where
   encoder :: a -> Value
 
 
-instance Encodable Text.Text where
+instance Encodable String where
   encoder = string
 
 
@@ -78,7 +78,7 @@ type Value
  > -- encode 0 (string "abc")   == "\"abc\""
  > -- encode 0 (string "hello") == "\"hello\""
 -}
-string :: Text.Text -> Value
+string :: String -> Value
 string str =
   String (Data.Text.Encoding.encodeUtf8 str)
 
@@ -173,7 +173,7 @@ array =
  > -- Encode.encode 0 tom == """{"name":"Tom","age":42}"""
 
 -}
-object :: [(Text.Text, Value)] -> Value
+object :: [(String, Value)] -> Value
 object pairs =
   let toBts ( key, value ) =
         ( Data.Text.Encoding.encodeUtf8 key, value )
@@ -193,7 +193,7 @@ object pairs =
  > -- Encode.encode 0 (Encode.dict identity Encode.int people)
  > --   == """{"Tom":42,"Sue":38}"""
 -}
-dict :: (k -> Text.Text) -> (v -> Value) -> Dict.Dict k v -> Value
+dict :: (k -> String) -> (v -> Value) -> Dict.Dict k v -> Value
 dict encodeKey encodeValue pairs =
   let toBts ( key, value ) =
         ( Data.Text.Encoding.encodeUtf8 (encodeKey key), encodeValue value )

@@ -1,6 +1,6 @@
 module Internal.Utils where
 
-import qualified Text
+import qualified String
 import qualified List
 import qualified Dict
 import qualified Data.Text
@@ -13,7 +13,7 @@ import Prelude (IO, FilePath, return, fmap, putStr, getLine)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
+import String (String)
 import Dict (Dict)
 import List (List)
 import Array (Array)
@@ -25,17 +25,17 @@ import Char (Char)
 -- KEY HELPERS
 
 
-appendNamespace :: Text -> Text -> Text
+appendNamespace :: String -> String -> String
 appendNamespace old new =
-  if Text.isEmpty old then new else old ++ "/" ++ new
+  if String.isEmpty old then new else old ++ "/" ++ new
 
 
-appendContext :: Dict Text a -> List ( Text, a ) -> Dict Text a
+appendContext :: Dict String a -> List ( String, a ) -> Dict String a
 appendContext old new =
   Dict.union (Dict.fromList new) old
 
 
-appendStack :: Stack.HasCallStack => Text -> Stack.CallStack -> Stack.CallStack
+appendStack :: Stack.HasCallStack => String -> Stack.CallStack -> Stack.CallStack
 appendStack namespace old =
   case Stack.getCallStack Stack.callStack of
     ( function, location ) : _ ->
@@ -57,7 +57,7 @@ openFile filepath = do
   return ( handle, lock )
 
 
-writeFile :: ( System.IO.Handle, MVar.MVar () ) -> Text -> IO ()
+writeFile :: ( System.IO.Handle, MVar.MVar () ) -> String -> IO ()
 writeFile ( handle, lock ) text =
   bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
     System.IO.hPutStrLn handle (Data.Text.unpack text)
@@ -79,7 +79,7 @@ openTerminal = do
   return System.IO.stdout
 
 
-writeTerminal :: System.IO.Handle -> Text -> IO ()
+writeTerminal :: System.IO.Handle -> String -> IO ()
 writeTerminal handle text =
   System.IO.hPutStr handle (Data.Text.unpack text)
 
@@ -91,13 +91,13 @@ closeTerminal handle = do
 
 
 {-| -}
-write :: Text -> IO ()
+write :: String -> IO ()
 write string =
   putStr (Data.Text.unpack string)
 
 
 {-| -}
-read :: IO Text
+read :: IO String
 read =
   getLine
     |> fmap Data.Text.pack
@@ -107,77 +107,77 @@ read =
 -- TEXT HELPERS
 
 
-red :: Text
+red :: String
 red =
   "\x1b[31m"
 
 
-blue :: Text
+blue :: String
 blue =
   "\x1b[34m"
 
 
-magenta :: Text
+magenta :: String
 magenta =
   "\x1b[35m"
 
-green :: Text
+green :: String
 green =
   "\x1b[32m"
 
 
-yellow :: Text
+yellow :: String
 yellow =
   "\x1b[33m"
 
 
-cyan :: Text
+cyan :: String
 cyan =
   "\x1b[36m"
 
 
-gray :: Text
+gray :: String
 gray =
   "\x1b[90m"
 
 
-white :: Text
+white :: String
 white =
   "\x1b[37m"
 
 
-reset :: Text
+reset :: String
 reset =
   "\x1b[0m"
 
 
-newline :: Text
+newline :: String
 newline =
   "\n"
 
 
-underline :: Text
+underline :: String
 underline =
   "\x1b[4m"
 
 
-italic :: Text
+italic :: String
 italic =
   "\x1b[3m"
 
 
-indent :: Int -> Text
+indent :: Int -> String
 indent number =
-  Text.repeat number " "
+  String.repeat number " "
 
 
 
 -- MESSAGE
 
 
-message :: Text -> Text -> Text -> List Text -> Text
+message :: String -> String -> String -> List String -> String
 message color title location content =
-  Text.concat
+  String.concat
     [ header color title location
     , newline
     , newline
@@ -187,41 +187,41 @@ message color title location content =
     ]
 
 
-header :: Text -> Text -> Text -> Text
+header :: String -> String -> String -> String
 header color title location =
-  color ++ "-- " ++ Text.toUpper title ++ " " ++ dashes title location ++ " " ++ location ++ " " ++ reset
+  color ++ "-- " ++ String.toUpper title ++ " " ++ dashes title location ++ " " ++ location ++ " " ++ reset
 
 
-dashes :: Text -> Text -> Text
+dashes :: String -> String -> String
 dashes title location =
-  let number = 75 - Text.length title - Text.length location in
-  Text.repeat number "-"
+  let number = 75 - String.length title - String.length location in
+  String.repeat number "-"
 
 
-breakAt80 :: Text -> Text
+breakAt80 :: String -> String
 breakAt80 text =
   let
-      fold :: Text -> ( List Text, List Text ) -> ( List Text, List Text )
+      fold :: String -> ( List String, List String ) -> ( List String, List String )
       fold word ( lines, words ) =
-        let next = Text.join " " (word : words) in
+        let next = String.join " " (word : words) in
         if word == "\n" then
-          ( lines ++ [ Text.join " " words ], [] )
-        else if Text.length next > 80 then
-          ( lines ++ [ Text.join " " words ], [ word ] )
+          ( lines ++ [ String.join " " words ], [] )
+        else if String.length next > 80 then
+          ( lines ++ [ String.join " " words ], [ word ] )
         else
           ( lines, words ++ [ word ] )
 
-      concat :: ( List Text, List Text ) -> Text
+      concat :: ( List String, List String ) -> String
       concat ( lines, words ) =
-        Text.join newline (lines ++ [ Text.join " " words ])
+        String.join newline (lines ++ [ String.join " " words ])
   in
   text
-    |> Text.replace "\n" " \n"
-    |> Text.split " "
+    |> String.replace "\n" " \n"
+    |> String.split " "
     |> List.foldl fold ([], [])
     |> concat
 
 
-paragraphs :: List Text -> Text
+paragraphs :: List String -> String
 paragraphs =
-  Text.join (newline ++ newline)
+  String.join (newline ++ newline)

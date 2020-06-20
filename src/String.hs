@@ -1,8 +1,8 @@
 
 {-|
 
-Module      : Text
-Description : A built-in representation for efficient string manipulation. `Text` values are *not* lists of characters.
+Module      : String
+Description : A built-in representation for efficient string manipulation. `String` values are *not* lists of characters.
 License     : BSD 3
 Maintainer  : terezasokol@gmail.com
 Stability   : experimental
@@ -10,8 +10,8 @@ Portability : POSIX
 
 -}
 
-module Text
-  ( Text, isEmpty, length, reverse, repeat, replace
+module String
+  ( String, isEmpty, length, reverse, repeat, replace
 
     -- * Building and Splitting
   , append, concat, split, join, words, lines
@@ -57,7 +57,7 @@ import qualified List as List
 
 
 
-{-| A `Text` is a chunk of text:
+{-| A `String` is a chunk of text:
 
   >  "Hello!"
   >  "How are you?"
@@ -73,14 +73,14 @@ import qualified List as List
   >  can have unescaped quotes and newlines.
   >  """
 
-A `Text` can represent any sequence of [unicode characters](https://en.wikipedia.org/wiki/Unicode). You can use
+A `String` can represent any sequence of [unicode characters](https://en.wikipedia.org/wiki/Unicode). You can use
 the unicode escapes from `\u{0000}` to `\u{10FFFF}` to represent characters
 by their code point. You can also include the unicode characters directly.
 Using the escapes can be better if you need one of the many whitespace
 characters with different widths.
 
 -}
-type Text =
+type String =
   HT.Text
 
 
@@ -89,7 +89,7 @@ type Text =
   >  isEmpty "" == True
   >  isEmpty "the world" == False
 -}
-isEmpty :: Text -> Bool
+isEmpty :: String -> Bool
 isEmpty =
   HT.null
 
@@ -99,7 +99,7 @@ isEmpty =
   >  length "innumerable" == 11
   >  length "" == 0
 -}
-length :: Text -> Int
+length :: String -> Int
 length =
   HT.length >> Prelude.fromIntegral
 
@@ -108,7 +108,7 @@ length =
 
   >  reverse "stressed" == "desserts"
 -}
-reverse :: Text -> Text
+reverse :: String -> String
 reverse =
   HT.reverse
 
@@ -117,7 +117,7 @@ reverse =
 
   >  repeat 3 "ha" == "hahaha"
 -}
-repeat :: Int -> Text -> Text
+repeat :: Int -> String -> String
 repeat =
   Prelude.fromIntegral >> HT.replicate
 
@@ -127,7 +127,7 @@ repeat =
   >  replace "." "-" "Json.Decode.succeed" == "Json-Decode-succeed"
   >  replace "," "/" "a,b,c,d,e"           == "a/b/c/d/e"
 -}
-replace :: Text -> Text -> Text -> Text
+replace :: String -> String -> String -> String
 replace =
   HT.replace
 
@@ -140,7 +140,7 @@ replace =
 
   >  append "butter" "fly" == "butterfly"
 -}
-append :: Text -> Text -> Text
+append :: String -> String -> String
 append =
   HT.append
 
@@ -149,7 +149,7 @@ append =
 
   >  concat ["never","the","less"] == "nevertheless"
 -}
-concat :: List Text -> Text
+concat :: List String -> String
 concat =
   HT.concat
 
@@ -159,7 +159,7 @@ concat =
   >  split "," "cat,dog,cow"        == ["cat","dog","cow"]
   >  split "/" "home/evan/Desktop/" == ["home","evan","Desktop", ""]
 -}
-split :: Text -> Text -> List Text
+split :: String -> String -> List String
 split =
   HT.splitOn
 
@@ -170,7 +170,7 @@ split =
   >  join " " ["cat","dog","cow"]       == "cat dog cow"
   >  join "/" ["home","evan","Desktop"] == "home/evan/Desktop"
 -}
-join :: Text -> List Text -> Text
+join :: String -> List String -> String
 join =
   HT.intercalate
 
@@ -179,7 +179,7 @@ join =
 
   >  words "How are \t you? \n Good?" == ["How","are","you?","Good?"]
 -}
-words :: Text -> List Text
+words :: String -> List String
 words =
   HT.words
 
@@ -188,7 +188,7 @@ words =
 
   >  lines "How are you?\nGood?" == ["How are you?", "Good?"]
 -}
-lines :: Text -> List Text
+lines :: String -> List String
 lines =
   HT.lines
 
@@ -205,7 +205,7 @@ lines =
   >  slice  0 -7 "snakes on a plane!" == "snakes on a"
   >  slice -6 -1 "snakes on a plane!" == "plane"
 -}
-slice :: Int -> Int -> Text -> Text
+slice :: Int -> Int -> String -> String
 slice from to text =
   let len = HT.length text
       handleNegative value = if value < 0 then len + value else value
@@ -222,7 +222,7 @@ slice from to text =
 
   >  left 2 "Mulder" == "Mu"
 -}
-left :: Int -> Text -> Text
+left :: Int -> String -> String
 left =
   Prelude.fromIntegral >> HT.take
 
@@ -231,7 +231,7 @@ left =
 
   >  right 2 "Scully" == "ly"
 -}
-right :: Int -> Text -> Text
+right :: Int -> String -> String
 right =
   Prelude.fromIntegral >> HT.takeEnd
 
@@ -240,7 +240,7 @@ right =
 
   >  dropLeft 2 "The Lone Gunmen" == "e Lone Gunmen"
 -}
-dropLeft :: Int -> Text -> Text
+dropLeft :: Int -> String -> String
 dropLeft =
   Prelude.fromIntegral >> HT.drop
 
@@ -249,7 +249,7 @@ dropLeft =
 
   >  dropRight 2 "Cigarette Smoking Man" == "Cigarette Smoking M"
 -}
-dropRight :: Int -> Text -> Text
+dropRight :: Int -> String -> String
 dropRight =
   Prelude.fromIntegral >> HT.dropEnd
 
@@ -264,7 +264,7 @@ dropRight =
   >  contains "hat" "theory" == False
   >  contains "THE" "theory" == False
 -}
-contains :: Text -> Text -> Bool
+contains :: String -> String -> Bool
 contains =
   HT.isInfixOf
 
@@ -274,7 +274,7 @@ contains =
   >  startsWith "the" "theory" == True
   >  startsWith "ory" "theory" == False
 -}
-startsWith :: Text -> Text -> Bool
+startsWith :: String -> String -> Bool
 startsWith =
   HT.isPrefixOf
 
@@ -284,7 +284,7 @@ startsWith =
   >  endsWith "the" "theory" == False
   >  endsWith "ory" "theory" == True
 -}
-endsWith :: Text -> Text -> Bool
+endsWith :: String -> String -> Bool
 endsWith =
   HT.isSuffixOf
 
@@ -295,7 +295,7 @@ endsWith =
   >  indexes "ss" "Mississippi"  == [2,5]
   >  indexes "needle" "haystack" == []
 -}
-indexes :: Text -> Text -> List Int
+indexes :: String -> String -> List Int
 indexes n h =
   let indexes' needle haystack =
         HT.breakOnAll needle haystack
@@ -309,7 +309,7 @@ indexes n h =
 
 {-| Alias for `indexes`.
 -}
-indices :: Text -> Text -> List Int
+indices :: String -> String -> List Int
 indices =
   indexes
 
@@ -323,7 +323,7 @@ indices =
 
   >  toUpper "skinner" == "SKINNER"
 -}
-toUpper :: Text -> Text
+toUpper :: String -> String
 toUpper =
   HT.toUpper
 
@@ -332,7 +332,7 @@ toUpper =
 
   >  toLower "X-FILES" == "x-files"
 -}
-toLower :: Text -> Text
+toLower :: String -> String
 toLower =
   HT.toLower
 
@@ -343,7 +343,7 @@ toLower =
   >  pad 5 ' ' "11"  == "  11 "
   >  pad 5 ' ' "121" == " 121 "
 -}
-pad :: Int -> Char -> Text -> Text
+pad :: Int -> Char -> String -> String
 pad =
   Prelude.fromIntegral >> HT.center
 
@@ -354,7 +354,7 @@ pad =
   >  padLeft 5 '.' "11"  == "...11"
   >  padLeft 5 '.' "121" == "..121"
 -}
-padLeft :: Int -> Char -> Text -> Text
+padLeft :: Int -> Char -> String -> String
 padLeft =
   Prelude.fromIntegral >> HT.justifyRight
 
@@ -365,7 +365,7 @@ padLeft =
   >  padRight 5 '.' "11"  == "11..."
   >  padRight 5 '.' "121" == "121.."
 -}
-padRight :: Int -> Char -> Text -> Text
+padRight :: Int -> Char -> String -> String
 padRight =
   Prelude.fromIntegral >> HT.justifyLeft
 
@@ -374,7 +374,7 @@ padRight =
 
   >  trim "  hats  \n" == "hats"
 -}
-trim :: Text -> Text
+trim :: String -> String
 trim =
   HT.strip
 
@@ -383,7 +383,7 @@ trim =
 
   >  trimLeft "  hats  \n" == "hats  \n"
 -}
-trimLeft :: Text -> Text
+trimLeft :: String -> String
 trimLeft =
   HT.stripStart
 
@@ -392,7 +392,7 @@ trimLeft =
 
   >  trimRight "  hats  \n" == "  hats"
 -}
-trimRight :: Text -> Text
+trimRight :: String -> String
 trimRight =
   HT.stripEnd
 
@@ -403,18 +403,18 @@ trimRight =
 
 {-| Try to convert a string into an int, failing on improperly formatted strings.
 
-  >  Text.toInt "123" == Just 123
-  >  Text.toInt "-42" == Just -42
-  >  Text.toInt "3.1" == Nothing
-  >  Text.toInt "31a" == Nothing
+  >  String.toInt "123" == Just 123
+  >  String.toInt "-42" == Just -42
+  >  String.toInt "3.1" == Nothing
+  >  String.toInt "31a" == Nothing
 
 If you are extracting a number from some raw user input, you will typically
 want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 
-  >  Maybe.withDefault 0 (Text.toInt "42") == 42
-  >  Maybe.withDefault 0 (Text.toInt "ab") == 0
+  >  Maybe.withDefault 0 (String.toInt "42") == 42
+  >  Maybe.withDefault 0 (String.toInt "ab") == 0
 -}
-toInt :: Text -> Maybe Int
+toInt :: String -> Maybe Int
 toInt text =
   let str = HT.unpack text
       str' = case str of
@@ -426,13 +426,13 @@ toInt text =
     HE.Right a -> Just a
 
 
-{-| Convert an `Int` to a `Text`.
+{-| Convert an `Int` to a `String`.
 
-  >  Text.fromInt 123 == "123"
-  >  Text.fromInt -42 == "-42"
+  >  String.fromInt 123 == "123"
+  >  String.fromInt -42 == "-42"
 
 -}
-fromInt :: Int -> Text
+fromInt :: Int -> String
 fromInt =
   Prelude.show >> HT.pack
 
@@ -443,18 +443,18 @@ fromInt =
 
 {-| Try to convert a string into a float, failing on improperly formatted strings.
 
-  >  Text.toFloat "123" == Just 123.0
-  >  Text.toFloat "-42" == Just -42.0
-  >  Text.toFloat "3.1" == Just 3.1
-  >  Text.toFloat "31a" == Nothing
+  >  String.toFloat "123" == Just 123.0
+  >  String.toFloat "-42" == Just -42.0
+  >  String.toFloat "3.1" == Just 3.1
+  >  String.toFloat "31a" == Nothing
 
 If you are extracting a number from some raw user input, you will typically
 want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
 
-  >  Maybe.withDefault 0 (Text.toFloat "42.5") == 42.5
-  >  Maybe.withDefault 0 (Text.toFloat "cats") == 0
+  >  Maybe.withDefault 0 (String.toFloat "42.5") == 42.5
+  >  Maybe.withDefault 0 (String.toFloat "cats") == 0
 -}
-toFloat :: Text -> Maybe Float
+toFloat :: String -> Maybe Float
 toFloat text =
   let str = HT.unpack text
       str' = case str of
@@ -467,13 +467,13 @@ toFloat text =
     HE.Right a -> Just a
 
 
-{-| Convert a `Float` to a `Text`.
+{-| Convert a `Float` to a `String`.
 
-  >  Text.fromFloat 123 == "123"
-  >  Text.fromFloat -42 == "-42"
-  >  Text.fromFloat 3.9 == "3.9"
+  >  String.fromFloat 123 == "123"
+  >  String.fromFloat -42 == "-42"
+  >  String.fromFloat 3.9 == "3.9"
 -}
-fromFloat :: Float -> Text
+fromFloat :: Float -> String
 fromFloat =
   Prelude.show >> HT.pack
 
@@ -487,19 +487,19 @@ fromFloat =
   >  toList "abc" == ['a','b','c']
   >  toList "🙈🙉🙊" == ['🙈','🙉','🙊']
 -}
-toList :: Text -> List Char
+toList :: String -> List Char
 toList =
   HT.unpack
 
 
-{-| Convert a list of characters into a Text. Can be useful if you
+{-| Convert a list of characters into a String. Can be useful if you
  want to create a string primarily by consing, perhaps for decoding
  something.
 
   >  fromList ['a','b','c'] == "abc"
   >  fromList ['🙈','🙉','🙊'] == "🙈🙉🙊"
 -}
-fromList :: List Char -> Text
+fromList :: List Char -> String
 fromList =
   HT.pack
 
@@ -512,16 +512,16 @@ fromList =
 
   >  fromChar 'a' == "a"
 -}
-fromChar :: Char -> Text
+fromChar :: Char -> String
 fromChar =
   HT.singleton
 
 
-{-| Add a character to the beginning of a Text.
+{-| Add a character to the beginning of a String.
 
   >  cons 'T' "he truth is out there" == "The truth is out there"
 -}
-cons :: Char -> Text -> Text
+cons :: Char -> String -> String
 cons =
   HT.cons
 
@@ -532,7 +532,7 @@ pattern match on strings exactly as you would with lists.
   >  uncons "abc" == Just ('a',"bc")
   >  uncons ""    == Nothing
 -}
-uncons :: Text -> Maybe (Char, Text)
+uncons :: String -> Maybe (Char, String)
 uncons text =
   case HT.uncons text of
     HM.Nothing -> Nothing
@@ -547,7 +547,7 @@ uncons text =
 
   >  map (\c -> if c == '/' then '.' else c) "a/b/c" == "a.b.c"
 -}
-map :: (Char -> Char) -> Text -> Text
+map :: (Char -> Char) -> String -> String
 map =
   HT.map
 
@@ -556,7 +556,7 @@ map =
 
   >  filter isDigit "R2-D2" == "22"
 -}
-filter :: (Char -> Bool) -> Text -> Text
+filter :: (Char -> Bool) -> String -> String
 filter =
   HT.filter
 
@@ -565,7 +565,7 @@ filter =
 
   >  foldl cons "" "time" == "emit"
 -}
-foldl :: (Char -> b -> b) -> b -> Text -> b
+foldl :: (Char -> b -> b) -> b -> String -> b
 foldl f =
   HT.foldl' (Prelude.flip f)
 
@@ -574,7 +574,7 @@ foldl f =
 
   >  foldr cons "" "time" == "time"
 -}
-foldr :: (Char -> b -> b) -> b -> Text -> b
+foldr :: (Char -> b -> b) -> b -> String -> b
 foldr =
   HT.foldr
 
@@ -585,7 +585,7 @@ foldr =
   >  any isDigit "R2-D2" == True
   >  any isDigit "heart" == False
 -}
-any :: (Char -> Bool) -> Text -> Bool
+any :: (Char -> Bool) -> String -> Bool
 any =
   HT.any
 
@@ -596,7 +596,7 @@ any =
   >  all isDigit "R2-D2" == False
   >  all isDigit "heart" == False
 -}
-all :: (Char -> Bool) -> Text -> Bool
+all :: (Char -> Bool) -> String -> Bool
 all =
   HT.all
 

@@ -15,14 +15,14 @@ Read and write to the terminal.
 module Terminal (line, lines, read) where
 
 import qualified List
-import qualified Text
+import qualified String
 import qualified Internal.Task as Task
 import qualified Data.Text.IO as IO
 import Prelude (return, putStrLn, putStr, getContents)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
-import Text (Text)
+import String (String)
 import Dict (Dict)
 import List (List)
 import Array (Array)
@@ -32,7 +32,7 @@ import Char (Char)
 
 
 {-| -}
-line :: Text -> Task x ()
+line :: String -> Task x ()
 line string =
   Task.Task <| \_ -> do
     IO.putStrLn string
@@ -40,15 +40,15 @@ line string =
 
 
 {-| -}
-lines :: List Text -> Task x ()
+lines :: List String -> Task x ()
 lines strings =
   Task.Task <| \_ -> do
-    IO.putStr (Text.join "\n" strings)
+    IO.putStr (String.join "\n" strings)
     return (Ok ())
 
 
 {-| -}
-read :: Task x Text
+read :: Task x String
 read =
   Task.Task <| \_ -> do
     contents <- IO.getContents
