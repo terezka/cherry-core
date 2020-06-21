@@ -6,15 +6,21 @@ module Parser.Primitives
   , oneOf, oneOfWithFallback
   , inContext, specialize
   , getPosition, getCol, addLocation, addEnd
-  , getIndent, setIndent, withIndent, withBacksetIndent
   , word1, word2
+  , symbol, k4, k5
   , unsafeIndex, isWord, getCharWidth
+  , chompInnerChars
+  , getUpperWidth
+  , getInnerWidth
+  , getInnerWidthHelp
   )
   where
 
 
+import qualified Data.Char as Char
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Array as T
+import GHC.Exts (Char(C#), Int#, (+#), (-#), chr#, uncheckedIShiftL#, word2Int#)
 import GHC.Prim (ByteArray#, indexWord8Array#)
 import GHC.Types (Int(I#))
 import GHC.Word (Word8(W8#), Word16)
@@ -46,7 +52,6 @@ data State = -- TODO try taking some out to avoid allocation?
     { _src :: ByteArray#
     , _pos :: {-# UNPACK #-} !Pos
     , _end :: {-# UNPACK #-} !End
-    , _indent :: {-# UNPACK #-} !Word16
     , _row :: {-# UNPACK #-} !Row
     , _col :: {-# UNPACK #-} !Col
     }
@@ -133,7 +138,7 @@ oneOfHelp state cok eok cerr eerr toError parsers =
 
     [] ->
       let
-        (State _ _ _ _ row col) = state
+        (State _ _ _ row col) = state
       in
       eerr row col toError
 
@@ -205,11 +210,11 @@ fromString (Parser parser) toBadEnd string =
     !(T.Text (T.Array src) pos length) = String.toTextUtf8 string
     toOk' = toOk toBadEnd
   in
-  parser (State src pos (pos + length) 0 1 1) toOk' toOk' toErr toErr
+  parser (State src pos (pos + length) 1 1) toOk' toOk' toErr toErr
 
 
 toOk :: (Row -> Col -> x) -> a -> State -> R.Result x a
-toOk toBadEnd !a (State _ pos end _ row col) =
+toOk toBadEnd !a (State _ pos end row col) =
   if pos == end
   then R.Ok a
   else R.Err (toBadEnd row col)
@@ -226,70 +231,31 @@ toErr row col toError =
 
 getCol :: Parser x Word16
 getCol =
-  Parser $ \state@(State _ _ _ _ _ col) _ eok _ _ ->
+  Parser $ \state@(State _ _ _ _ col) _ eok _ _ ->
     eok col state
 
 
 {-# INLINE getPosition #-}
 getPosition :: Parser x R.Position
 getPosition =
-  Parser $ \state@(State _ _ _ _ row col) _ eok _ _ ->
+  Parser $ \state@(State _ _ _ row col) _ eok _ _ ->
     eok (R.Position row col) state
 
 
 addLocation :: Parser x a -> Parser x (R.Located a)
 addLocation (Parser parser) =
-  Parser $ \state@(State _ _ _ _ sr sc) cok eok cerr eerr ->
+  Parser $ \state@(State _ _ _ sr sc) cok eok cerr eerr ->
     let
-      cok' a s@(State _ _ _ _ er ec) = cok (R.At (R.Region (R.Position sr sc) (R.Position er ec)) a) s
-      eok' a s@(State _ _ _ _ er ec) = eok (R.At (R.Region (R.Position sr sc) (R.Position er ec)) a) s
+      cok' a s@(State _ _ _ er ec) = cok (R.At (R.Region (R.Position sr sc) (R.Position er ec)) a) s
+      eok' a s@(State _ _ _ er ec) = eok (R.At (R.Region (R.Position sr sc) (R.Position er ec)) a) s
     in
     parser state cok' eok' cerr eerr
 
 
 addEnd :: R.Position -> a -> Parser x (R.Located a)
 addEnd start value =
-  Parser $ \state@(State _ _ _ _ row col) _ eok _ _ ->
+  Parser $ \state@(State _ _ _ row col) _ eok _ _ ->
     eok (R.at start (R.Position row col) value) state
-
-
-
--- INDENT
-
-
-getIndent :: Parser x Word16
-getIndent =
-  Parser $ \state@(State _ _ _ indent _ _) _ eok _ _ ->
-    eok indent state
-
-
-setIndent :: Word16 -> Parser x ()
-setIndent indent =
-  Parser $ \(State src pos end _ row col) _ eok _ _ ->
-    let
-      !newState = State src pos end indent row col
-    in
-    eok () newState
-
-
-withIndent :: Parser x a -> Parser x a
-withIndent (Parser parser) =
-  Parser $ \(State src pos end oldIndent row col) cok eok cerr eerr ->
-    let
-      cok' a (State s p e _ r c) = cok a (State s p e oldIndent r c)
-      eok' a (State s p e _ r c) = eok a (State s p e oldIndent r c)
-    in
-    parser (State src pos end col row col) cok' eok' cerr eerr
-
-
-withBacksetIndent :: Word16 -> Parser x a -> Parser x a
-withBacksetIndent backset (Parser parser) =
-  Parser $ \(State src pos end oldIndent row col) cok eok cerr eerr ->
-    let
-      cok' a (State s p e _ r c) = cok a (State s p e oldIndent r c)
-      eok' a (State s p e _ r c) = eok a (State s p e oldIndent r c)
-    in
-    parser (State src pos end (col - backset) row col) cok' eok' cerr eerr
 
 
 
@@ -298,7 +264,7 @@ withBacksetIndent backset (Parser parser) =
 
 inContext :: (x -> Row -> Col -> y) -> Parser y start -> Parser x a -> Parser y a
 inContext addContext (Parser parserStart) (Parser parserA) =
-  Parser $ \state@(State _ _ _ _ row col) cok eok cerr eerr ->
+  Parser $ \state@(State _ _ _ row col) cok eok cerr eerr ->
     let
       cerrA r c tx = cerr row col (addContext (tx r c))
       eerrA r c tx = eerr row col (addContext (tx r c))
@@ -311,7 +277,7 @@ inContext addContext (Parser parserStart) (Parser parserA) =
 
 specialize :: (x -> Row -> Col -> y) -> Parser x a -> Parser y a
 specialize addContext (Parser parser) =
-  Parser $ \state@(State _ _ _ _ row col) cok eok cerr eerr ->
+  Parser $ \state@(State _ _ _ row col) cok eok cerr eerr ->
     let
       cerr' r c tx = cerr row col (addContext (tx r c))
       eerr' r c tx = eerr row col (addContext (tx r c))
@@ -325,9 +291,9 @@ specialize addContext (Parser parser) =
 
 word1 :: Word8 -> (Row -> Col -> x) -> Parser x ()
 word1 word toError =
-  Parser $ \(State src pos end indent row col) cok _ _ eerr ->
+  Parser $ \(State src pos end row col) cok _ _ eerr ->
     if pos < end && unsafeIndex src pos == word then
-      let !newState = State src (pos + 1) end indent row (col + 1) in
+      let !newState = State src (pos + 1) end row (col + 1) in
       cok () newState
     else
       eerr row col toError
@@ -335,13 +301,57 @@ word1 word toError =
 
 word2 :: Word8 -> Word8 -> (Row -> Col -> x) -> Parser x ()
 word2 w1 w2 toError =
-  Parser $ \(State src pos end indent row col) cok _ _ eerr ->
+  Parser $ \(State src pos end row col) cok _ _ eerr ->
     let
       !pos1 = pos + 1
     in
     if pos1 < end && unsafeIndex src pos == w1 && unsafeIndex src pos1 == w2 then
-      let !newState = State src (pos + 2) end indent row (col + 2) in
+      let !newState = State src (pos + 2) end row (col + 2) in
       cok () newState
+    else
+      eerr row col toError
+
+
+symbol :: Word8 -> (Row -> Col -> x) -> Parser x ()
+symbol w1 toError =
+  Parser $ \(State src pos end row col) cok _ _ eerr ->
+    let !pos1 = pos + 1 in
+    if pos1 <= end && unsafeIndex src pos == w1
+    then
+      let !s = State src pos1 end row (col + 1) in cok () s
+    else
+      eerr row col toError
+
+
+k4 :: Word8 -> Word8 -> Word8 -> Word8 -> (Row -> Col -> x) -> Parser x ()
+k4 w1 w2 w3 w4 toError =
+  Parser $ \(State src pos end row col) cok _ _ eerr ->
+    let !pos4 = pos + 4 in
+    if pos4 <= end
+      && unsafeIndex src (pos    ) == w1
+      && unsafeIndex src (pos + 1) == w2
+      && unsafeIndex src (pos + 2) == w3
+      && unsafeIndex src (pos + 3) == w4
+      && getInnerWidth src pos4 end == 0
+    then
+      let !s = State src pos4 end row (col + 4) in cok () s
+    else
+      eerr row col toError
+
+
+k5 :: Word8 -> Word8 -> Word8 -> Word8 -> Word8 -> (Row -> Col -> x) -> Parser x ()
+k5 w1 w2 w3 w4 w5 toError =
+  Parser $ \(State src pos end row col) cok _ _ eerr ->
+    let !pos5 = pos + 5 in
+    if pos5 <= end
+      && unsafeIndex src (pos    ) == w1
+      && unsafeIndex src (pos + 1) == w2
+      && unsafeIndex src (pos + 2) == w3
+      && unsafeIndex src (pos + 3) == w4
+      && unsafeIndex src (pos + 4) == w5
+      && getInnerWidth src pos5 end == 0
+    then
+      let !s = State src pos5 end row (col + 5) in cok () s
     else
       eerr row col toError
 
@@ -370,4 +380,114 @@ getCharWidth word
   | word < 0xf0 = 3
   | word < 0xf8 = 4
   | True        = error "Need UTF-8 encoded input. Ran into unrecognized bits."
+
+
+
+-- UPPER CHARS
+
+
+{-# INLINE getUpperWidth #-}
+getUpperWidth :: ByteArray# -> Pos -> End -> Int
+getUpperWidth src pos end =
+  if pos < end then
+    getUpperWidthHelp src pos end (unsafeIndex src pos)
+  else
+    0
+
+
+{-# INLINE getUpperWidthHelp #-}
+getUpperWidthHelp :: ByteArray# -> Pos -> End -> Word8 -> Int
+getUpperWidthHelp src pos _ word
+  | 0x41 {- A -} <= word && word <= 0x5A {- Z -} = 1
+  | word < 0xc0 = 0
+  | word < 0xe0 = if Char.isUpper (chr2 src pos word) then 2 else 0
+  | word < 0xf0 = if Char.isUpper (chr3 src pos word) then 3 else 0
+  | word < 0xf8 = if Char.isUpper (chr4 src pos word) then 4 else 0
+  | True        = 0
+
+
+
+-- INNER CHARS
+
+
+chompInnerChars :: ByteArray# -> Pos -> End -> Col -> (# Pos, Col #)
+chompInnerChars src !pos end !col =
+  let !width = getInnerWidth src pos end in
+  if width == 0 then
+    (# pos, col #)
+  else
+    chompInnerChars src (pos + width) end (col + 1)
+
+
+getInnerWidth :: ByteArray# -> Pos -> End -> Int
+getInnerWidth src pos end =
+  if pos < end then
+    getInnerWidthHelp src pos end (unsafeIndex src pos)
+  else
+    0
+
+
+{-# INLINE getInnerWidthHelp #-}
+getInnerWidthHelp :: ByteArray# -> Pos -> End -> Word8 -> Int
+getInnerWidthHelp src pos _ word
+  | 0x61 {- a -} <= word && word <= 0x7A {- z -} = 1
+  | 0x41 {- A -} <= word && word <= 0x5A {- Z -} = 1
+  | 0x30 {- 0 -} <= word && word <= 0x39 {- 9 -} = 1
+  | word == 0x5F {- _ -} = 1
+  | word < 0xc0 = 0
+  | word < 0xe0 = if Char.isAlpha (chr2 src pos word) then 2 else 0
+  | word < 0xf0 = if Char.isAlpha (chr3 src pos word) then 3 else 0
+  | word < 0xf8 = if Char.isAlpha (chr4 src pos word) then 4 else 0
+  | True        = 0
+
+
+
+-- EXTRACT CHARACTERS
+
+
+{-# INLINE chr2 #-}
+chr2 :: ByteArray# -> Pos -> Word8 -> Char
+chr2 src pos firstWord =
+  let
+    !i1# = unpack firstWord
+    !i2# = unpack (unsafeIndex src (pos + 1))
+    !c1# = uncheckedIShiftL# (i1# -# 0xC0#) 6#
+    !c2# = i2# -# 0x80#
+  in
+  C# (chr# (c1# +# c2#))
+
+
+{-# INLINE chr3 #-}
+chr3 :: ByteArray# -> Pos -> Word8 -> Char
+chr3 src pos firstWord =
+  let
+    !i1# = unpack firstWord
+    !i2# = unpack (unsafeIndex src (pos + 1))
+    !i3# = unpack (unsafeIndex src (pos + 2))
+    !c1# = uncheckedIShiftL# (i1# -# 0xE0#) 12#
+    !c2# = uncheckedIShiftL# (i2# -# 0x80#) 6#
+    !c3# = i3# -# 0x80#
+  in
+  C# (chr# (c1# +# c2# +# c3#))
+
+
+{-# INLINE chr4 #-}
+chr4 :: ByteArray# -> Pos -> Word8 -> Char
+chr4 src pos firstWord =
+  let
+    !i1# = unpack firstWord
+    !i2# = unpack (unsafeIndex src (pos + 1))
+    !i3# = unpack (unsafeIndex src (pos + 2))
+    !i4# = unpack (unsafeIndex src (pos + 3))
+    !c1# = uncheckedIShiftL# (i1# -# 0xF0#) 18#
+    !c2# = uncheckedIShiftL# (i2# -# 0x80#) 12#
+    !c3# = uncheckedIShiftL# (i3# -# 0x80#) 6#
+    !c4# = i4# -# 0x80#
+  in
+  C# (chr# (c1# +# c2# +# c3# +# c4#))
+
+
+unpack :: Word8 -> Int#
+unpack (W8# word#) =
+  word2Int# word#
 

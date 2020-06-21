@@ -43,10 +43,8 @@ library
     Internal.Queue,
     Internal.Utils,
     Json.Ast,
-    Parser.Keyword
     Parser.Primitives
     Parser.Reporting
-    Parser.Variable
   default-extensions:
     OverloadedStrings,
     NoImplicitPrelude
