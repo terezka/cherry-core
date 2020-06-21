@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
 {-# LANGUAGE BangPatterns, MagicHash, Rank2Types, UnboxedTuples #-}
-module Parser.Primitives
+module Parser
   ( fromString
   , Parser(..), State(..), Pos, End, Row, Col
   , oneOf, oneOfWithFallback
