@@ -31,7 +31,7 @@ module String
   , map, filter, foldl, foldr, any, all
 
     -- * Conversions to Haskell Types
-  , toTextUtf8, toBuilder
+  , toBuilder, toTextUtf8, fromTextUtf8
   )
 where
 
@@ -618,12 +618,8 @@ all isGood (String str) =
   HT.all isGood str
 
 
-{-| The underlying representation of a `String` is currently the `Text` value
-from the `text-utf8` module. From there you can do more conversions if needed.
--}
-toTextUtf8 :: String -> HT.Text
-toTextUtf8 (String str) =
-  str
+
+-- CONVERSION TO HASKELL TYPES
 
 
 {-| It is pretty common to use `Data.ByteString.Builder` when generating output
@@ -632,3 +628,20 @@ so this function is compatible with that system, and fast!
 toBuilder :: String -> HB.Builder
 toBuilder (String str) =
   HTE.encodeUtf8Builder str
+
+
+{-| Convert to a `Text` value as defined in the `text-utf8` package.
+
+You can do more conversions from there if needed.
+-}
+toTextUtf8 :: String -> HT.Text
+toTextUtf8 (String str) =
+  str
+
+
+{-| Convert from a `Text` value as defined in the `text-utf8` package.
+-}
+fromTextUtf8 :: HT.Text -> String
+fromTextUtf8 =
+  String
+
