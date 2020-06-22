@@ -43,6 +43,7 @@ library
     Internal.Queue,
     Internal.Utils,
     Json.Ast,
+    Json.String,
     Parser
     Parser.Reporting
   default-extensions:
