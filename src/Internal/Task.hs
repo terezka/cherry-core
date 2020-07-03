@@ -99,13 +99,13 @@ your `segment`'s have run. This is useful for timing blocks of code.
 
 -}
 data Tracer where
-  Tracer :: (String -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
+  Tracer :: (String -> Dict String Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 
 
 {-| Create a tracer. Arguments:
 
   1. A task to run before each `segment`. It gets the namespace and context of the
-     `segment` in question. You can lookup stuff in the context using `Entry.lookup`.
+     `segment` in question.
 
   2. A task to run after each `segment`. It gets the result from the task from the first
      argument.
@@ -125,7 +125,7 @@ data Tracer where
   >  in
   >  Log.tracer before after
 -}
-tracer :: (String -> Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
+tracer :: (String -> Dict String Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
 tracer =
   Tracer
 
@@ -441,11 +441,8 @@ segment namespace context task =
             , key_callstack = Stack.withFrozenCallStack Utils.appendStack newNamespace (key_callstack key)
             }
 
-        contextAsJson =
-          Json.object (Dict.toList (key_context new))
-
         perform (Tracer before after) = do
-          stuff <- toIO (before (key_namespace new) contextAsJson) new
+          stuff <- toIO (before (key_namespace new) (key_context new)) new
           result <- toIO task new
           toIO (after stuff) new
           return result

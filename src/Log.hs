@@ -22,7 +22,7 @@ module Log
   , Entry.pretty, Entry.compact, Entry.json
 
     -- * Entry
-  , Entry.Entry(..), Entry.Severity(..), Entry.lookup
+  , Entry.Entry(..), Entry.Severity(..)
 
   ) where
 

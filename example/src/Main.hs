@@ -1,10 +1,11 @@
 module Main where
 
-import qualified Text
+import qualified String
 import qualified Task
 import qualified Debug
 import qualified Interop
 import qualified List
+import qualified Terminal
 import qualified Dict
 import qualified Data.Text
 import qualified Log
@@ -14,37 +15,46 @@ import qualified GHC.Stack as Stack
 import qualified Network.HTTP as HTTP
 import qualified System.IO
 import qualified Json.Decode as Json
+import qualified Json.Encode as Encode
 import Control.Monad (void)
-import Task (Task)
-import Log hiding (tracer)
 import Cherry.Prelude
-import Json.Decode ()
-import Json.Encode ()
 import qualified Prelude
 import qualified Data.Time.Clock as Clock
 
 
--- json clean up
--- string -> text
+-- better compact print
 
-
-main :: Prelude.IO ()
 main = do
   interop <- Interop.key
-  res <- Task.attempt (Just (tracer interop)) (targets interop) (application interop)
+  res <- Task.customAttempt (tracer interop) (targets interop) (application interop)
   case res of
     Ok a -> Prelude.putStrLn "Done!"
     Err e -> Prelude.putStrLn <| "Not good" ++ e
 
 
+data User
+  = User String Int
+
+encodeUser :: User -> Encode.Value
+encodeUser (User name age) =
+  Encode.object
+    [ ( "name", Encode.string name )
+    , ( "age", Encode.int age )
+    ]
+
+
 tracer :: Interop.Key -> Log.Tracer
 tracer interop =
   let before _ context = do
-        time <- Clock.getCurrentTime |> Interop.enter interop |> Task.mapError Prelude.show
-        case Json.fromValue decoder context of
-          Ok True -> print_ interop "Online!"
-          Ok False -> print_ interop "Not online!"
-          Err _ -> print_ interop "Sad."
+        time <-
+          Clock.getCurrentTime
+            |> Interop.enter interop
+            |> Task.mapError Prelude.show
+
+        case Dict.get "online" context of
+          Just _ -> Terminal.line "Online!"
+          Nothing -> Terminal.line "Sad."
+
         Task.succeed time
 
       decoder =
@@ -52,7 +62,7 @@ tracer interop =
 
       after stuff = do
         time <- Clock.getCurrentTime |> Interop.enter interop |> Task.mapError Prelude.show
-        print_ interop (Debug.toString stuff ++ " -> " ++ Debug.toString time ++ "\n")
+        Terminal.line (Debug.toString stuff ++ " -> " ++ Debug.toString time)
   in
   Log.tracer before after
 
@@ -63,11 +73,15 @@ tracer interop =
 
 application :: Interop.Key -> Task Prelude.String ()
 application interop = do
-  segment "app" [] <| do
+  segment "app" [ int "hello" 23 ] <| do
     good interop "> hello 1"
-    debug
-      [ text "user" "tereza", text "email" "terezasokol@gmail.com" ]
+    debug [ float "level" 4.20 ] "Hello"
+    debug [ string "user" "tereza", string "email" "terezasokol@gmail.com", int "age" 24, value "user" (encodeUser <| User "hello" 23) ]
       "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
+
+    Control.Concurrent.threadDelay 1000000
+          |> Interop.enter interop
+          |> Task.mapError Prelude.show
     good interop "> hello 2"
     bad interop "> hello 3"
     good interop "> hello 4"
@@ -77,29 +91,21 @@ application interop = do
     debug [] "LOG 4."
 
 
-good :: Interop.Key -> Text -> Task Prelude.String ()
+good :: Interop.Key -> String -> Task Prelude.String ()
 good interop string = do
-  segment "good" [ value "online" False ] <| do
-    print_ interop (string ++ "\n")
+  segment "good" [ bool "online" False ] <| do
+    Terminal.line string
 
 
-bad :: Interop.Key -> Text -> Task Prelude.String ()
-bad interop string = do
-  segment "bad" [ value "is_ok" (12.1 :: Float) ] <| do
+bad :: Interop.Key -> String -> Task Prelude.String ()
+bad interop _ = do
+  segment "bad" [ float "is_ok" 12.1 ] <| do
     Task.succeed ()
     Prelude.error "this is fine"
       |> Interop.enter interop
-      |> Task.onError (Log.exception [ text "library" "bad-library" ])
-    error [] "LOG 2."
+      |> Task.onError (Task.exception [ string "library" "bad-library" ])
+    Task.error [] "LOG 2."
     -- Interop.enter <| Prelude.error "hello!!"
-
-
-{-| -}
-print_ :: Interop.Key -> Text.Text -> Task Prelude.String ()
-print_ interop string =
-  Prelude.putStr (Data.Text.unpack string)
-    |> Interop.enter interop
-    |> Task.mapError Prelude.show
 
 
 
@@ -108,29 +114,26 @@ print_ interop string =
 
 targets :: Interop.Key -> List Target
 targets interop =
-  [ file "log.txt" compact
-  , terminal pretty
-  , bugsnag interop
+  [ bugsnag interop
+  , Log.terminal Log.pretty
+  , Log.file "log.txt" Log.compact
   ]
 
 
 bugsnag :: Interop.Key -> Target
 bugsnag interop =
   let write :: Entry -> Task Prelude.String ()
-      write (Entry{context = context}) = do
+      write entry = do
         --Prelude.error "bugsnag failed"
         --  |> Interop.enter Prelude.show
         Control.Concurrent.threadDelay 1000000
           |> Interop.enter interop
           |> Task.mapError Prelude.show
-        HTTP.simpleHTTP (HTTP.getRequest "http://hackage.haskell.org/")
-          |> Interop.enter interop
-          |> Task.mapError Prelude.show
-          |> Task.andThen (print context)
+        print entry ()
 
-      print context _ =
-        case Log.lookup "user" context :: Result Text Text of
-          Ok "tereza" -> print_ interop "tereza\n"
-          _ -> print_  interop"no user\n"
+      print entry _ =
+        case Dict.get "user" (Log.context entry) of
+          Just user -> Terminal.line "has user"
+          Nothing -> Terminal.line "no userdjflksjflkdsjf"
   in
-  custom write
+  Log.target write

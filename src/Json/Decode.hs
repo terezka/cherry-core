@@ -15,13 +15,13 @@ Portability : POSIX
 module Json.Decode
   ( -- Turn JSON values into Haskell values.
     -- * Primitives
-    Decoder, Decodable(..), string, chars, bool, int, float, null, succeed, fail
+    Decoder, string, chars, bool, int, float, null, succeed, fail
     -- * Data Structures
   , nullable, list, oneOrMore, dict, pair, field, at
     -- * Inconsistent Data Structure
   , maybe, oneOf
     -- * Run Decoders
-  , fromByteString, fromValue
+  , fromByteString
   , Error(..), Problem(..), DecodeExpectation(..), ParseError(..), errorToString
     -- * Transforming
   , map, map2, map3, map4, map5, map6, map7, map8, andThen
@@ -78,19 +78,6 @@ fromByteString (Decoder decode) src =
       Err (ParseProblem problem)
 
 
-{-| Parse the given string into a JSON value and then run the `Decoder` on it.
-This will fail if the string is not well-formed JSON or if the `Decoder`
-fails for some reason.
-
- > fromValue int (Encode.int 4)     == Ok 4
- > fromValue int (Encode.bool True) == Err ...
-
--}
-fromValue :: Decoder a -> Json.Value -> Result Error a
-fromValue (Decoder decode) ast =
-  decode ast Ok (Err . DecodeProblem)
-
-
 
 -- DECODERS
 
@@ -99,27 +86,6 @@ fromValue (Decoder decode) ast =
 -}
 newtype Decoder a =
   Decoder (forall b. AST -> (a -> b) -> (Problem -> b) -> b)
-
-
-{-| -}
-class Decodable a where
-  decoder :: Decoder a
-
-
-instance Decodable String where
-  decoder = string
-
-
-instance Decodable Bool where
-  decoder = bool
-
-
-instance Decodable Int where
-  decoder = int
-
-
-instance Decodable Float where
-  decoder = float
 
 
 

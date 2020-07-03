@@ -2,7 +2,7 @@ module Internal.Entry
   ( Entry(..), Severity(..), Context
   , toColor, toTitle
   , pretty, compact, json
-  , value, lookup
+  , bool, string, int, float, value
   ) where
 
 
@@ -28,8 +28,6 @@ import List (List)
 import Array (Array)
 import Set (Set)
 import Char (Char)
-import Json.Encode (Encodable)
-import Json.Decode (Decodable)
 
 
 {-| An entry is a single log message. You send an entry to your
@@ -48,14 +46,14 @@ data Entry = Entry
   }
 
 
-instance Json.Encodable Entry where
-  encoder (Entry severity namespace message context _) =
-    Json.object
-      [ ( "severity", Json.string (toTitle severity) )
-      , ( "namespace", Json.string namespace )
-      , ( "message", Json.string message )
-      , ( "context", Json.object (Dict.toList context) )
-      ]
+encode :: Entry -> Json.Value
+encode (Entry severity namespace message context _) =
+  Json.object
+    [ ( "severity", Json.string (toTitle severity) )
+    , ( "namespace", Json.string namespace )
+    , ( "message", Json.string message )
+    , ( "context", Json.object (Dict.toList context) )
+    ]
 
 
 {-| A key value pair comprising a piece of context for your entry or `segment`.
@@ -181,80 +179,44 @@ or inside a custom target.
 -}
 json :: Entry -> String
 json =
-  Json.encoder >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
+  encode >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
 
 
 
 -- CONTEXT HELPERS
 
 
-{-| Use to create a piece of context for your entry or `segment`.
+bool :: String -> Bool -> Context
+bool key value =
+  ( key, Json.bool value )
 
-    > info [ value "user" user ] "User visited the referrals page."
 
-To use this function, the second argument but be `Encodable`. This means
-it must define an encoder like this:
+string :: String -> String -> Context
+string key value =
+  ( key, Json.string value )
 
-    > import qualified Json.Encode as Json
-    >
-    > instance Json.Encodable User where
-    >   encoder (User name age) =
-    >     Json.object
-    >       [ ( "name", Json.string name )
-    >       , ( "age", Json.int age )
-    >       ]
 
-This lets me know how to encode your data!
+int :: String -> Int -> Context
+int key value =
+  ( key, Json.int value )
 
-Note: If you are trying to log a constant, say `12`, the compiler might not
-be able to quess it's type (is it an integer or float?). To fix this,
-add a type signature.
 
-    > info [ value "attempts" (12 :: Int) ] "User visited the referrals page."
+float :: String -> Float -> Context
+float key value =
+  ( key, Json.float value )
 
-This may happend with strings too. The remedy is the same!
 
-    > info [ value "name" ("tereza" :: Int) ] "The user's name."
+{-| TODO Use to create a piece of context for your entry or `segment`.
+
+    > info [ value "user" (encode user) ] "User visited the referrals page."
 
 Warning: Watch out for adding the same key twice!
 
-    > info [ value "name" "tereza", value "name" "evan" ] "User logged in"
-    > -- only the last "name" value will survive!
+    > info [ value "name" (string "evan"), value "name" (string "tereza") ] "User logged in"
+    > -- only the last "name" value will survive, in this case "tereza".
 
 -}
-value :: Encodable a => String -> a -> Context
+value :: String -> Json.Value -> Context
 value key value =
-  ( key, Json.encoder value )
+  ( key, value )
 
-
-{-| Inside your custom target, you can access the enitre `Entry`, including the
-context you attached using `value`. With this function, you can find a certain
-piece of context that you added.
-
-  > bugsnag :: Log.Target
-  > bugsnag =
-  >   Log.custom <| entry ->
-  >     case Log.lookup "user" entry of
-  >       Ok name -> Bugsnag.send name
-  >       Err _ -> Task.succeed ()
-
-To use this, the value you expect to retrieve must be `Decodable`. This means
-it must add a decoder like this:
-
-    > import qualified Json.Decode as Json
-    >
-    > instance Json.Decodable User where
-    >   decoder =
-    >     Json.map2 User
-    >       (Json.field "name" Json.string)
-    >       (Json.field "age" Json.int)
-
-This lets me know how to decode your data! REMEMBER: The decoder must match the
-encoder used with `value`.
-
--}
-lookup :: Decodable a => String -> Entry -> Result String a
-lookup key Entry{context = cx} =
-  Dict.get key cx
-    |> Result.fromMaybe ("Could not find key: " ++ key)
-    |> Result.andThen (Json.Decode.fromValue Json.Decode.decoder >> Result.mapError Debug.toString)

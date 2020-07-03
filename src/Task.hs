@@ -30,8 +30,7 @@ module Task
   , Task.segment
 
   -- * Adding context
-  , Entry.value
-
+  , Entry.bool, Entry.string, Entry.int, Entry.float, Entry.value
   ) where
 
 import qualified Internal.Task as Task

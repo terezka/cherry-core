@@ -14,7 +14,7 @@ Portability : POSIX
 
 module Json.Encode
   ( -- * Encoding
-    toByteString, Value, Encodable(..)
+    toByteString, Value
     -- * Primitives
   , string, chars, int, float, bool, null
     -- * Arrays
@@ -38,27 +38,6 @@ import Basics (Float)
 import Prelude hiding (null, Float, String)
 import Data.Monoid ((<>))
 import Json.Ast (AST(..))
-
-
-{-| -}
-class Encodable a where
-  encoder :: a -> Value
-
-
-instance Encodable String where
-  encoder = string
-
-
-instance Encodable Bool where
-  encoder = bool
-
-
-instance Encodable Int where
-  encoder = int
-
-instance Encodable Float where
-  encoder = float
-
 
 
 -- VALUES

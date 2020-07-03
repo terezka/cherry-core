@@ -1,7 +1,7 @@
 module Cherry.Prelude
   ( module Basics
   , Prelude.IO, Maybe(..), Result(..), Dict, String, List, Array, Set, Char, Task, Tracer, Target, Entry
-  , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception, Task.segment, Task.value
+  , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception, Task.segment, Task.value, Task.bool, Task.string, Task.int, Task.float
   )
 where
 
