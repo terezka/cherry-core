@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs, RankNTypes, FlexibleInstances, MultiParamTypeClasses #-}
+
 module Main where
 
 import qualified String
@@ -45,26 +47,29 @@ encodeUser (User name age) =
 
 tracer :: Interop.Key -> Log.Tracer
 tracer interop =
-  let before _ context = do
-        time <-
-          Clock.getCurrentTime
-            |> Interop.enter interop
-            |> Task.mapError Prelude.show
+  let tracer_ :: forall x a. String -> Dict String Encode.Value -> Task x a -> Task x a
+      tracer_ namespace context task = do
+        start <-
+          Interop.enter interop Clock.getCurrentTime
+            |> Task.map Debug.toString
+            |> Task.onError (\_ -> Task.succeed "err")
 
         case Dict.get "online" context of
           Just _ -> Terminal.line "Online!"
           Nothing -> Terminal.line "Sad."
 
-        Task.succeed time
+        result <- task
 
-      decoder =
-        Json.field "online" Json.bool
+        end <-
+          Interop.enter interop Clock.getCurrentTime
+            |> Task.map Debug.toString
+            |> Task.onError (\_ -> Task.succeed "err")
 
-      after stuff = do
-        time <- Clock.getCurrentTime |> Interop.enter interop |> Task.mapError Prelude.show
-        Terminal.line (Debug.toString stuff ++ " -> " ++ Debug.toString time)
+        Terminal.line (start ++ " -> " ++ end)
+
+        Task.succeed result
   in
-  Log.tracer before after
+  Log.tracer tracer_
 
 
 

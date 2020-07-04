@@ -1,6 +1,4 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE GADTs, RankNTypes, FlexibleInstances, MultiParamTypeClasses #-}
 
 module Internal.Task where
 
@@ -98,8 +96,8 @@ data Key = Key
 your `segment`'s have run. This is useful for timing blocks of code.
 
 -}
-data Tracer where
-  Tracer :: (String -> Dict String Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
+newtype Tracer =
+  Tracer { toTracer :: forall x a. String -> Dict String Json.Value -> Task x a -> Task x a }
 
 
 {-| Create a tracer. Arguments:
@@ -125,16 +123,16 @@ data Tracer where
   >  in
   >  Log.tracer before after
 -}
-tracer :: (String -> Dict String Json.Value -> Task x a) -> (Result x a -> Task y b) -> Tracer
-tracer =
-  Tracer
+tracer :: (forall x a. String -> Dict String Json.Value -> Task x a -> Task x a) -> Tracer
+tracer toTracer_ =
+  Tracer { toTracer = toTracer_ }
 
 
 {-| No tracer.
 -}
 tracerless :: Tracer
 tracerless =
-  Tracer (\_ _ -> succeed ()) (\_ -> succeed ())
+  Tracer (\_ _ task -> task)
 
 
 
@@ -441,13 +439,10 @@ segment namespace context task =
             , key_callstack = Stack.withFrozenCallStack Utils.appendStack newNamespace (key_callstack key)
             }
 
-        perform (Tracer before after) = do
-          stuff <- toIO (before (key_namespace new) (key_context new)) new
-          result <- toIO task new
-          toIO (after stuff) new
-          return result
+        task_ =
+          toTracer (key_tracer new) (key_namespace new) (key_context new) task
     in
-    Control.catches (perform <| key_tracer new)
+    Control.catches (toIO task_ new)
       [ Control.Handler (Control.throw :: Exception -> IO a)
       , Control.Handler (Control.throw << fromSomeException new :: Control.SomeException -> IO a)
       ]
