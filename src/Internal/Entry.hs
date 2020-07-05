@@ -150,7 +150,7 @@ pretty encodeContext (Entry severity namespace message context time callstack) =
 `file`, or inside a custom target.
 
 -}
-compact :: (s -> String) -> Entry s -> String
+compact :: (s -> Json.Value) -> Entry s -> String
 compact encodeContext (Entry severity namespace message context _ _) =
   let string c = "[" ++ c ++ "]"
   in
@@ -158,7 +158,7 @@ compact encodeContext (Entry severity namespace message context _ _) =
     [ string (toTitle severity)
     , string namespace
     , string message
-    , string (encodeContext context)
+    , string (toText (encodeContext context))
     ]
 
 
