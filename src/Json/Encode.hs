@@ -32,8 +32,11 @@ module Json.Encode
 import qualified Data.ByteString.Builder.Prim as P
 import Data.ByteString.Builder.Prim ((>$<), (>*<))
 import qualified Data.ByteString.Builder as B
+import qualified Data.Char as Char
+import qualified Data.Text.Encoding as TE
 import Data.Monoid ((<>))
 import Prelude hiding (String, Float, null)
+import Data.Word (Word8)
 
 import Basics (Float)
 import qualified Dict
@@ -89,14 +92,38 @@ toBuilder (Value builder) =
  > -- encode 0 (string "hello") == "\"hello\""
 -}
 string :: String -> Value
-string =
-  Value . escapeString
+string str =
+  Value $ B.char7 '"' <> escapeString str <> B.char7 '"'
 
 
 escapeString :: String -> B.Builder
-escapeString string =
-  B.char7 '"' <> String.toBuilder string <> B.char7 '"'
-  -- error "TODO escape \\ and \" characters"
+escapeString str =
+  TE.encodeUtf8BuilderEscaped escapeWord8 (String.toTextUtf8 str)
+
+
+{-# INLINE escapeWord8 #-}
+escapeWord8 :: P.BoundedPrim Word8
+escapeWord8 =
+  P.condB (>  0x5C {-\-} ) (P.liftFixedToBounded P.word8) $
+  P.condB (== 0x5C {-\-} ) (P.liftFixedToBounded (const ('\\','\\') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x22 {-"-} ) (P.liftFixedToBounded (const ('\\','\"') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x2F {-/-} ) (P.liftFixedToBounded (const ('\\','/') >$< P.char7 >*< P.char7)) $
+  P.condB (>= 0x20 {- -} ) (P.liftFixedToBounded P.word8) $
+  P.condB (== 0x08 {-\b-}) (P.liftFixedToBounded (const ('\\','b') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x09 {-\t-}) (P.liftFixedToBounded (const ('\\','t') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x0A {-\n-}) (P.liftFixedToBounded (const ('\\','n') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x0C {-\f-}) (P.liftFixedToBounded (const ('\\','f') >$< P.char7 >*< P.char7)) $
+  P.condB (== 0x0D {-\r-}) (P.liftFixedToBounded (const ('\\','r') >$< P.char7 >*< P.char7)) $
+  P.liftFixedToBounded (toLowCode >$< P.word8 >*< P.word8 >*< P.word8 >*< P.word8 >*< P.word8 >*< P.word8)
+
+
+{-# INLINE toLowCode #-}
+toLowCode :: Word8 -> (Word8,(Word8,(Word8,(Word8,(Word8,Word8)))))
+toLowCode code =
+  let
+    (tens, ones) = divMod code 16
+  in
+  (0x5C {-\-}, (0x75 {-u-}, (0x30 {-0-}, (0x30 {-0-}, (tens, ones)))))
 
 
 
@@ -111,10 +138,7 @@ chars chrs =
 {-# INLINE escapeChar #-}
 escapeChar :: P.BoundedPrim Char
 escapeChar =
-  P.condB (>  '\\') P.charUtf8 $
-  P.condB (== '\\') (P.liftFixedToBounded (const ('\\','\\') >$< P.char7 >*< P.char7)) $
-  P.condB (== '\"') (P.liftFixedToBounded (const ('\\','\"') >$< P.char7 >*< P.char7)) $
-  P.liftFixedToBounded P.char7
+  P.condB (> '\\') P.charUtf8 (fromIntegral . Char.ord >$< escapeWord8)
 
 
 
