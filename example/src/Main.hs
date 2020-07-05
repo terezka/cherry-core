@@ -26,15 +26,14 @@ import Example.Log (Ctx, setLevel, setName)
 import qualified Prelude
 import qualified Data.Time.Clock as Clock
 
-
--- better compact print
 -- better entry print
--- fix file logger
+-- how to share task impl
+-- tracer for all
 
 
 main = do
   interop <- Interop.key
-  res <- Task.attempt Log.basic (application interop)
+  res <- Task.attempt (Example.Log.config interop) (application interop)
   case res of
     Ok a -> Prelude.putStrLn "Done!"
     Err e -> Prelude.putStrLn ("Not good: " ++ e)
@@ -44,7 +43,7 @@ main = do
 -- APP
 
 
-application :: Interop.Key -> Task Log.Basic x ()
+application :: Interop.Key -> Task Ctx x ()
 application interop = do
   segment "app" [ Log.int "count" 12 ] <| do
     Terminal.line "> hello 1"
@@ -62,7 +61,7 @@ application interop = do
     debug [] "LOG 4."
 
 
-bad :: Interop.Key -> String -> Task Log.Basic x ()
+bad :: Interop.Key -> String -> Task Ctx x ()
 bad interop _ = do
   segment "bad" [ Log.bool "bad" True ] <| do
     Prelude.error "this is fine"

@@ -31,7 +31,7 @@ data Ctx =
 
 
 instance WithMisc Ctx where
-  setMisc key value context =
+  addMisc key value context =
     context { misc = Dict.insert key value (misc context) }
 
 
@@ -57,6 +57,7 @@ config interop =
     , Task.targets = targets interop
     , Task.encoder = encoder
     }
+
 
 encoder :: Ctx -> Json.Value
 encoder context =
@@ -104,7 +105,7 @@ targets :: Interop.Key -> List (Target Ctx)
 targets interop =
   [ bugsnag interop
   , Log.terminal (Log.pretty encoder)
-  --, Log.file "log.txt" Log.compact
+  , Log.file "log.txt" (Log.compact encoder)
   ]
 
 

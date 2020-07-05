@@ -181,40 +181,41 @@ json encodeContext =
 
 {-| -}
 class WithMisc a where
-  setMisc :: String -> Json.Value -> a -> a
+  addMisc :: String -> Json.Value -> a -> a
 
 
 {-| -}
 bool :: WithMisc s => String -> Bool -> s -> s
 bool key value =
-  setMisc key (Json.bool value)
+  addMisc key (Json.bool value)
 
 
 {-| -}
 string :: WithMisc s => String -> String -> s -> s
 string key value =
-  setMisc key (Json.string value)
+  addMisc key (Json.string value)
 
 
 {-| -}
 int :: WithMisc s => String -> Int -> s -> s
 int key value =
-  setMisc key (Json.int value)
+  addMisc key (Json.int value)
 
 
 {-| -}
 float :: WithMisc s => String -> Float -> s -> s
 float key value =
-  setMisc key (Json.float value)
+  addMisc key (Json.float value)
 
 
 {-| -}
 value :: WithMisc s => String -> Json.Value -> s -> s
 value key value =
-  setMisc key value
+  addMisc key value
 
 
--- CONTEXT / DEFAULT
+
+-- CONTEXT / BASICS
 
 
 type Basic
@@ -222,5 +223,4 @@ type Basic
 
 
 instance WithMisc Basic where
-  setMisc =
-    Dict.insert
+  addMisc = Dict.insert
