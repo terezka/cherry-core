@@ -21,17 +21,17 @@ import Char (Char)
 
 
 {-| -}
-data Queue
-  = Queue (Chan Message) (MVar ())
+data Queue s
+  = Queue (Chan (Message s)) (MVar ())
 
 
-data Message
-  = NewEntry Entry
+data Message s
+  = NewEntry (Entry s)
   | Done
 
 
 {-| -}
-init :: IO Queue
+init :: IO (Queue s)
 init = do
   channel <- Chan.newChan
   lock <- MVar.newEmptyMVar
@@ -39,20 +39,20 @@ init = do
 
 
 {-| -}
-push :: Entry -> Queue -> IO ()
+push :: Entry s -> (Queue s) -> IO ()
 push entry (Queue channel lock) =
   Chan.writeChan channel (NewEntry entry)
 
 
 {-| -}
-close :: Queue -> IO ()
+close :: (Queue s) -> IO ()
 close (Queue channel lock) = do
   Chan.writeChan channel Done
   MVar.readMVar lock
 
 
 {-| -}
-listen :: Queue -> (Entry -> IO ()) -> IO () -> IO ()
+listen :: (Queue s) -> (Entry s -> IO ()) -> IO () -> IO ()
 listen (Queue channel lock) write close =
   let loop = do
         msg <- Chan.readChan channel

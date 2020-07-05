@@ -30,9 +30,9 @@ appendNamespace old new =
   if String.isEmpty old then new else old ++ "/" ++ new
 
 
-appendContext :: Dict String a -> List ( String, a ) -> Dict String a
-appendContext old new =
-  Dict.union (Dict.fromList new) old
+appendContext :: s -> List (s -> s) -> s
+appendContext old transformers =
+  List.foldl (\t s -> t s) old transformers
 
 
 appendStack :: Stack.HasCallStack => String -> Stack.CallStack -> Stack.CallStack
