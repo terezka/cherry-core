@@ -14,7 +14,7 @@ fetching data from an external server, talking to the database etc.
 -}
 
 module Task
-  ( Task.Task, Task.perform, Task.attempt, Task.customAttempt
+  ( Task, Task.perform, Task.attempt, Task.Config(..)
 
     -- * Chains
   , andThen, Task.succeed, Task.fail, Task.sequence
@@ -24,19 +24,14 @@ module Task
 
     -- * Errors
   , Task.onError, Task.mapError
-
-    -- * Logging
-  , Task.debug, Task.info, Task.warning, Task.error, Task.alert, Task.exception
-  , Task.segment
-
-  -- * Adding context
-  , Entry.bool, Entry.string, Entry.int, Entry.float, Entry.value
   ) where
 
 import qualified Internal.Task as Task
 import qualified Internal.Entry as Entry
 import qualified Internal.Shortcut as Shortcut
+import Basics
 import Internal.Task (Task)
+import Prelude (IO)
 
 
 -- MAPS
@@ -45,7 +40,7 @@ import Internal.Task (Task)
 {-| Transform a task. Maybe you want to use [`elm/time`][time] to figure
 out what time it will be in one hour:
 
-  >  timeInOneHour :: Task x Time.Posix
+  >  timeInOneHour :: Task s x Time.Posix
   >  timeInOneHour =
   >    Task.map addAnHour Time.now
   >
@@ -54,43 +49,43 @@ out what time it will be in one hour:
   >    Time.millisToPosix (Time.posixToMillis time + 60 * 60 * 1000)
 
 -}
-map :: (a -> b) -> Task x a -> Task x b
+map :: (a -> b) -> Task s x a -> Task s x b
 map =
   Shortcut.map
 
 
 {-| Put the results of two tasks together.
 
-  >  newsfeed :: Task x Newsfeed
+  >  newsfeed :: Task s x Newsfeed
   >  newsfeed =
   >    Task.map2 combine getUser getNews
 
 -}
-map2 :: (a -> b -> result) -> Task x a -> Task x b -> Task x result
+map2 :: (a -> b -> result) -> Task s x a -> Task s x b -> Task s x result
 map2 =
   Shortcut.map2
 
 
 {-| -}
-map3 :: (a -> b -> c -> result) -> Task x a -> Task x b -> Task x c -> Task x result
+map3 :: (a -> b -> c -> result) -> Task s x a -> Task s x b -> Task s x c -> Task s x result
 map3 =
   Shortcut.map3
 
 
 {-| -}
-map4 :: (a -> b -> c -> d -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x result
+map4 :: (a -> b -> c -> d -> result) -> Task s x a -> Task s x b -> Task s x c -> Task s x d -> Task s x result
 map4 =
   Shortcut.map4
 
 
 {-| -}
-map5 :: (a -> b -> c -> d -> e -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x result
+map5 :: (a -> b -> c -> d -> e -> result) -> Task s x a -> Task s x b -> Task s x c -> Task s x d -> Task s x e -> Task s x result
 map5 =
   Shortcut.map5
 
 
 {-| -}
-map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x f -> Task x result
+map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task s x a -> Task s x b -> Task s x c -> Task s x d -> Task s x e -> Task s x f -> Task s x result
 map6 =
   Shortcut.map6
 
@@ -100,19 +95,19 @@ successful, you give the result to the callback resulting in another task. This
 task then gets run. We could use this to make a task that resolves an hour from
 now:
 
-  >  write :: Keys -> Task x ()
+  >  write :: Keys -> Task s x ()
   >  write keys =
   >    Http.get (http keys) "/username"
   >      |> Task.andThen Terminal.write
 
 As an alternative, you can use this special syntax:
 
-  >  write :: Keys -> Task x ()
+  >  write :: Keys -> Task s x ()
   >  write keys = do
   >    username <- Http.get (http keys) "/username"
   >    Terminal.write username
 
 -}
-andThen :: (a -> Task x b) -> Task x a -> Task x b
+andThen :: (a -> Task s x b) -> Task s x a -> Task s x b
 andThen =
   Shortcut.andThen

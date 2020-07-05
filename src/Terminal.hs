@@ -32,7 +32,7 @@ import Char (Char)
 
 
 {-| -}
-line :: String -> Task x ()
+line :: String -> Task s x ()
 line string =
   Task.Task <| \_ -> do
     IO.putStrLn string
@@ -40,7 +40,7 @@ line string =
 
 
 {-| -}
-lines :: List String -> Task x ()
+lines :: List String -> Task s x ()
 lines strings =
   Task.Task <| \_ -> do
     IO.putStr (String.join "\n" strings)
@@ -48,7 +48,7 @@ lines strings =
 
 
 {-| -}
-read :: Task x String
+read :: Task s x String
 read =
   Task.Task <| \_ -> do
     contents <- IO.getContents

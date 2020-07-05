@@ -24,8 +24,10 @@ module Interop
 import qualified Control.Exception.Safe as Control
 import qualified Internal.Shortcut as Shortcut
 import qualified Internal.Task as Task
-import Cherry.Prelude
+import qualified Internal.Shortcut as Shortcut
 import Internal.Task (Task)
+import Basics
+import Result (Result(..))
 import Prelude (IO, return)
 
 
@@ -46,12 +48,12 @@ transform an `IO` into a `Task`. If that is the case, use this function.
 You shouldn't usually need to use this!
 
 -}
-enter :: Key -> IO a -> Task Task.Exception a
+enter :: Key -> IO a -> Task s Task.Exception a
 enter _ io =
   Task.Task <| \key ->
     io
       |> Shortcut.map Ok
-      |> Control.handleAny (Task.fromSomeException key >> Err >> return)
+      |> Control.handleAny (Task.fromSomeException key >> Shortcut.map Err)
 
 
 {-| When working with third party libraries, you might need to
@@ -60,6 +62,7 @@ transform a `Task` into an `IO`. If that is the case, use this function.
 You shouldn't usually need to use this!
 
 -}
-exit :: Key -> Task x a -> IO (Result x a)
+exit :: Key -> Task.Config s -> Task s x a -> IO (Result x a)
 exit _ =
   Task.attempt
+

@@ -1,8 +1,11 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+
 module Internal.Entry
-  ( Entry(..), Severity(..), Context
+  ( Entry(..), Severity(..)
   , toColor, toTitle
   , pretty, compact, json
-  , bool, string, int, float, value
+  , WithMisc(..), bool, string, int, float, value
+  , Basic
   ) where
 
 
@@ -19,6 +22,7 @@ import qualified Json.Encode as Json
 import qualified Json.Encode
 import qualified Json.Decode
 import qualified Internal.Utils as U
+import qualified Data.Time.Clock as Clock
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
@@ -37,29 +41,26 @@ functions: `debug`, `info`, `warning`, `error`, `alert`, or `exception`.
   > error [ value "is_premium" isPremium ] "Could not find user wishlist."
 
 -}
-data Entry = Entry
-  { severity :: Severity
-  , namespace :: String
-  , message :: String
-  , context :: Dict String Json.Value
-  , callstack :: Stack.CallStack
-  }
+data Entry s =
+  Entry
+    { severity :: Severity
+    , namespace :: String
+    , message :: String
+    , context :: s
+    , time :: Clock.UTCTime
+    , callstack :: Stack.CallStack
+    }
 
 
-encode :: Entry -> Json.Value
-encode (Entry severity namespace message context _) =
+encode :: (s -> Json.Value) -> Entry s -> Json.Value
+encode encodeContext (Entry severity namespace message context time _) =
   Json.object
     [ ( "severity", Json.string (toTitle severity) )
     , ( "namespace", Json.string namespace )
     , ( "message", Json.string message )
-    , ( "context", Json.object (Dict.toList context) )
+    , ( "context", encodeContext context )
+    , ( "time", Json.string (Debug.toString time) )
     ]
-
-
-{-| A key value pair comprising a piece of context for your entry or `segment`.
--}
-type Context =
-  ( String, Json.Value )
 
 
 
@@ -105,26 +106,21 @@ toTitle severity =
 `file`, or inside a custom target.
 
 -}
-pretty :: Entry -> String
-pretty (Entry severity namespace message context callstack) =
+pretty :: (s -> Json.Value) -> Entry s -> String
+pretty encodeContext (Entry severity namespace message context time callstack) =
   let viewExtra =
         case severity of
           Unknown ->
             [ "Context:"
-            , viewContextList
+            , toText (encodeContext context)
             , "Segments:"
             , viewSegments
             ]
 
           _ ->
             [ "Context:"
-            , viewContextList
+            , toText (encodeContext context)
             ]
-
-      viewContextList =
-        Dict.toList context
-          |> List.map viewContext
-          |> String.join U.newline
 
       viewContext ( name, value ) = do
         U.indent 2 ++ name ++ ": " ++ toText value
@@ -154,18 +150,15 @@ pretty (Entry severity namespace message context callstack) =
 `file`, or inside a custom target.
 
 -}
-compact :: Entry -> String
-compact (Entry severity namespace message context _) =
+compact :: (s -> String) -> Entry s -> String
+compact encodeContext (Entry severity namespace message context _ _) =
   let string c = "[" ++ c ++ "]"
   in
   String.concat
     [ string (toTitle severity)
     , string namespace
     , string message
-    , Dict.toList context
-          |> List.map (\(a, b) -> ( a, toText b ))
-          |> Debug.toString
-          |> string
+    , string (encodeContext context)
     ]
 
 
@@ -177,46 +170,57 @@ toText =
 {-| JSON formatting of the entry. Can be used with `terminal`, `file`,
 or inside a custom target.
 -}
-json :: Entry -> String
-json =
-  encode >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
+json :: (s -> Json.Value) -> Entry s -> String
+json encodeContext =
+  encode encodeContext >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
 
 
 
 -- CONTEXT HELPERS
 
 
-bool :: String -> Bool -> Context
+{-| -}
+class WithMisc a where
+  setMisc :: String -> Json.Value -> a -> a
+
+
+{-| -}
+bool :: WithMisc s => String -> Bool -> s -> s
 bool key value =
-  ( key, Json.bool value )
+  setMisc key (Json.bool value)
 
 
-string :: String -> String -> Context
+{-| -}
+string :: WithMisc s => String -> String -> s -> s
 string key value =
-  ( key, Json.string value )
+  setMisc key (Json.string value)
 
 
-int :: String -> Int -> Context
+{-| -}
+int :: WithMisc s => String -> Int -> s -> s
 int key value =
-  ( key, Json.int value )
+  setMisc key (Json.int value)
 
 
-float :: String -> Float -> Context
+{-| -}
+float :: WithMisc s => String -> Float -> s -> s
 float key value =
-  ( key, Json.float value )
+  setMisc key (Json.float value)
 
 
-{-| TODO Use to create a piece of context for your entry or `segment`.
-
-    > info [ value "user" (encode user) ] "User visited the referrals page."
-
-Warning: Watch out for adding the same key twice!
-
-    > info [ value "name" (string "evan"), value "name" (string "tereza") ] "User logged in"
-    > -- only the last "name" value will survive, in this case "tereza".
-
--}
-value :: String -> Json.Value -> Context
+{-| -}
+value :: WithMisc s => String -> Json.Value -> s -> s
 value key value =
-  ( key, value )
+  setMisc key value
 
+
+-- CONTEXT / DEFAULT
+
+
+type Basic
+  = Dict String Json.Value
+
+
+instance WithMisc Basic where
+  setMisc =
+    Dict.insert
