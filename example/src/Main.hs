@@ -46,10 +46,10 @@ main = do
 
 application :: Interop.Key -> Task Log.Basic x ()
 application interop = do
-  segment "app" [ int "count" 12 ] <| do
+  segment "app" [ Log.int "count" 12 ] <| do
     Terminal.line "> hello 1"
-    debug [ string "id" "#235" ] "Very first log"
-    debug [ string "email" "hello@sokolova.studio" ] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
+    debug [ Log.string "id" "#235" ] "Very first log"
+    debug [ Log.string "email" "hello@sokolova.studio" ] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
 
     Control.Concurrent.threadDelay 1000000
           |> Interop.enter interop
@@ -64,11 +64,11 @@ application interop = do
 
 bad :: Interop.Key -> String -> Task Log.Basic x ()
 bad interop _ = do
-  segment "bad" [ bool "bad" True ] <| do
+  segment "bad" [ Log.bool "bad" True ] <| do
     Prelude.error "this is fine"
       |> Interop.enter interop
       |> Task.onError (exception [])
-    error [ string "error" "wrong" ] "LOG 2."
+    error [ Log.string "error" "wrong" ] "LOG 2."
 
 
 data User

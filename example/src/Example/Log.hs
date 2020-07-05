@@ -3,7 +3,6 @@
 module Example.Log
   ( Ctx
   , setLevel, setName
-  , bool, string, int, float, value
   , config
   ) where
 

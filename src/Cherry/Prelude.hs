@@ -1,9 +1,7 @@
 module Cherry.Prelude
   ( module Basics
   , Prelude.IO, Maybe(..), Result(..), Dict, String, List, Array, Set, Char, Task, Tracer, Target, Entry
-
   , Log.segment, Log.debug, Log.info, Log.warning, Log.error, Log.alert, Log.exception
-  , Log.value, Log.bool, Log.string, Log.int, Log.float
   , Basic, Log.WithMisc(..)
   )
 where
