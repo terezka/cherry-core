@@ -24,6 +24,7 @@ import qualified Json.Decode
 import qualified Internal.Utils as U
 import qualified Data.Time.Clock as Clock
 import Basics
+import Prelude (Eq)
 import Maybe (Maybe (..))
 import Result (Result (..))
 import String (String)
@@ -38,7 +39,7 @@ import Char (Char)
 logging targets every time your program executes one of the following
 functions: `debug`, `info`, `warning`, `error`, `alert`, or `exception`.
 
-  > error [ value "is_premium" isPremium ] "Could not find user wishlist."
+  > error [] "Could not find user wishlist."
 
 -}
 data Entry s =
@@ -74,6 +75,7 @@ data Severity
   | Error
   | Alert
   | Unknown
+  deriving (Eq)
 
 
 toColor :: Severity -> String
@@ -108,27 +110,25 @@ toTitle severity =
 -}
 pretty :: (s -> Json.Value) -> Entry s -> String
 pretty encodeContext (Entry severity namespace message context time callstack) =
-  let viewExtra =
-        case severity of
-          Unknown ->
-            [ "Context:"
-            , toText (encodeContext context)
-            , "Segments:"
-            , viewSegments
-            ]
+  let viewExtra context_ segments_ =
+        case (context_ ++ segments_) of
+          [] -> ""
+          extras -> U.gray ++ String.join U.blank extras ++ U.reset ++ U.blank
 
-          _ ->
-            [ "Context:"
-            , toText (encodeContext context)
-            ]
-
-      viewContext ( name, value ) = do
-        U.indent 2 ++ name ++ ": " ++ toText value
+      viewContext =
+        case toText (encodeContext context) of
+          "{}" -> []
+          json -> [ "Context:", U.indent 2 ++ json ]
 
       viewSegments =
+        if severity == Unknown
+          then [ "Segments:", viewCallstack ]
+          else []
+
+      viewCallstack =
         Stack.getCallStack callstack
           |> List.map viewStack
-          |> String.join U.newline
+          |> String.join U.break
 
       viewStack ( function, location ) =
         U.indent 2 ++ "\"" ++ Data.Text.pack function ++ "\" at " ++ viewLocation location
@@ -140,9 +140,12 @@ pretty encodeContext (Entry severity namespace message context time callstack) =
           , Debug.toString (Stack.srcLocStartCol location)
           ]
   in
-  U.message (toColor severity) (toTitle severity) namespace
-    [ U.breakAt80 message
-    , U.gray ++ U.paragraphs viewExtra ++ U.reset
+  String.concat
+    [ U.header (toColor severity) (toTitle severity) namespace
+    , U.blank
+    , U.breakAt80 message
+    , U.blank
+    , viewExtra viewContext viewSegments
     ]
 
 

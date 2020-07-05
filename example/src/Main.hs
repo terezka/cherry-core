@@ -33,7 +33,7 @@ import qualified Data.Time.Clock as Clock
 
 main = do
   interop <- Interop.key
-  res <- Task.attempt (Example.Log.config interop) (application interop)
+  res <- Task.attempt Log.basic (application interop)
   case res of
     Ok a -> Prelude.putStrLn "Done!"
     Err e -> Prelude.putStrLn ("Not good: " ++ e)
@@ -43,16 +43,20 @@ main = do
 -- APP
 
 
-application :: Interop.Key -> Task Ctx x ()
+application :: Interop.Key -> Task Log.Basic x ()
 application interop = do
-  segment "app" [ Log.int "count" 12 ] <| do
+  segment "app" [] <| do
     Terminal.line "> hello 1"
-    debug [ Log.string "id" "#235" ] "Very first log"
-    debug [ Log.string "email" "hello@sokolova.studio" ] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
+    debug [] "Very first log"
+    debug [] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
 
     Control.Concurrent.threadDelay 1000000
           |> Interop.enter interop
           |> Task.onError (\_ -> Task.succeed ())
+
+    book <-
+      Task.fail "Could not find book."
+        |> Task.onError (error [ Log.int "bookId" 2 ])
 
     Terminal.line "> hello 2"
     bad interop "> hello 3"
@@ -61,13 +65,13 @@ application interop = do
     debug [] "LOG 4."
 
 
-bad :: Interop.Key -> String -> Task Ctx x ()
+bad :: Interop.Key -> String -> Task Log.Basic x ()
 bad interop _ = do
-  segment "bad" [ Log.bool "bad" True ] <| do
+  segment "bad" [] <| do
     Prelude.error "this is fine"
       |> Interop.enter interop
-      |> Task.onError (exception [])
-    error [ Log.string "error" "wrong" ] "LOG 2."
+      |> Task.onError (exception [ Log.bool "bad" True ])
+    error [] "LOG 2."
 
 
 data User

@@ -151,9 +151,14 @@ reset =
   "\x1b[0m"
 
 
-newline :: String
-newline =
+break :: String
+break =
   "\n"
+
+
+blank :: String
+blank =
+  "\n\n"
 
 
 underline :: String
@@ -173,18 +178,6 @@ indent number =
 
 
 -- MESSAGE
-
-
-message :: String -> String -> String -> List String -> String
-message color title location content =
-  String.concat
-    [ header color title location
-    , newline
-    , newline
-    , (paragraphs content)
-    , newline
-    , newline
-    ]
 
 
 header :: String -> String -> String -> String
@@ -213,15 +206,10 @@ breakAt80 text =
 
       concat :: ( List String, List String ) -> String
       concat ( lines, words ) =
-        String.join newline (lines ++ [ String.join " " words ])
+        String.join break (lines ++ [ String.join " " words ])
   in
   text
     |> String.replace "\n" " \n"
     |> String.split " "
     |> List.foldl fold ([], [])
     |> concat
-
-
-paragraphs :: List String -> String
-paragraphs =
-  String.join (newline ++ newline)
