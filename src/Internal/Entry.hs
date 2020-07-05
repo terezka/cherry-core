@@ -132,7 +132,7 @@ pretty encodeContext (Entry severity namespace message context time callstack) =
           |> String.join U.break
 
       viewStack ( function, location ) =
-        U.indent 2 ++ "\"" ++ Debug.toString function ++ "\" at " ++ viewLocation location
+        U.indent 2 ++ Debug.toString function ++ " at " ++ viewLocation location
 
       viewLocation location =
         String.join ":"
