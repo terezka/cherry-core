@@ -57,4 +57,4 @@ read :: Task s x String
 read =
   Task.Task <| \_ -> do
     contents <- IO.getContents
-    return (Ok contents)
+    return (Ok (String.fromTextUtf8 contents))

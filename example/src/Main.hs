@@ -45,10 +45,10 @@ main = do
 
 application :: Interop.Key -> Task Log.Basic x ()
 application interop = do
-  segment "app" [] <| do
+  segment "app" [ Log.int "level" 90 ] <| do
     Terminal.line "> hello 1"
     debug [] "Very first log"
-    debug [] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
+    debug [ Log.int "level" 12 ] "LOG 1. This is a really long message\n This is a really long message This is a really long message This is a really long message This is a really long message This is a really long message"
 
     Control.Concurrent.threadDelay 1000000
           |> Interop.enter interop

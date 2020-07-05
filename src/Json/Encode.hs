@@ -14,39 +14,70 @@ Portability : POSIX
 
 module Json.Encode
   ( -- * Encoding
-    toByteString, Value
+    Value, toBuilder
     -- * Primitives
   , string, chars, int, float, bool, null
     -- * Arrays
-  , list, array
+  , list
     -- * Objects
   , object, dict
   )
   where
 
+-- TODO: add INLINE to all the functions that produce a Value and
+-- see the impact in production code. I suspect it will be valuable.
+-- I think using the composition operator in their implementations
+-- is better for this, but I am not 100% sure.
 
-import qualified Data.ByteString.Internal as ByteString
-import qualified Data.ByteString.UTF8 as BSU
-import qualified Data.ByteString.Char8 as BSC
+import qualified Data.ByteString.Builder.Prim as P
+import Data.ByteString.Builder.Prim ((>$<), (>*<))
 import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text.Encoding
-import qualified List
-import qualified Dict
-import String (String)
-import Basics (Float)
-import Prelude hiding (null, Float, String)
 import Data.Monoid ((<>))
-import Json.Ast (AST(..))
+import Prelude hiding (String, Float, null)
+
+import Basics (Float)
+import qualified Dict
+import qualified List
+import qualified String
+import String (String)
 
 
--- VALUES
+-- ENCODER
 
 
-{-| Represents a JSON value.
+{-| Representation of a JSON value that can be turned into a string, written
+to a file, or turned into a `Data.ByteString.Builder` value.
 -}
-type Value
-  = AST
+newtype Value =
+  Value { _toBuilder :: B.Builder }
+
+
+
+-- TO BUILDER
+
+
+{-| Convert a `Value` into a bytestring.
+
+ > import Json.Encode as Encode
+ >
+ > tom : Encode.Value
+ > tom =
+ >   Encode.object
+ >     [ ( "name", Encode.string "Tom" )
+ >     , ( "age", Encode.int 42 )
+ >     ]
+ >
+ > compact =
+ >   Encode.toBuilder tom
+ >   -- {"name":"Tom","age":42}
+-}
+toBuilder :: Value -> B.Builder
+toBuilder (Value builder) =
+  builder
+
+
+
+-- STRING
 
 
 {-| Turn a `String` into a JSON string.
@@ -58,8 +89,36 @@ type Value
  > -- encode 0 (string "hello") == "\"hello\""
 -}
 string :: String -> Value
-string str =
-  String (Data.Text.Encoding.encodeUtf8 str)
+string =
+  Value . escapeString
+
+
+escapeString :: String -> B.Builder
+escapeString string =
+  B.char7 '"' <> String.toBuilder string <> B.char7 '"'
+  -- error "TODO escape \\ and \" characters"
+
+
+
+-- CHARS
+
+
+chars :: [Char] -> Value
+chars chrs =
+  Value $ B.char7 '"' <> P.primMapListBounded escapeChar chrs <> B.char7 '"'
+
+
+{-# INLINE escapeChar #-}
+escapeChar :: P.BoundedPrim Char
+escapeChar =
+  P.condB (>  '\\') P.charUtf8 $
+  P.condB (== '\\') (P.liftFixedToBounded (const ('\\','\\') >$< P.char7 >*< P.char7)) $
+  P.condB (== '\"') (P.liftFixedToBounded (const ('\\','\"') >$< P.char7 >*< P.char7)) $
+  P.liftFixedToBounded P.char7
+
+
+
+-- BOOL
 
 
 {-| Turn a `Bool` into a JSON boolean.
@@ -70,8 +129,14 @@ string str =
  > -- encode 0 (bool False) == "false"
 -}
 bool :: Bool -> Value
-bool =
-  Boolean
+bool b =
+  if b
+  then Value "true"
+  else Value "false"
+
+
+
+-- INT
 
 
 {-| Turn an `Int` into a JSON number.
@@ -84,7 +149,11 @@ bool =
 -}
 int :: Int -> Value
 int =
-  Int
+  Value . B.intDec
+
+
+
+-- FLOAT
 
 
 {-| Turn a `Float` into a JSON number.
@@ -104,7 +173,11 @@ both as `null`.
 -}
 float :: Float -> Value
 float =
-  Float
+  Value . B.doubleDec
+
+
+
+-- NULL
 
 
 {-| Create a JSON `null` value.
@@ -115,7 +188,11 @@ float =
 -}
 null :: Value
 null =
-  NULL
+  Value "null"
+
+
+
+-- ARRAYS
 
 
 {-| Turn a `List` into a JSON array.
@@ -128,14 +205,23 @@ null =
 -}
 list :: (a -> Value) -> [a] -> Value
 list encodeEntry entries =
-  Array $ map encodeEntry entries
+  case entries of
+    []   -> Value (B.string7 "[]")
+    x:xs -> Value (encodeSequence arrayOpen arrayClose (_toBuilder . encodeEntry) x xs)
 
 
-{-| Turn an `Array` into a JSON array.
--}
-array :: [Value] -> Value
-array =
-  Array
+arrayOpen :: B.Builder
+arrayOpen =
+  B.string7 "["
+
+
+arrayClose :: B.Builder
+arrayClose =
+  B.char7 ']'
+
+
+
+-- OBJECTS
 
 
 {-| Create a JSON object.
@@ -153,11 +239,26 @@ array =
 
 -}
 object :: [(String, Value)] -> Value
-object pairs =
-  let toBts ( key, value ) =
-        ( Data.Text.Encoding.encodeUtf8 key, value )
-  in
-  Object (List.map toBts pairs)
+object fields =
+  case fields of
+    []   -> Value (B.string7 "{}")
+    f:fs -> Value (encodeSequence objectOpen objectClose encodeField f fs)
+
+
+encodeField :: (String, Value) -> B.Builder
+encodeField (key, Value builder) =
+  B.char7 '"' <> escapeString key <> B.string7 "\":" <> builder
+
+
+objectOpen :: B.Builder
+objectOpen =
+  B.string7 "{"
+
+
+objectClose :: B.Builder
+objectClose =
+  B.char7 '}'
+
 
 
 {-| Turn a `Dict` into a JSON object.
@@ -174,161 +275,30 @@ object pairs =
 -}
 dict :: (k -> String) -> (v -> Value) -> Dict.Dict k v -> Value
 dict encodeKey encodeValue pairs =
-  let toBts ( key, value ) =
-        ( Data.Text.Encoding.encodeUtf8 (encodeKey key), encodeValue value )
+  let
+    toPair (key, value) =
+      (encodeKey key, encodeValue value)
   in
-  Object $ List.map toBts (Dict.toList pairs)
-
-
-
--- CHARS
-
-
-chars :: [Char] -> Value
-chars chrs =
-  String (BSU.fromString (escape chrs))
-
-
-escape :: [Char] -> [Char]
-escape chrs =
-  case chrs of
-    [] ->
-      []
-
-    c:cs
-      | c == '\r' -> '\\' : 'r'  : escape cs
-      | c == '\n' -> '\\' : 'n'  : escape cs
-      | c == '\"' -> '\\' : '"'  : escape cs
-      | c == '\\' -> '\\' : '\\' : escape cs
-      | otherwise -> c : escape cs
-
-
-
--- ENCODE
-
-
-{-| Convert a `Value` into a bytestring.
-
- > import Json.Encode as Encode
- >
- > tom : Encode.Value
- > tom =
- >   Encode.object
- >     [ ( "name", Encode.string "Tom" )
- >     , ( "age", Encode.int 42 )
- >     ]
- >
- > compact =
- >   Encode.toByteString tom
- >   -- {"name":"Tom","age":42}
--}
-toByteString :: Value -> BL.ByteString
-toByteString value =
-  B.toLazyByteString $ encodeHelp "" value
-
-
-encodeHelp :: BSC.ByteString -> Value -> B.Builder
-encodeHelp indent value =
-  case value of
-    Array [] ->
-      B.string7 "[]"
-
-    Array (first : rest) ->
-      encodeArray indent first rest
-
-    Object [] ->
-      B.string7 "{}"
-
-    Object (first : rest) ->
-      encodeObject indent first rest
-
-    String str ->
-      B.char7 '"' <> B.byteString str <> B.char7 '"'
-
-    Boolean boolean ->
-      B.string7 (if boolean then "true" else "false")
-
-    Int n ->
-      B.intDec n
-
-    Float float_ ->
-      B.doubleDec float_
-
-    NULL ->
-      "null"
-
-
-
--- ENCODE ARRAY
-
-
-encodeArray :: BSC.ByteString -> Value -> [Value] -> B.Builder
-encodeArray =
-  encodeSequence arrayOpen arrayClose encodeHelp
-
-
-arrayOpen :: B.Builder
-arrayOpen =
-  B.string7 "["
-
-
-arrayClose :: B.Builder
-arrayClose =
-  B.char7 ']'
-
-
-
--- ENCODE OBJECT
-
-
-encodeObject :: BSC.ByteString -> (ByteString.ByteString, Value) -> [(ByteString.ByteString, Value)] -> B.Builder
-encodeObject =
-  encodeSequence objectOpen objectClose encodeField
-
-
-objectOpen :: B.Builder
-objectOpen =
-  B.string7 "{"
-
-
-objectClose :: B.Builder
-objectClose =
-  B.char7 '}'
-
-
-encodeField :: BSC.ByteString -> (ByteString.ByteString, Value) -> B.Builder
-encodeField indent (key, value) =
-  B.char7 '"' <> B.byteString key <> B.string7 "\":" <> encodeHelp indent value
+  object $ List.map toPair (Dict.toList pairs)
 
 
 
 -- ENCODE SEQUENCE
 
 
-encodeSequence :: B.Builder -> B.Builder -> (BSC.ByteString -> a -> B.Builder) -> BSC.ByteString -> a -> [a] -> B.Builder
-encodeSequence open close encodeEntry indent first rest =
+encodeSequence :: B.Builder -> B.Builder -> (a -> B.Builder) -> a -> [a] -> B.Builder
+encodeSequence open close encodeEntry x xs =
   let
-    newIndent =
-      indent
-
-    newIndentBuilder =
-      B.byteString newIndent
-
-    closer =
-      B.byteString indent <> close
-
-    addValue field builder =
-      commaNewline
-      <> newIndentBuilder
-      <> encodeEntry newIndent field
+    addEntry entry builder =
+      comma
+      <> encodeEntry entry
       <> builder
   in
-    open
-    <> newIndentBuilder
-    <> encodeEntry newIndent first
-    <> foldr addValue closer rest
+  open
+  <> encodeEntry x
+  <> foldr addEntry close xs
 
 
-commaNewline :: B.Builder
-commaNewline =
+comma :: B.Builder
+comma =
   B.string7 ","

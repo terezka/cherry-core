@@ -13,6 +13,7 @@ import qualified GHC.Stack as Stack
 import qualified Data.Text
 import qualified Data.Text.Encoding
 import qualified Data.ByteString.Lazy as ByteString
+import qualified Data.ByteString.Builder as Builder
 import qualified Debug
 import qualified Dict
 import qualified String
@@ -131,11 +132,11 @@ pretty encodeContext (Entry severity namespace message context time callstack) =
           |> String.join U.break
 
       viewStack ( function, location ) =
-        U.indent 2 ++ "\"" ++ Data.Text.pack function ++ "\" at " ++ viewLocation location
+        U.indent 2 ++ "\"" ++ Debug.toString function ++ "\" at " ++ viewLocation location
 
       viewLocation location =
         String.join ":"
-          [ Data.Text.pack (Stack.srcLocFile location)
+          [ Debug.toString (Stack.srcLocFile location)
           , Debug.toString (Stack.srcLocStartLine location)
           , Debug.toString (Stack.srcLocStartCol location)
           ]
@@ -166,16 +167,22 @@ compact encodeContext (Entry severity namespace message context _ _) =
 
 
 toText :: Json.Value -> String
-toText =
-  Data.Text.Encoding.decodeUtf8 << ByteString.toStrict << Json.toByteString
+toText value =
+  Json.toBuilder value
+    |> Builder.toLazyByteString
+    |> ByteString.toStrict
+    |> Debug.toString
 
 
 {-| JSON formatting of the entry. Can be used with `terminal`, `file`,
 or inside a custom target.
 -}
 json :: (s -> Json.Value) -> Entry s -> String
-json encodeContext =
-  encode encodeContext >> Json.toByteString >> ByteString.toStrict >> Data.Text.Encoding.decodeUtf8
+json encodeContext entry =
+  Json.toBuilder (encodeContext (context entry))
+    |> Builder.toLazyByteString
+    |> ByteString.toStrict
+    |> Debug.toString
 
 
 

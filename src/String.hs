@@ -11,7 +11,8 @@ Portability : POSIX
 -}
 
 module String
-  ( String, isEmpty, length, reverse, repeat, replace
+  ( -- * String
+    String, isEmpty, length, reverse, repeat, replace
 
     -- * Building and Splitting
   , append, concat, split, join, words, lines
@@ -40,19 +41,24 @@ module String
 
     -- * Higher-Order Functions
   , map, filter, foldl, foldr, any, all
+
+    -- * Conversions to Haskell Types
+  , toBuilder, toTextUtf8, fromTextUtf8
   )
 where
 
-import Basics ((+), (-), (<), (<=), (>>), Bool, Float, Int, clamp, (|>))
-import Prelude (otherwise)
+import Prelude (Bool, Float, Int, (+), (<))
 import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
 import qualified Prelude
+import qualified Data.ByteString.Builder as HB
+import qualified Data.String as HS
 import qualified Data.Text as HT
+import qualified Data.Text.Encoding as HTE
+import qualified Data.Text.Internal.Search as HTIS
 import qualified Data.Maybe as HM
-import qualified Data.Either as HE
-import qualified Text.Read as Read
+import qualified Text.Read as HTR
 import qualified List as List
 
 
@@ -80,8 +86,14 @@ Using the escapes can be better if you need one of the many whitespace
 characters with different widths.
 
 -}
-type String =
-  HT.Text
+
+newtype String =
+  String HT.Text
+  deriving (Prelude.Eq, Prelude.Ord)
+
+
+instance HS.IsString String where
+  fromString = fromList
 
 
 {-| Determine if a string is empty.
@@ -90,8 +102,8 @@ type String =
   >  isEmpty "the world" == False
 -}
 isEmpty :: String -> Bool
-isEmpty =
-  HT.null
+isEmpty (String s) =
+  HT.null s
 
 
 {-|  Get the length of a string.
@@ -100,8 +112,8 @@ isEmpty =
   >  length "" == 0
 -}
 length :: String -> Int
-length =
-  HT.length >> Prelude.fromIntegral
+length (String s) =
+  HT.length s
 
 
 {-| Reverse a string.
@@ -109,8 +121,8 @@ length =
   >  reverse "stressed" == "desserts"
 -}
 reverse :: String -> String
-reverse =
-  HT.reverse
+reverse (String s) =
+  String (HT.reverse s)
 
 
 {-| Repeat a string *n* times.
@@ -118,8 +130,8 @@ reverse =
   >  repeat 3 "ha" == "hahaha"
 -}
 repeat :: Int -> String -> String
-repeat =
-  Prelude.fromIntegral >> HT.replicate
+repeat n (String s) =
+  String (HT.replicate n s)
 
 
 {-| Replace all occurrences of some substring.
@@ -128,8 +140,8 @@ repeat =
   >  replace "," "/" "a,b,c,d,e"           == "a/b/c/d/e"
 -}
 replace :: String -> String -> String -> String
-replace =
-  HT.replace
+replace (String before) (String after) (String string) =
+  String (HT.replace before after string)
 
 
 
@@ -141,8 +153,8 @@ replace =
   >  append "butter" "fly" == "butterfly"
 -}
 append :: String -> String -> String
-append =
-  HT.append
+append (String a) (String b) =
+  String (HT.append a b)
 
 
 {-| Concatenate many strings into one.
@@ -150,8 +162,8 @@ append =
   >  concat ["never","the","less"] == "nevertheless"
 -}
 concat :: List String -> String
-concat =
-  HT.concat
+concat strings =
+  String (HT.concat (List.map (\(String s) -> s) strings))
 
 
 {-| Split a string using a given separator.
@@ -160,8 +172,12 @@ concat =
   >  split "/" "home/evan/Desktop/" == ["home","evan","Desktop", ""]
 -}
 split :: String -> String -> List String
-split =
-  HT.splitOn
+split (String sep) (String string) =
+  if HT.null sep
+  then List.map fromChar (HT.unpack string)
+  else List.map String (HT.splitOn sep string)
+  -- docs say that HT.splitOn will crash on empty strings
+  -- https://hackage.haskell.org/package/text-utf8-1.2.3.0/docs/Data-Text.html#v:splitOn
 
 
 {-| Put many strings together with a given separator.
@@ -171,8 +187,8 @@ split =
   >  join "/" ["home","evan","Desktop"] == "home/evan/Desktop"
 -}
 join :: String -> List String -> String
-join =
-  HT.intercalate
+join (String sep) strings =
+  String (HT.intercalate sep (List.map (\(String s) -> s) strings))
 
 
 {-| Break a string into words, splitting on chunks of whitespace.
@@ -180,8 +196,8 @@ join =
   >  words "How are \t you? \n Good?" == ["How","are","you?","Good?"]
 -}
 words :: String -> List String
-words =
-  HT.words
+words (String s) =
+  List.map String (HT.words s)
 
 
 {-| Break a string into lines, splitting on newlines.
@@ -189,8 +205,8 @@ words =
   >  lines "How are you?\nGood?" == ["How are you?", "Good?"]
 -}
 lines :: String -> List String
-lines =
-  HT.lines
+lines (String s) =
+  List.map String (HT.lines s)
 
 
 
@@ -206,16 +222,29 @@ lines =
   >  slice -6 -1 "snakes on a plane!" == "plane"
 -}
 slice :: Int -> Int -> String -> String
-slice from to text =
-  let len = HT.length text
-      handleNegative value = if value < 0 then len + value else value
-      normalize = Prelude.fromIntegral >> handleNegative >> clamp 0 len
-      from' = normalize from
-      to' = normalize to
+slice start end (String str) =
+  let
+    len = HT.length str
+
+    normalize value =
+      clamp 0 len (if value < 0 then len + value else value)
+
+    lo = normalize start
+    hi = normalize end
   in
-  if to' - from' <= 0
-    then HT.empty
-    else HT.drop from' (HT.take to' text)
+  if lo < hi
+  then String (HT.drop lo (HT.take hi str))
+  else String HT.empty
+
+
+clamp :: Int -> Int -> Int -> Int
+clamp lo hi n =
+  if n < lo then
+    lo
+  else if hi < n then
+    hi
+  else
+    n
 
 
 {-| Take *n* characters from the left side of a string.
@@ -223,8 +252,8 @@ slice from to text =
   >  left 2 "Mulder" == "Mu"
 -}
 left :: Int -> String -> String
-left =
-  Prelude.fromIntegral >> HT.take
+left n (String s) =
+  String (HT.take n s)
 
 
 {-| Take *n* characters from the right side of a string.
@@ -232,8 +261,8 @@ left =
   >  right 2 "Scully" == "ly"
 -}
 right :: Int -> String -> String
-right =
-  Prelude.fromIntegral >> HT.takeEnd
+right n (String s) =
+  String (HT.takeEnd n s)
 
 
 {-| Drop *n* characters from the left side of a string.
@@ -241,8 +270,8 @@ right =
   >  dropLeft 2 "The Lone Gunmen" == "e Lone Gunmen"
 -}
 dropLeft :: Int -> String -> String
-dropLeft =
-  Prelude.fromIntegral >> HT.drop
+dropLeft n (String s) =
+  String (HT.drop n s)
 
 
 {-| Drop *n* characters from the right side of a string.
@@ -250,8 +279,8 @@ dropLeft =
   >  dropRight 2 "Cigarette Smoking Man" == "Cigarette Smoking M"
 -}
 dropRight :: Int -> String -> String
-dropRight =
-  Prelude.fromIntegral >> HT.dropEnd
+dropRight n (String s) =
+  String (HT.dropEnd n s)
 
 
 
@@ -265,8 +294,8 @@ dropRight =
   >  contains "THE" "theory" == False
 -}
 contains :: String -> String -> Bool
-contains =
-  HT.isInfixOf
+contains (String sub) (String string) =
+  HT.isInfixOf sub string
 
 
 {-| See if the second string starts with the first one.
@@ -275,8 +304,8 @@ contains =
   >  startsWith "ory" "theory" == False
 -}
 startsWith :: String -> String -> Bool
-startsWith =
-  HT.isPrefixOf
+startsWith (String start) (String string) =
+  HT.isPrefixOf start string
 
 
 {-| See if the second string ends with the first one.
@@ -285,8 +314,8 @@ startsWith =
   >  endsWith "ory" "theory" == True
 -}
 endsWith :: String -> String -> Bool
-endsWith =
-  HT.isSuffixOf
+endsWith (String end) (String string) =
+  HT.isSuffixOf end string
 
 
 {-| Get all of the indexes for a substring in another string.
@@ -296,15 +325,8 @@ endsWith =
   >  indexes "needle" "haystack" == []
 -}
 indexes :: String -> String -> List Int
-indexes n h =
-  let indexes' needle haystack =
-        HT.breakOnAll needle haystack
-          |> List.map length_
-
-      length_ (lhs, _) =
-        Prelude.fromIntegral (HT.length lhs)
-  in
-  if isEmpty n then [] else indexes' n h
+indexes (String sub) (String str) =
+  HTIS.indices sub str
 
 
 {-| Alias for `indexes`.
@@ -324,8 +346,8 @@ indices =
   >  toUpper "skinner" == "SKINNER"
 -}
 toUpper :: String -> String
-toUpper =
-  HT.toUpper
+toUpper (String s) =
+  String (HT.toUpper s)
 
 
 {-| Convert a string to all lower case. Useful for case-insensitive comparisons.
@@ -333,8 +355,8 @@ toUpper =
   >  toLower "X-FILES" == "x-files"
 -}
 toLower :: String -> String
-toLower =
-  HT.toLower
+toLower (String s) =
+  String (HT.toLower s)
 
 
 {-| Pad a string on both sides until it has a given length.
@@ -344,8 +366,8 @@ toLower =
   >  pad 5 ' ' "121" == " 121 "
 -}
 pad :: Int -> Char -> String -> String
-pad =
-  Prelude.fromIntegral >> HT.center
+pad n char (String str) =
+  String (HT.center n char str)
 
 
 {-| Pad a string on the left until it has a given length.
@@ -355,8 +377,8 @@ pad =
   >  padLeft 5 '.' "121" == "..121"
 -}
 padLeft :: Int -> Char -> String -> String
-padLeft =
-  Prelude.fromIntegral >> HT.justifyRight
+padLeft n char (String str) =
+  String (HT.justifyRight n char str)
 
 
 {-| Pad a string on the right until it has a given length.
@@ -366,8 +388,8 @@ padLeft =
   >  padRight 5 '.' "121" == "121.."
 -}
 padRight :: Int -> Char -> String -> String
-padRight =
-  Prelude.fromIntegral >> HT.justifyLeft
+padRight n char (String str) =
+  String (HT.justifyLeft n char str)
 
 
 {-| Get rid of whitespace on both sides of a string.
@@ -375,8 +397,8 @@ padRight =
   >  trim "  hats  \n" == "hats"
 -}
 trim :: String -> String
-trim =
-  HT.strip
+trim (String str) =
+  String (HT.strip str)
 
 
 {-| Get rid of whitespace on the left of a string.
@@ -384,8 +406,8 @@ trim =
   >  trimLeft "  hats  \n" == "hats  \n"
 -}
 trimLeft :: String -> String
-trimLeft =
-  HT.stripStart
+trimLeft (String str) =
+  String (HT.stripStart str)
 
 
 {-| Get rid of whitespace on the right of a string.
@@ -393,8 +415,8 @@ trimLeft =
   >  trimRight "  hats  \n" == "  hats"
 -}
 trimRight :: String -> String
-trimRight =
-  HT.stripEnd
+trimRight (String str) =
+  String (HT.stripEnd str)
 
 
 
@@ -415,15 +437,17 @@ want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
   >  Maybe.withDefault 0 (String.toInt "ab") == 0
 -}
 toInt :: String -> Maybe Int
-toInt text =
-  let str = HT.unpack text
-      str' = case str of
-        '+' : rest -> rest
-        other -> other
-  in
-  case Read.readEither str' of
-    HE.Left _  -> Nothing
-    HE.Right a -> Just a
+toInt str =
+  case toList str of
+    '+':chars -> safeRead chars
+    chars     -> safeRead chars
+
+
+safeRead :: (Prelude.Read a) => List Char -> Maybe a
+safeRead chars =
+  case HTR.readMaybe chars of
+    HM.Just a  -> Just a
+    HM.Nothing -> Nothing
 
 
 {-| Convert an `Int` to a `String`.
@@ -433,8 +457,8 @@ toInt text =
 
 -}
 fromInt :: Int -> String
-fromInt =
-  Prelude.show >> HT.pack
+fromInt n =
+  fromList (Prelude.show n)
 
 
 
@@ -455,16 +479,11 @@ want to use [`Maybe.withDefault`](Maybe#withDefault) to handle bad data:
   >  Maybe.withDefault 0 (String.toFloat "cats") == 0
 -}
 toFloat :: String -> Maybe Float
-toFloat text =
-  let str = HT.unpack text
-      str' = case str of
-        '+' : rest -> rest
-        '.' : rest -> '0' : '.' : rest
-        other -> other
-  in
-  case Read.readEither str' of
-    HE.Left _  -> Nothing
-    HE.Right a -> Just a
+toFloat str =
+  case toList str of
+    '+':chars -> safeRead chars
+    '.':chars -> safeRead ('0':'.':chars)
+    chars     -> safeRead chars
 
 
 {-| Convert a `Float` to a `String`.
@@ -474,8 +493,8 @@ toFloat text =
   >  String.fromFloat 3.9 == "3.9"
 -}
 fromFloat :: Float -> String
-fromFloat =
-  Prelude.show >> HT.pack
+fromFloat n =
+  fromList (Prelude.show n)
 
 
 
@@ -488,8 +507,8 @@ fromFloat =
   >  toList "🙈🙉🙊" == ['🙈','🙉','🙊']
 -}
 toList :: String -> List Char
-toList =
-  HT.unpack
+toList (String str) =
+  HT.unpack str
 
 
 {-| Convert a list of characters into a String. Can be useful if you
@@ -500,8 +519,8 @@ toList =
   >  fromList ['🙈','🙉','🙊'] == "🙈🙉🙊"
 -}
 fromList :: List Char -> String
-fromList =
-  HT.pack
+fromList chars =
+  String (HT.pack chars)
 
 
 
@@ -513,8 +532,8 @@ fromList =
   >  fromChar 'a' == "a"
 -}
 fromChar :: Char -> String
-fromChar =
-  HT.singleton
+fromChar char =
+  String (HT.singleton char)
 
 
 {-| Add a character to the beginning of a String.
@@ -522,8 +541,8 @@ fromChar =
   >  cons 'T' "he truth is out there" == "The truth is out there"
 -}
 cons :: Char -> String -> String
-cons =
-  HT.cons
+cons char (String str) =
+  String (HT.cons char str)
 
 
 {-| Split a non-empty String into its head and tail. This lets you
@@ -533,10 +552,10 @@ pattern match on strings exactly as you would with lists.
   >  uncons ""    == Nothing
 -}
 uncons :: String -> Maybe (Char, String)
-uncons text =
-  case HT.uncons text of
-    HM.Nothing -> Nothing
-    HM.Just a -> Just a
+uncons (String str) =
+  case HT.uncons str of
+    HM.Just (c,s) -> Just (c, String s)
+    HM.Nothing    -> Nothing
 
 
 
@@ -548,8 +567,8 @@ uncons text =
   >  map (\c -> if c == '/' then '.' else c) "a/b/c" == "a.b.c"
 -}
 map :: (Char -> Char) -> String -> String
-map =
-  HT.map
+map func (String str) =
+  String (HT.map func str)
 
 
 {-| Keep only the characters that pass the test.
@@ -557,8 +576,8 @@ map =
   >  filter isDigit "R2-D2" == "22"
 -}
 filter :: (Char -> Bool) -> String -> String
-filter =
-  HT.filter
+filter isGood (String str) =
+  String (HT.filter isGood str)
 
 
 {-| Reduce a String from the left.
@@ -566,8 +585,8 @@ filter =
   >  foldl cons "" "time" == "emit"
 -}
 foldl :: (Char -> b -> b) -> b -> String -> b
-foldl f =
-  HT.foldl' (Prelude.flip f)
+foldl step state (String str) =
+  HT.foldl' (Prelude.flip step) state str
 
 
 {-| Reduce a String from the right.
@@ -575,8 +594,8 @@ foldl f =
   >  foldr cons "" "time" == "time"
 -}
 foldr :: (Char -> b -> b) -> b -> String -> b
-foldr =
-  HT.foldr
+foldr step state (String str) =
+  HT.foldr step state str
 
 
 {-| Determine whether *any* characters pass the test.
@@ -586,8 +605,8 @@ foldr =
   >  any isDigit "heart" == False
 -}
 any :: (Char -> Bool) -> String -> Bool
-any =
-  HT.any
+any isGood (String str) =
+  HT.any isGood str
 
 
 {-| Determine whether *all* characters pass the test.
@@ -597,6 +616,34 @@ any =
   >  all isDigit "heart" == False
 -}
 all :: (Char -> Bool) -> String -> Bool
-all =
-  HT.all
+all isGood (String str) =
+  HT.all isGood str
+
+
+
+-- CONVERSION TO HASKELL TYPES
+
+
+{-| It is pretty common to use `Data.ByteString.Builder` when generating output
+so this function is compatible with that system, and fast!
+-}
+toBuilder :: String -> HB.Builder
+toBuilder (String str) =
+  HTE.encodeUtf8Builder str
+
+
+{-| Convert to a `Text` value as defined in the `text-utf8` package.
+
+You can do more conversions from there if needed.
+-}
+toTextUtf8 :: String -> HT.Text
+toTextUtf8 (String str) =
+  str
+
+
+{-| Convert from a `Text` value as defined in the `text-utf8` package.
+-}
+fromTextUtf8 :: HT.Text -> String
+fromTextUtf8 =
+  String
 

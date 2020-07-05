@@ -29,8 +29,7 @@ module Char
   , toCode, fromCode
   ) where
 
-import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure)
-import Basics ((&&), (<<), (<=), Bool (..), Int)
+import Prelude (Applicative, Eq, Functor, Monad, Num, Ord, Show, Bool(..), Int, (&&), (<=), flip, mappend, mconcat, otherwise, pure)
 import qualified Data.Char
 
 
@@ -194,7 +193,7 @@ toLower =
 -}
 toCode :: Char -> Int
 toCode =
-  fromIntegral << Data.Char.ord
+  Data.Char.ord
 
 
 {-| Convert a Unicode [code point](https://en.wikipedia.org/wiki/Code_point) to a character.
@@ -213,6 +212,6 @@ range, you get [the replacement character](https://en.wikipedia.org/wiki/Special
 fromCode :: Int -> Char
 fromCode value =
   if 0 <= value && value <= 0x10FFFF then
-    Data.Char.chr (fromIntegral value)
+    Data.Char.chr value
   else
     '\xfffd'

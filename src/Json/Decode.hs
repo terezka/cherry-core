@@ -15,44 +15,53 @@ Portability : POSIX
 module Json.Decode
   ( -- Turn JSON values into Haskell values.
     -- * Primitives
-    Decoder, string, chars, bool, int, float, null, succeed, fail
+    Decoder
+  , string
+  , bool
+  , int
+  , float
+  , null
+  , succeed
+  , fail
     -- * Data Structures
-  , nullable, list, oneOrMore, dict, pair, field, at
+  , nullable
+  , list
+  , oneOrMore
+  , dict
+  , pair
+  , field
+  , at
     -- * Inconsistent Data Structure
-  , maybe, oneOf
+  , maybe
+  , oneOf
     -- * Run Decoders
-  , fromByteString
-  , Error(..), Problem(..), DecodeExpectation(..), ParseError(..), errorToString
+  , fromString
+  , Error(..)
+  , Problem(..)
+  , DecodeExpectation(..)
+  , ParseError(..)
+  , errorToString
     -- * Transforming
   , map, map2, map3, map4, map5, map6, map7, map8, andThen
   )
   where
 
-import qualified Data.Either as Either
+
+import Prelude hiding ((++), Float, String, maybe, map, fail, null)
 import qualified Data.List as List hiding (map)
 import qualified Data.Maybe as Maybe
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.ByteString.Internal as ByteString
-import qualified Data.ByteString.Char8 as Char8
-
-import qualified Json.Encode as Json
-import qualified Parser.Keyword as K
-import qualified Parser.Primitives as P
-import qualified Parser.Variable as V
-import qualified Dict
-import Parser.Primitives (Row, Col)
-import Json.Ast (AST(..))
-
-import Foreign.Ptr (Ptr, plusPtr, minusPtr)
-import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
+import GHC.Prim (ByteArray#)
 import GHC.Word (Word8)
-import Data.Word (Word16)
-import Prelude hiding (maybe, map, fail, null, Float, String)
-import String (String)
-import Basics (Float)
-import Result (Result(..))
+import Basics ((++), Float)
 import Dict (Dict)
+import qualified Dict
+import qualified Json.String as JS
+import List (List)
+import Parser (Pos, End, Row, Col)
+import qualified Parser as P
+import Result (Result(..))
+import String (String)
+import qualified String
 
 
 
@@ -64,17 +73,17 @@ import Dict (Dict)
 This will fail if the string is not well-formed JSON or if the `Decoder`
 fails for some reason.
 
- > fromByteString int "4"     == Ok 4
- > fromByteString int "1 + 2" == Err ...
+ > fromString int "4"     == Ok 4
+ > fromString int "1 + 2" == Err ...
 
 -}
-fromByteString :: Decoder a -> ByteString.ByteString -> Result Error a
-fromByteString (Decoder decode) src =
-  case P.fromByteString pFile BadEnd src of
-    Either.Right ast ->
+fromString :: Decoder a -> String -> Result Error a
+fromString (Decoder decode) src =
+  case P.fromString pFile BadEnd src of
+    Ok ast ->
       decode ast Ok (Err . DecodeProblem)
 
-    Either.Left problem ->
+    Err problem ->
       Err (ParseProblem problem)
 
 
@@ -86,6 +95,16 @@ fromByteString (Decoder decode) src =
 -}
 newtype Decoder a =
   Decoder (forall b. AST -> (a -> b) -> (Problem -> b) -> b)
+
+
+data AST
+  = Array (List AST)
+  | Object (List (String, AST))
+  | String String
+  | Int Int
+  | Float Float
+  | Boolean Bool
+  | NULL
 
 
 
@@ -100,7 +119,7 @@ red.
 data Error
   = DecodeProblem Problem
   | ParseProblem ParseError
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 
@@ -108,12 +127,12 @@ data Error
 
 
 data Problem
-  = Field ByteString.ByteString Problem
+  = Field String Problem
   | Index Int Problem
   | OneOf Problem [Problem]
   | Failure String
   | Expecting DecodeExpectation
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 {-| -}
@@ -124,10 +143,10 @@ data DecodeExpectation
   | TBool
   | TInt
   | TFloat
-  | TObjectWith ByteString.ByteString
+  | TObjectWith String
   | TArrayPair Int
   | TNull
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 
@@ -143,11 +162,11 @@ errorToString error =
   case error of
     DecodeProblem problem ->
       case problem of
-        Field name _ ->
-          "Could not decode field " <> Text.decodeUtf8 name <> "."
+        Field field _ ->
+          "Could not decode field " ++ field ++ "."
 
         Index i _ ->
-          "Errored at array index " <> Text.pack (show i) <> "."
+          "Errored at array index " ++ String.fromList (show i) ++ "."
 
         OneOf _ _ ->
           "Could not find any solutions in oneOf"
@@ -175,8 +194,8 @@ errorToString error =
             TFloat ->
               "Expected a float."
 
-            TObjectWith field_ ->
-              "Expected an object with a property \"" <> Text.decodeUtf8 field_ <> "\"."
+            TObjectWith field ->
+              "Expected an object with a property \"" ++ field ++ "\"."
 
             TArrayPair _ ->
               "Expected an array of two elements."
@@ -240,41 +259,21 @@ instance Monad Decoder where
 -- STRINGS
 
 
-{-| Decode a JSON string into a list of `Char`'s.
-
- > fromByteString string "true"              == Err ...
- > fromByteString string "42"                == Err ...
- > fromByteString string "3.14"              == Err ...
- > fromByteString string "\"hello\""         == Ok "hello"
- > fromByteString string "{ \"hello\": 42 }" == Err ...
-
--}
-chars :: Decoder [Char]
-chars =
-  Decoder $ \ast ok err ->
-    case ast of
-      String snippet ->
-        ok (Char8.unpack snippet)
-
-      _ ->
-        err (Expecting TString)
-
-
 {-| Decode a JSON string into a `Text`.
 
- > fromByteString string "true"              == Err ...
- > fromByteString string "42"                == Err ...
- > fromByteString string "3.14"              == Err ...
- > fromByteString string "\"hello\""         == Ok "hello"
- > fromByteString string "{ \"hello\": 42 }" == Err ...
+ > fromString string "true"              == Err ...
+ > fromString string "42"                == Err ...
+ > fromString string "3.14"              == Err ...
+ > fromString string "\"hello\""         == Ok "hello"
+ > fromString string "{ \"hello\": 42 }" == Err ...
 
 -}
 string :: Decoder String
 string =
   Decoder $ \ast ok err ->
     case ast of
-      String snippet ->
-        ok (Text.decodeUtf8 snippet)
+      String str ->
+        ok str
 
       _ ->
         err (Expecting TString)
@@ -286,11 +285,11 @@ string =
 
 {-| Decode a JSON boolean into a `Prelude.Bool`.
 
- > fromByteString bool "true"              == Ok True
- > fromByteString bool "42"                == Err ...
- > fromByteString bool "3.14"              == Err ...
- > fromByteString bool "\"hello\""         == Err ...
- > fromByteString bool "{ \"hello\": 42 }" == Err ...
+ > fromString bool "true"              == Ok True
+ > fromString bool "42"                == Err ...
+ > fromString bool "3.14"              == Err ...
+ > fromString bool "\"hello\""         == Err ...
+ > fromString bool "{ \"hello\": 42 }" == Err ...
 
 -}
 bool :: Decoder Bool
@@ -310,11 +309,11 @@ bool =
 
 {-| Decode a JSON number into an `Prelude.Int`.
 
- > fromByteString int "true"              == Err ...
- > fromByteString int "42"                == Ok 42
- > fromByteString int "3.14"              == Err ...
- > fromByteString int "\"hello\""         == Err ...
- > fromByteString int "{ \"hello\": 42 }" == Err ...
+ > fromString int "true"              == Err ...
+ > fromString int "42"                == Ok 42
+ > fromString int "3.14"              == Err ...
+ > fromString int "\"hello\""         == Err ...
+ > fromString int "{ \"hello\": 42 }" == Err ...
 
 -}
 int :: Decoder Int
@@ -334,11 +333,11 @@ int =
 
 {-| Decode a JSON number into a `Prelude.Float`.
 
- > fromByteString float "true"              == Err ..
- > fromByteString float "42"                == Ok 42
- > fromByteString float "3.14"              == Ok 3.14
- > fromByteString float "\"hello\""         == Err ...
- > fromByteString float "{ \"hello\": 42 }" == Err ...
+ > fromString float "true"              == Err ..
+ > fromString float "42"                == Ok 42
+ > fromString float "3.14"              == Ok 3.14
+ > fromString float "\"hello\""         == Err ...
+ > fromString float "{ \"hello\": 42 }" == Err ...
 
 -}
 float :: Decoder Float
@@ -358,10 +357,10 @@ float =
 
 {-| Decode a nullable JSON value into a value.
 
- > fromByteString (nullable int) "13"    == Ok (Just 13)
- > fromByteString (nullable int) "42"    == Ok (Just 42)
- > fromByteString (nullable int) "null"  == Ok Nothing
- > fromByteString (nullable int) "true"  == Err ..
+ > fromString (nullable int) "13"    == Ok (Just 13)
+ > fromString (nullable int) "42"    == Ok (Just 42)
+ > fromString (nullable int) "null"  == Ok Nothing
+ > fromString (nullable int) "true"  == Err ..
 
 -}
 nullable :: Decoder a -> Decoder (Maybe.Maybe a)
@@ -385,10 +384,10 @@ null_ =
 
 {-| Decode a `null` value into some value.
 
- > fromByteString (null False) "null" == Ok False
- > fromByteString (null 42) "null"    == Ok 42
- > fromByteString (null 42) "42"      == Err ..
- > fromByteString (null 42) "false"   == Err ..
+ > fromString (null False) "null" == Ok False
+ > fromString (null 42) "null"    == Ok 42
+ > fromString (null 42) "42"      == Err ..
+ > fromString (null 42) "false"   == Err ..
 
 So if you ever see a `null`, this will return whatever value you specified.
 -}
@@ -411,12 +410,12 @@ null value =
 examples:
 
  > json = """{ "name": "tom", "age": 42 }"""
- > fromByteString (maybe (field "age"    int  )) json == Ok (Just 42)
- > fromByteString (maybe (field "name"   int  )) json == Ok Nothing
- > fromByteString (maybe (field "height" float)) json == Ok Nothing
- > fromByteString (field "age"    (maybe int  )) json == Ok (Just 42)
- > fromByteString (field "name"   (maybe int  )) json == Ok Nothing
- > fromByteString (field "height" (maybe float)) json == Err ...
+ > fromString (maybe (field "age"    int  )) json == Ok (Just 42)
+ > fromString (maybe (field "name"   int  )) json == Ok Nothing
+ > fromString (maybe (field "height" float)) json == Ok Nothing
+ > fromString (field "age"    (maybe int  )) json == Ok (Just 42)
+ > fromString (field "name"   (maybe int  )) json == Ok Nothing
+ > fromString (field "height" (maybe float)) json == Err ...
 
 Notice the last example! It is saying we *must* have a field named `height` and
 the content *may* be a float. There is no `height` field, so the decoder fails.
@@ -437,8 +436,8 @@ maybe decoder_ =
 
 {-| Decode a JSON array into a `List`.
 
- > fromByteString (list int) "[1,2,3]"       == Ok [1,2,3]
- > fromByteString (list bool) "[true,false]" == Ok [True,False]
+ > fromString (list int) "[1,2,3]"       == Ok [1,2,3]
+ > fromString (list bool) "[true,false]" == Ok [True,False]
 
 -}
 list :: Decoder a -> Decoder [a]
@@ -472,8 +471,8 @@ listHelp decoder@(Decoder decodeA) ok err !i asts revs =
 
 {-| Decode a JSON array of exactly two elements into a `Tuple`.
 
- > fromByteString (pair int book) "[1, false]"    == Ok (1, false)
- > fromByteString (pair int bool) "[1, false, 3]" == Err ..
+ > fromString (pair int book) "[1, false]"    == Ok (1, false)
+ > fromString (pair int bool) "[1, false, 3]" == Err ..
 
 -}
 pair :: Decoder a -> Decoder b -> Decoder ( a, b )
@@ -507,7 +506,7 @@ pair (Decoder decodeA) (Decoder decodeB) =
 
 {-| Decode a JSON object into an `Dict`.
 
- > fromByteString (dict int) "{ \"alice\": 42, \"bob\": 99 }"
+ > fromString (dict int) "{ \"alice\": 42, \"bob\": 99 }"
  >   == Ok (Dict.fromList [("alice", 42), ("bob", 99)])
 
 If you need the keys (like `alice` and `bob`) available in the `Dict`
@@ -570,17 +569,16 @@ pairs valueDecoder =
         err (Expecting TObject)
 
 
-pairsHelp :: Decoder a -> ([( String, a )] -> b) -> (Problem -> b) -> [( ByteString.ByteString, AST )] -> [( String, a )] -> b
+pairsHelp :: Decoder a -> ([( String, a )] -> b) -> (Problem -> b) -> [( String, AST )] -> [( String, a )] -> b
 pairsHelp valueDecoder@(Decoder decodeA) ok err kvs revs =
   case kvs of
     [] ->
       ok (List.reverse revs)
 
-    ( string_, ast ) : kvs ->
+    ( key, ast ) : kvs ->
       let
-        key = Text.decodeUtf8 string_
         ok' value = pairsHelp valueDecoder ok err kvs (( key, value ) : revs)
-        err' prob = err (Field string_ prob)
+        err' prob = err (Field key prob)
       in
       decodeA ast ok' err'
 
@@ -608,17 +606,17 @@ oneOrMoreHelp toValue xs =
 
 {-| Decode a JSON object, requiring a particular field.
 
- > fromByteString (field "x" int) "{ \"x\": 3 }"            == Ok 3
- > fromByteString (field "x" int) "{ \"x\": 3, \"y\": 4 }"  == Ok 3
- > fromByteString (field "x" int) "{ \"x\": true }"         == Err ...
- > fromByteString (field "x" int) "{ \"y\": 4 }"            == Err ...
- > fromByteString (field "name" string) "{ \"name\": \"tom\" }" == Ok "tom"
+ > fromString (field "x" int) "{ \"x\": 3 }"            == Ok 3
+ > fromString (field "x" int) "{ \"x\": 3, \"y\": 4 }"  == Ok 3
+ > fromString (field "x" int) "{ \"x\": true }"         == Err ...
+ > fromString (field "x" int) "{ \"y\": 4 }"            == Err ...
+ > fromString (field "name" string) "{ \"name\": \"tom\" }" == Ok "tom"
 
 The object *can* have other fields. Lots of them! The only thing this decoder
 cares about is if `x` is present and that the value there is an `Int`.
 Check out [`map2`](#map2) to see how to decode multiple fields!
 -}
-field :: ByteString.ByteString -> Decoder a -> Decoder a
+field :: String -> Decoder a -> Decoder a
 field key (Decoder decodeA) =
   Decoder $ \ast ok err ->
     case ast of
@@ -638,7 +636,7 @@ field key (Decoder decodeA) =
         err (Expecting TObject)
 
 
-findField :: ByteString.ByteString -> [( ByteString.ByteString, AST )] -> Maybe.Maybe AST
+findField :: String -> [( String, AST )] -> Maybe.Maybe AST
 findField key pairs =
   case pairs of
     [] ->
@@ -653,15 +651,15 @@ findField key pairs =
 {-| Decode a nested JSON object, requiring certain fields.
 
  > json = """{ "person": { "name": "tom", "age": 42 } }"""
- > fromByteString (at ["person", "name"] string) json  == Ok "tom"
- > fromByteString (at ["person", "age" ] int   ) json  == Ok "42
+ > fromString (at ["person", "name"] string) json  == Ok "tom"
+ > fromString (at ["person", "age" ] int   ) json  == Ok "42
 
 This is really just a shorthand for saying things like:
 
  > field "person" (field "name" string) == at ["person","name"] string
 
 -}
-at :: [ByteString.ByteString] -> Decoder a -> Decoder a
+at :: [String] -> Decoder a -> Decoder a
 at fields decoder =
     List.foldr field decoder fields
 
@@ -680,7 +678,7 @@ numbers, but some of them are `null`.
  > badInt =
  >   oneOf [ int, null 0 ]
  >
- > -- fromByteString (list badInt) "[1,2,null,4]" == Ok [1,2,0,4]
+ > -- fromString (list badInt) "[1,2,null,4]" == Ok [1,2,0,4]
 
 Why would someone generate JSON like this? Questions like this are not good
 for your health. The point is that you can use `oneOf` to handle situations
@@ -747,9 +745,9 @@ fail x =
 
 {-| Ignore the JSON and produce a certain value.
 
- > fromByteString (succeed 42) "true"    == Ok 42
- > fromByteString (succeed 42) "[1,2,3]" == Ok 42
- > fromByteString (succeed 42) "hello"   == Err ... -- this is not a valid JSON string
+ > fromString (succeed 42) "true"    == Ok 42
+ > fromString (succeed 42) "[1,2,3]" == Ok 42
+ > fromString (succeed 42) "hello"   == Err ... -- this is not a valid JSON string
 
 This is handy when used with `oneOf` or `andThen`.
 -}
@@ -797,7 +795,7 @@ objects with many fields:
  >     (field "x" float)
  >     (field "y" float)
  >
- > -- fromByteString point """{ "x": 3, "y": 4 }""" == Ok { x = 3, y = 4 }
+ > -- fromString point """{ "x": 3, "y": 4 }""" == Ok { x = 3, y = 4 }
 
 It tries each individual decoder and puts the result together with the `Point`
 constructor.
@@ -820,7 +818,7 @@ objects with many fields:
  >     (at ["info","height"] float)
  >
  > -- json = """{ "name": "tom", "info": { "age": 42, "height": 1.8 } }"""
- > -- fromByteString person json == Ok { name = "tom", age = 42, height = 1.8 }
+ > -- fromString person json == Ok { name = "tom", age = 42, height = 1.8 }
 
 Like `map2` it tries each decoder in order and then give the results to the
 `Person` constructor. That can be any function though!
@@ -921,7 +919,7 @@ data ParseError
   | Value Row Col
   | Colon Row Col
   | BadEnd Row Col
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 data StringProblem
@@ -929,14 +927,14 @@ data StringProblem
   | BadStringControlChar
   | BadStringEscapeChar
   | BadStringEscapeHex
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 data NumberProblem
   = NumberEnd
   | NumberDot Int
   | NumberNoLeadingZero
-  deriving (Eq, Show)
+  deriving (Eq)
 
 
 
@@ -957,12 +955,12 @@ pValue =
     [ String <$> pString
     , pObject
     , pArray
-    , K.symbol 0x2B {- + -} NumberStart >> pNumber id id
-    , K.symbol 0x2D {- - -} NumberStart >> pNumber negate negate
+    , P.symbol 0x2B {- + -} NumberStart >> pNumber id id
+    , P.symbol 0x2D {- - -} NumberStart >> pNumber negate negate
     , pNumber id id
-    , K.k4 0x74 0x72 0x75 0x65      Bool >> return (Boolean True)
-    , K.k5 0x66 0x61 0x6C 0x73 0x65 Bool >> return (Boolean False)
-    , K.k4 0x6E 0x75 0x6C 0x6C      Null >> return NULL
+    , P.k4 0x74 0x72 0x75 0x65      Bool >> return (Boolean True)
+    , P.k5 0x66 0x61 0x6C 0x73 0x65 Bool >> return (Boolean False)
+    , P.k4 0x6E 0x75 0x6C 0x6C      Null >> return NULL
     ]
 
 
@@ -983,7 +981,7 @@ pObject =
         ]
 
 
-pObjectHelp :: [( ByteString.ByteString, AST )] -> Parser AST
+pObjectHelp :: [(String, AST)] -> Parser AST
 pObjectHelp revEntries =
   P.oneOf ObjectMore
     [ do  P.word1 0x2C {-,-} ObjectMore
@@ -997,7 +995,7 @@ pObjectHelp revEntries =
     ]
 
 
-pField :: Parser (ByteString.ByteString, AST)
+pField :: Parser (String, AST)
 pField =
   do  key <- pString
       spaces
@@ -1042,25 +1040,24 @@ pArrayHelp revEntries =
 -- STRING
 
 
-pString :: Parser ByteString.ByteString
+pString :: Parser String
 pString =
-  P.Parser $ \(P.State src pos end indent row col) cok _ cerr eerr ->
-    if pos < end && P.unsafeIndex pos == 0x22 {-"-} then
+  P.Parser $ \(P.State src pos end row col) cok _ cerr eerr ->
+    if pos < end && P.unsafeIndex src pos == 0x22 {-"-} then
       let
-        !pos1 = plusPtr pos 1
+        !pos1 = pos + 1
         !col1 = col + 1
 
         (# status, newPos, newRow, newCol #) =
-          pStringHelp pos1 end row col1
+          pStringHelp src pos1 end row col1 pos1 []
       in
       case status of
-        GoodString ->
-          let !off = minusPtr pos1 (unsafeForeignPtrToPtr src)
-              !len = minusPtr newPos pos1 - 1
-              !bts = ByteString.PS src off len
-              !newState = P.State src newPos end indent newRow newCol
+        GoodString chunks ->
+          let
+            string = String.fromTextUtf8 (JS.toTextUtf8 src chunks)
+            !newState = P.State src newPos end newRow newCol
           in
-          cok bts newState
+          cok string newState
 
         BadString problem ->
           cerr newRow newCol (StringProblem problem)
@@ -1070,48 +1067,68 @@ pString =
 
 
 data StringStatus
-  = GoodString
+  = GoodString [JS.Chunk]
   | BadString StringProblem
 
 
-pStringHelp :: Ptr Word8 -> Ptr Word8 -> Word16 -> Word16 -> (# StringStatus, Ptr Word8, Word16, Word16 #)
-pStringHelp pos end row col =
+pStringHelp :: ByteArray# -> Pos -> End -> Row -> Col -> Pos -> [JS.Chunk] -> (# StringStatus, Pos, Row, Col #)
+pStringHelp src pos end row col initPos revChunks =
   if pos >= end then
     (# BadString BadStringEnd, pos, row, col #)
   else
-    case P.unsafeIndex pos of
+    case P.unsafeIndex src pos of
       0x22 {-"-} ->
-        (# GoodString, plusPtr pos 1, row, col + 1 #)
+        (# GoodString (finalize initPos pos revChunks), pos + 1, row, col + 1 #)
 
       0x0A {-\n-} ->
         (# BadString BadStringEnd, pos, row, col #)
 
       0x5C {-\-} ->
-        let !pos1 = plusPtr pos 1 in
+        let !pos1 = pos + 1 in
         if pos1 >= end then
           (# BadString BadStringEnd, pos1, row + 1, col #)
 
         else
-          case P.unsafeIndex pos1 of
-            0x22 {-"-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x5C {-\-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x2F {-/-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x62 {-b-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x66 {-f-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x6E {-n-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x72 {-r-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
-            0x74 {-t-} -> pStringHelp (plusPtr pos 2) end row (col + 2)
+          case P.unsafeIndex src pos1 of
+            0x22 {-"-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x22) initPos pos revChunks)
+            0x5C {-\-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x5C) initPos pos revChunks)
+            0x2F {-/-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x2F) initPos pos revChunks)
+            0x62 {-b-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x08) initPos pos revChunks)
+            0x66 {-f-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x0C) initPos pos revChunks)
+            0x6E {-n-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x0A) initPos pos revChunks)
+            0x72 {-r-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x0D) initPos pos revChunks)
+            0x74 {-t-} -> pStringHelp src (pos + 2) end row (col + 2) (pos + 2) (addChunks (JS.Escape 0x09) initPos pos revChunks)
             0x75 {-u-} ->
-              let !pos6 = plusPtr pos 6 in
-              if pos6 <= end
-                && isHex (P.unsafeIndex (plusPtr pos 2))
-                && isHex (P.unsafeIndex (plusPtr pos 3))
-                && isHex (P.unsafeIndex (plusPtr pos 4))
-                && isHex (P.unsafeIndex (plusPtr pos 5))
-              then
-                pStringHelp pos6 end row (col + 6)
+              let !pos6 = pos + 6 in
+              if end < pos6
+              then (# BadString BadStringEscapeHex, pos, row, col #)
               else
-                (# BadString BadStringEscapeHex, pos, row, col #)
+                let !code = getEscapedUtf16 src pos in
+                if code < 0
+                then (# BadString BadStringEscapeHex, pos, row, col #)
+                else
+                  if code < 0xD800 || 0xDBFF < code
+                  then
+                    pStringHelp src pos6 end row (col + 6) pos6 $
+                      addChunks (JS.CodePoint code) initPos pos revChunks
+                  else
+                    if 0xDBFF < code
+                    then (# BadString BadStringEscapeHex, pos, row, col #)
+                    else
+                      let !pos12 = pos6 + 6 in
+                      if pos12 <= end
+                        && P.unsafeIndex src (pos6    ) == 0x5C {-\-}
+                        && P.unsafeIndex src (pos6 + 1) == 0x75 {-u-}
+                      then
+                        let !pair = getEscapedUtf16 src pos6 in
+                        if pair < 0 || pair < 0xDC00 || 0xDFFF < pair
+                        then (# BadString BadStringEscapeHex, pos, row, col #)
+                        else
+                          let !point = 0x10000 + 0x400 * (code - 0xD800) + (pair - 0xDC00) in
+                          pStringHelp src pos12 end row (col + 12) pos12 $
+                            addChunks (JS.CodePoint point) initPos pos revChunks
+                      else
+                        (# BadString BadStringEscapeHex, pos, row, col #)
 
             _ ->
               (# BadString BadStringEscapeChar, pos, row, col #)
@@ -1121,15 +1138,55 @@ pStringHelp pos end row col =
           (# BadString BadStringControlChar, pos, row, col #)
 
         else
-          let !newPos = plusPtr pos (P.getCharWidth pos end word) in
-          pStringHelp newPos end row (col + 1)
+          let !newPos = pos + P.getCharWidth word in
+          pStringHelp src newPos end row (col + 1) initPos revChunks
 
 
-isHex :: Word8 -> Bool
-isHex word =
-     0x30 {-0-} <= word && word <= 0x39 {-9-}
-  || 0x61 {-a-} <= word && word <= 0x66 {-f-}
-  || 0x41 {-A-} <= word && word <= 0x46 {-F-}
+finalize :: Int -> Int -> [JS.Chunk] -> [JS.Chunk]
+finalize start end revChunks =
+  reverse $
+    if start == end then
+      revChunks
+    else
+      JS.Slice start (end - start) : revChunks
+
+
+addChunks :: JS.Chunk -> Int -> Int -> [JS.Chunk] -> [JS.Chunk]
+addChunks chunk start end revChunks =
+  if start == end then
+    chunk : revChunks
+  else
+    chunk : JS.Slice start (end - start) : revChunks
+
+
+
+-- GET CODE
+--
+-- Will be negative for invalid encodings!
+--
+
+
+getEscapedUtf16 :: ByteArray# -> Int -> Int
+getEscapedUtf16 src pos =
+  let
+    !d1 = toHex    1 (P.unsafeIndex src (pos + 2))
+    !d2 = toHex   16 (P.unsafeIndex src (pos + 3))
+    !d3 = toHex  256 (P.unsafeIndex src (pos + 4))
+    !d4 = toHex 4096 (P.unsafeIndex src (pos + 5))
+  in
+  d1 + d2 + d3 + d4
+
+
+toHex :: Int -> Word8 -> Int
+toHex factor word =
+  if 0x30 {-0-} <= word && word <= 0x39 {-9-} then
+    factor * fromIntegral (word - 0x30)
+  else if 0x61 {-a-} <= word && word <= 0x66 {-f-} then
+    factor * fromIntegral (word - 0x61)
+  else if 0x41 {-A-} <= word && word <= 0x46 {-F-} then
+    factor * fromIntegral (word - 0x41)
+  else
+    -65536
 
 
 
@@ -1138,27 +1195,27 @@ isHex word =
 
 spaces :: Parser ()
 spaces =
-  P.Parser $ \state@(P.State src pos end indent row col) cok eok _ _ ->
-    let (# newPos, newRow, newCol #) = eatSpaces pos end row col in
+  P.Parser $ \state@(P.State src pos end row col) cok eok _ _ ->
+    let (# newPos, newRow, newCol #) = eatSpaces src pos end row col in
     if pos == newPos then
       eok () state
 
     else
-      let !newState = P.State src newPos end indent newRow newCol in
+      let !newState = P.State src newPos end newRow newCol in
       cok () newState
 
 
-eatSpaces :: Ptr Word8 -> Ptr Word8 -> Word16 -> Word16 -> (# Ptr Word8, Word16, Word16 #)
-eatSpaces pos end row col =
+eatSpaces :: ByteArray# -> Pos -> End -> Row -> Col -> (# Pos, Row, Col #)
+eatSpaces src pos end row col =
   if pos >= end then
     (# pos, row, col #)
 
   else
-    case P.unsafeIndex pos of
-      0x20 {-  -} -> eatSpaces (plusPtr pos 1) end row (col + 1)
-      0x09 {-\t-} -> eatSpaces (plusPtr pos 1) end row (col + 1)
-      0x0A {-\n-} -> eatSpaces (plusPtr pos 1) end (row + 1) 1
-      0x0D {-\r-} -> eatSpaces (plusPtr pos 1) end row col
+    case P.unsafeIndex src pos of
+      0x20 {-  -} -> eatSpaces src (pos + 1) end row (col + 1)
+      0x09 {-\t-} -> eatSpaces src (pos + 1) end row (col + 1)
+      0x0A {-\n-} -> eatSpaces src (pos + 1) end (row + 1) 1
+      0x0D {-\r-} -> eatSpaces src (pos + 1) end row col
       _ ->
         (# pos, row, col #)
 
@@ -1169,40 +1226,40 @@ eatSpaces pos end row col =
 
 pNumber :: (Int -> Int) -> (Float -> Float) -> Parser AST
 pNumber signInt signFloat =
-  P.Parser $ \(P.State src pos end indent row col) cok _ cerr eerr ->
+  P.Parser $ \(P.State src pos end row col) cok _ cerr eerr ->
     if pos >= end then
       eerr row col NumberStart
 
     else
-      let !word = P.unsafeIndex pos in
+      let !word = P.unsafeIndex src pos in
       if not (isDecimalDigit word) then
         eerr row col NumberStart
 
       else
         let
           outcome =
-            let !pos1 = plusPtr pos 1 in
+            let !pos1 = pos + 1 in
             if word == 0x30 {-0-} then
-              chompZero pos1 end
+              chompZero src pos1 end
             else
-              chompInt pos1 end (toInt word)
+              chompInt src pos1 end (toInt word)
         in
         case outcome of
           BadOutcome newPos problem ->
-            let !newCol = col + fromIntegral (minusPtr newPos pos) in
+            let !newCol = col + fromIntegral (newPos - pos) in
             cerr row newCol (NumberProblem problem)
 
           OkInt newPos n ->
-            let !newCol = col + fromIntegral (minusPtr newPos pos)
+            let !newCol = col + fromIntegral (newPos - pos)
                 !integer = Int (signInt n)
-                !newState = P.State src newPos end indent row newCol
+                !newState = P.State src newPos end row newCol
             in
             cok integer newState
 
           OkFloat newPos n ->
-            let !newCol = col + fromIntegral (minusPtr newPos pos)
+            let !newCol = col + fromIntegral (newPos - pos)
                 !float = Float (signFloat n)
-                !newState = P.State src newPos end indent row newCol
+                !newState = P.State src newPos end row newCol
             in
             cok float newState
 
@@ -1212,34 +1269,34 @@ pNumber signInt signFloat =
 
 
 data Outcome
-  = BadOutcome (Ptr Word8) NumberProblem
-  | OkInt (Ptr Word8) Int
-  | OkFloat (Ptr Word8) Float
+  = BadOutcome Pos NumberProblem
+  | OkInt Pos Int
+  | OkFloat Pos Float
 
 
 
 -- CHOMP INT
 
 
-chompInt :: Ptr Word8 -> Ptr Word8 -> Int -> Outcome
-chompInt !pos end !n =
+chompInt :: ByteArray# -> Pos -> End -> Int -> Outcome
+chompInt src !pos end !n =
   if pos >= end then
     OkInt pos n
 
   else
-    let !word = P.unsafeIndex pos in
+    let !word = P.unsafeIndex src pos in
     if isDecimalDigit word then
-      let !pos1 = plusPtr pos 1 in
-      chompInt pos1 end (10 * n + toInt word)
+      let !pos1 = pos + 1 in
+      chompInt src pos1 end (10 * n + toInt word)
 
     else if word == 0x2E {-.-} then
-      let !pos1 = plusPtr pos 1 in
-      chompFraction pos1 end n
+      let !pos1 = pos + 1 in
+      chompFraction src pos1 end n
 
     else if word == 0x65 {-e-} || word == 0x45 {-E-} then
-      chompExponent (plusPtr pos 1) end (fromIntegral n)
+      chompExponent src (pos + 1) end (fromIntegral n)
 
-    else if isDirtyEnd pos end word then
+    else if isDirtyEnd src pos end word then
       BadOutcome pos NumberEnd
 
     else
@@ -1250,41 +1307,41 @@ chompInt !pos end !n =
 -- CHOMP FRACTION
 
 
-chompFraction :: Ptr Word8 -> Ptr Word8 -> Int -> Outcome
-chompFraction pos end !n =
+chompFraction :: ByteArray# -> Pos -> End -> Int -> Outcome
+chompFraction src pos end !n =
   if pos >= end then
     BadOutcome pos (NumberDot n)
 
   else
-    let !word1 = P.unsafeIndex pos in
+    let !word1 = P.unsafeIndex src pos in
     if isDecimalDigit word1 then
       let !fraction = 1 / 10 * toFloat word1
           !n' = fromIntegral n + fraction
-          !pos1 = plusPtr pos 1
+          !pos1 = pos + 1
       in
-      chompFractionHelp pos1 end (-2) n'
+      chompFractionHelp src pos1 end (-2) n'
 
   else
     BadOutcome pos (NumberDot n)
 
 
-chompFractionHelp :: Ptr Word8 -> Ptr Word8 -> Float -> Float -> Outcome
-chompFractionHelp pos end !power !n =
+chompFractionHelp :: ByteArray# -> Pos -> End -> Float -> Float -> Outcome
+chompFractionHelp src pos end !power !n =
   if pos >= end then
     OkFloat pos n
 
   else
-    let !word = P.unsafeIndex pos in
+    let !word = P.unsafeIndex src pos in
     if isDecimalDigit word then
       let !fraction = (10 ** power) * toFloat word
           !n' = n + fraction
       in
-      chompFractionHelp (plusPtr pos 1) end (power - 1) n'
+      chompFractionHelp src (pos + 1) end (power - 1) n'
 
     else if word == 0x65 {-e-} || word == 0x45 {-E-} then
-      chompExponent (plusPtr pos 1) end n
+      chompExponent src (pos + 1) end n
 
-    else if isDirtyEnd pos end word then
+    else if isDirtyEnd src pos end word then
       BadOutcome pos NumberEnd
 
     else
@@ -1295,39 +1352,39 @@ chompFractionHelp pos end !power !n =
 -- CHOMP EXPONENT
 
 
-chompExponent :: Ptr Word8 -> Ptr Word8 -> Float -> Outcome
-chompExponent pos end n =
+chompExponent :: ByteArray# -> Pos -> End -> Float -> Outcome
+chompExponent src pos end n =
   if pos >= end then
     BadOutcome pos NumberEnd
 
   else
-    let !word = P.unsafeIndex pos in
+    let !word = P.unsafeIndex src pos in
     if isDecimalDigit word then
       let !exponent = toInt word in
-      chompExponentHelp (plusPtr pos 1) end exponent n
+      chompExponentHelp src (pos + 1) end exponent n
 
     else if word == 0x2B {- + -} then
-      let !pos1 = plusPtr pos 1
-          !word1 = P.unsafeIndex pos1
+      let !pos1 = pos + 1
+          !word1 = P.unsafeIndex src pos1
       in
       if pos1 < end && isDecimalDigit word1 then
         let !exponent = toInt word1
-            !pos2 = plusPtr pos 2
+            !pos2 = pos + 2
         in
-        chompExponentHelp pos2 end exponent n
+        chompExponentHelp src pos2 end exponent n
 
       else
         BadOutcome pos NumberEnd
 
     else if word == 0x2D {- - -} then
-      let !pos1 = plusPtr pos 1
-          !word1 = P.unsafeIndex pos1
+      let !pos1 = pos + 1
+          !word1 = P.unsafeIndex src pos1
       in
       if pos1 < end && isDecimalDigit word1 then
         let !exponent = toInt word1
-            !pos2 = plusPtr pos 2
+            !pos2 = pos + 2
         in
-        chompExponentHelp pos2 end (negate exponent) n
+        chompExponentHelp src pos2 end (negate exponent) n
 
       else
         BadOutcome pos NumberEnd
@@ -1336,18 +1393,18 @@ chompExponent pos end n =
       BadOutcome pos NumberEnd
 
 
-chompExponentHelp :: Ptr Word8 -> Ptr Word8 -> Int -> Float -> Outcome
-chompExponentHelp pos end exponent n =
+chompExponentHelp :: ByteArray# -> Pos -> End -> Int -> Float -> Outcome
+chompExponentHelp src pos end exponent n =
   if pos >= end then
     OkFloat pos (n * 10^exponent)
 
   else
-    let !word = P.unsafeIndex pos in
+    let !word = P.unsafeIndex src pos in
     if isDecimalDigit word then
       let !exponent' = 10 * exponent + toInt word
-          !pos1 = plusPtr pos 1
+          !pos1 = pos + 1
       in
-      chompExponentHelp pos1 end exponent' n
+      chompExponentHelp src pos1 end exponent' n
 
     else
       OkFloat pos (n * 10^exponent)
@@ -1357,20 +1414,20 @@ chompExponentHelp pos end exponent n =
 -- CHOMP ZERO
 
 
-chompZero :: Ptr Word8 -> Ptr Word8 -> Outcome
-chompZero pos end =
+chompZero :: ByteArray# -> Pos -> End -> Outcome
+chompZero src pos end =
   if pos >= end then
     OkInt pos 0
   else
-    let !word = P.unsafeIndex pos in
+    let !word = P.unsafeIndex src pos in
     if word == 0x2E {-.-} then
-      let !pos1 = plusPtr pos 1 in
-      chompFraction pos1 end 0
+      let !pos1 = pos + 1 in
+      chompFraction src pos1 end 0
 
     else if isDecimalDigit word then
       BadOutcome pos NumberNoLeadingZero
 
-    else if isDirtyEnd pos end word then
+    else if isDirtyEnd src pos end word then
       BadOutcome pos NumberEnd
 
     else
@@ -1387,9 +1444,9 @@ isDecimalDigit word =
   word <= 0x39 {-9-} && word >= 0x30 {-0-}
 
 
-isDirtyEnd :: Ptr Word8 -> Ptr Word8 -> Word8 -> Bool
-isDirtyEnd pos end word =
-  V.getInnerWidthHelp pos end word > 0
+isDirtyEnd :: ByteArray# -> Pos -> End -> Word8 -> Bool
+isDirtyEnd src pos end word =
+  P.getInnerWidthHelp src pos end word > 0
 
 
 toInt :: Word8 -> Int

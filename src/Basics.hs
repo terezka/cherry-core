@@ -28,7 +28,7 @@ module Basics
   , Bool(..), not, (&&), (||)
 
     -- * Append Strings and Lists
-  , (++)
+  , Appendable, (++)
 
     -- * Fancier Math
   , modBy, remainderBy, negate, abs, clamp, sqrt, logBase
@@ -43,31 +43,27 @@ module Basics
   , identity, always, (<|), (|>), (<<), (>>), Never, never
   ) where
 
-import Prelude ((<>), (&&), (||), (==), (/=), (<), (>), (<=), (>=), (+), (-), (*), (/), (^), Bool(..))
+import Prelude (Bool)
 import qualified Prelude
+import qualified List
+import qualified String
 
 
 -- INFIX OPERATORS
 
 
-infixr 0 <|
-(<|) = apL
+infixr 0  <|
+infixl 0  |>
+infixr 2  ||
+infixr 3  &&
+infix  4  ==, /=, <, >, <=, >=
+infixr 5  ++
+infixl 6  +, -
+infixl 7  *, /, //
+infixr 8  ^
+infixl 9  <<
+infixr 9  >>
 
-infixl 0 |>
-(|>) = apR
-
-infixl 7 //
-(//) = idiv
-
-infixl 9 <<
-(<<) = composeL
-
-infixr 9 >>
-(>>) = composeR
-
-infixr 5 ++
-(++) :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
-(++) = append
 
 
 -- MATHEMATICS
@@ -128,36 +124,36 @@ could say one of these:
   >  round 3.14 + List.length [1,2,3]     == 6
 
 -}
-add :: Prelude.Num number => number -> number -> number
-add =
-  (+)
+(+) :: Prelude.Num number => number -> number -> number
+(+) =
+  (Prelude.+)
 
 
 {-| Subtract numbers like `4 - 3 == 1`.
 
 See `(+)` for docs on the `number` type variable.
 -}
-sub :: Prelude.Num number => number -> number -> number
-sub =
-  (-)
+(-) :: (Prelude.Num number) => number -> number -> number
+(-) =
+  (Prelude.-)
 
 
 {-| Multiply numbers like `2 * 3 == 6`.
 
 See `(+)` for docs on the `number` type variable.
 -}
-mul :: Prelude.Num number => number -> number -> number
-mul =
-  (*)
+(*) :: (Prelude.Num number) => number -> number -> number
+(*) =
+  (Prelude.*)
 
 
 {-| Floating-point division:
 
   >  3.14 / 2 == 1.57
 -}
-fdiv :: Float -> Float -> Float
-fdiv =
-  (/)
+(/) :: Float -> Float -> Float
+(/) =
+  (Prelude./)
 
 
 {-| Integer division:
@@ -166,8 +162,8 @@ fdiv =
 
 Notice that the remainder is discarded.
 -}
-idiv :: Int -> Int -> Int
-idiv =
+(//) :: Int -> Int -> Int
+(//) =
   Prelude.quot
 
 
@@ -176,9 +172,9 @@ idiv =
   >  3^2 == 9
   >  3^3 == 27
 -}
-pow :: ( Prelude.Num number, Prelude.Integral number ) => number -> number -> number
-pow =
-  (^)
+(^) :: (Prelude.Num number, Prelude.Integral number) => number -> number -> number
+(^) =
+  (Prelude.^)
 
 
 
@@ -269,18 +265,18 @@ truncate =
 {-| Check if values are &ldquo;the same&rdquo;.
 
 -}
-eq :: ( Prelude.Ord a, Prelude.Eq a ) => a -> a -> Bool
-eq =
-  (==)
+(==) :: (Prelude.Eq a) => a -> a -> Bool
+(==) =
+  (Prelude.==)
 
 
 {-| Check if values are not &ldquo;the same&rdquo;.
 
 So `(a /= b)` is the same as `(not (a == b))`.
 -}
-neq :: ( Prelude.Ord a, Prelude.Eq a ) => a -> a -> Bool
-neq =
-  (/=)
+(/=) :: (Prelude.Eq a) => a -> a -> Bool
+(/=) =
+  (Prelude./=)
 
 
 
@@ -288,27 +284,27 @@ neq =
 
 
 {-|-}
-lt :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-lt =
-  (<)
+(<) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(<) =
+  (Prelude.<)
 
 
 {-|-}
-gt :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-gt =
-  (>)
+(>) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(>) =
+  (Prelude.>)
 
 
 {-|-}
-le :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-le =
-  (<=)
+(<=) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(<=) =
+  (Prelude.<=)
 
 
 {-|-}
-ge :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> Bool
-ge =
-  (>=)
+(>=) :: (Prelude.Ord comparable) => comparable -> comparable -> Bool
+(>=) =
+  (Prelude.>=)
 
 
 {-| Find the smaller of two comparables.
@@ -317,9 +313,9 @@ ge =
   >  min "abc" "xyz" == "abc"
 
 -}
-min :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> comparable
-min x y =
-  if lt x y then x else y
+min :: (Prelude.Ord comparable) => comparable -> comparable -> comparable
+min =
+  Prelude.min
 
 
 {-| Find the larger of two comparables.
@@ -328,9 +324,9 @@ min x y =
   >  max "abc" "xyz" == "xyz"
 
 -}
-max :: ( Prelude.Ord comparable, Prelude.Eq comparable ) => comparable -> comparable -> comparable
-max x y =
-  if gt x y then x else y
+max :: (Prelude.Ord comparable) => comparable -> comparable -> comparable
+max =
+  Prelude.max
 
 
 {-| Compare any two comparable values. Comparable values include `String`,
@@ -381,9 +377,9 @@ short-circuits. This means if `left` is `False` we do not bother evaluating `rig
 and just return `False` overall.
 
 -}
-and :: Bool -> Bool -> Bool
-and =
-  (&&)
+(&&) :: Bool -> Bool -> Bool
+(&&) =
+  (Prelude.&&)
 
 
 {-| The logical OR operator. `True` if one or both inputs are `True`.
@@ -398,24 +394,36 @@ short-circuits. This means if `left` is `True` we do not bother evaluating `righ
 and just return `True` overall.
 
 -}
-or :: Bool -> Bool -> Bool
-or =
-  (||)
+(||) :: Bool -> Bool -> Bool
+(||) =
+  (Prelude.||)
 
 
 
 -- APPEND
 
 
-{-| Put two appendable things together. This includes strings, lists, and text.
+{-| Put two appendable things together. This includes strings and lists.
 
   >  "hello" ++ "world" == "helloworld"
   >  [1,1,2] ++ [3,5,8] == [1,1,2,3,5,8]
 
 -}
-append :: Prelude.Semigroup appendable => appendable -> appendable -> appendable
-append =
-  (Prelude.<>)
+(++) :: (Appendable appendable) => appendable -> appendable -> appendable
+(++) =
+  append
+
+
+class Appendable a where
+  append :: a -> a -> a
+
+
+instance Appendable String.String where
+  append = String.append
+
+
+instance Appendable [a] where
+  append = List.append
 
 
 
@@ -442,8 +450,8 @@ information.
 
 -}
 modBy :: Int -> Int -> Int
-modBy =
-  Prelude.mod
+modBy modulus n =
+  n `Prelude.mod` modulus
 
 
 {-| Get the remainder after division. Here are bunch of examples of dividing by four:
@@ -457,8 +465,8 @@ information.
 
 -}
 remainderBy :: Int -> Int -> Int
-remainderBy =
-  Prelude.rem
+remainderBy divisor numerator =
+  numerator `Prelude.rem` divisor
 
 
 {-| Negate a number.
@@ -468,9 +476,9 @@ remainderBy =
   >  negate 0 == 0
 
 -}
-negate :: Prelude.Num number => number -> number
-negate n =
-  -n
+negate :: (Prelude.Num number) => number -> number
+negate =
+  Prelude.negate
 
 
 {-| Get the [absolute value](https://en.wikipedia.org/wiki/Absolute_value) of a number.
@@ -481,9 +489,9 @@ negate n =
   >  abs 3.14 == 3.14
 
 -}
-abs :: ( Prelude.Num number, Prelude.Ord number, Prelude.Eq number ) => number -> number
-abs n =
-  if lt n 0 then -n else n
+abs :: (Prelude.Num number) => number -> number
+abs =
+  Prelude.abs
 
 
 {-| Clamps a number within a given range. With the expression
@@ -494,11 +502,11 @@ abs n =
   >  200     if 200 <= x
 
 -}
-clamp :: ( Prelude.Num number, Prelude.Ord number, Prelude.Eq number ) => number -> number -> number -> number
+clamp :: (Prelude.Num number, Prelude.Ord number) => number -> number -> number -> number
 clamp low high number =
-  if lt number low then
+  if number < low then
     low
-  else if gt number high then
+  else if number > high then
     high
   else
     number
@@ -525,9 +533,7 @@ sqrt =
 -}
 logBase :: Float -> Float -> Float
 logBase base number =
-  fdiv
-    (Prelude.log number)
-    (Prelude.log base)
+  Prelude.log number / Prelude.log base
 
 
 
@@ -692,8 +698,8 @@ So our example expands out to something like this:
   >  \n -> not (isEven (sqrt n))
 
 -}
-composeL :: (b -> c) -> (a -> b) -> (a -> c)
-composeL g f x =
+(<<) :: (b -> c) -> (a -> b) -> (a -> c)
+(<<) g f x =
   g (f x)
 
 
@@ -703,8 +709,8 @@ example, the following code checks if the square root of a number is odd:
   >  sqrt >> isEven >> not
 
 -}
-composeR :: (a -> b) -> (b -> c) -> (a -> c)
-composeR f g x =
+(>>) :: (a -> b) -> (b -> c) -> (a -> c)
+(>>) f g x =
   g (f x)
 
 
@@ -738,8 +744,8 @@ named. It has a type annotation. It is much more self-documenting that way!
 Testing the logic gets easier too. Nice side benefit!
 
 -}
-apR :: a -> (a -> b) -> b
-apR x f =
+(|>) :: a -> (a -> b) -> b
+(|>) x f =
   f x
 
 
@@ -749,8 +755,8 @@ It can help you avoid parentheses, which can be nice sometimes. Maybe you want
 to apply a function to a `case` expression? That sort of thing.
 
 -}
-apL :: (a -> b) -> a -> b
-apL f x =
+(<|) :: (a -> b) -> a -> b
+(<|) f x =
   f x
 
 

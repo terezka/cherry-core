@@ -500,7 +500,7 @@ instance Control.Exception Exception
 
 instance Show Exception where
   show exception =
-    Data.Text.unpack <| Entry.pretty identity <|
+    Data.Text.unpack <| String.toTextUtf8 <| Entry.pretty identity <|
       Entry.Entry
         { Entry.severity = exception_severity exception
         , Entry.namespace = exception_namespace exception
@@ -517,7 +517,7 @@ fromSomeException key exception = do
   return Exception
     { exception_title = "Unknown error"
     , exception_severity = Entry.Unknown
-    , exception_message = Data.Text.pack (Control.displayException exception)
+    , exception_message = Debug.toString (Control.displayException exception)
     , exception_namespace = key_namespace key
     , exception_context = key_encoder key (key_context key)
     , exception_time = time

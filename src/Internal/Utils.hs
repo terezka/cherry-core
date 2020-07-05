@@ -3,12 +3,10 @@ module Internal.Utils where
 import qualified String
 import qualified List
 import qualified Dict
-import qualified Data.Text
 import qualified GHC.Stack as Stack
 import qualified System.IO
 import qualified Control.Concurrent.MVar as MVar
 import qualified Prelude as P
-import Control.Exception.Safe (bracket_)
 import Prelude (IO, FilePath, return, fmap, putStr, getLine)
 import Basics
 import Maybe (Maybe (..))
@@ -39,7 +37,7 @@ appendStack :: Stack.HasCallStack => String -> Stack.CallStack -> Stack.CallStac
 appendStack namespace old =
   case Stack.getCallStack Stack.callStack of
     ( function, location ) : _ ->
-      Stack.pushCallStack ( Data.Text.unpack namespace, location ) old
+      Stack.pushCallStack ( String.toList namespace, location ) old
 
     _ ->
       old
@@ -49,25 +47,28 @@ appendStack namespace old =
 -- FILE HELPERS
 
 
-openFile :: FilePath -> IO ( System.IO.Handle, MVar.MVar () )
-openFile filepath = do
-  handle <- System.IO.openFile filepath System.IO.AppendMode
-  System.IO.hSetBuffering handle (System.IO.BlockBuffering P.Nothing)
-  lock <- MVar.newMVar ()
-  return ( handle, lock )
+openFile :: FilePath -> IO (MVar.MVar System.IO.Handle)
+openFile filepath =
+  do  handle <- System.IO.openFile filepath System.IO.AppendMode
+      System.IO.hSetBuffering handle System.IO.LineBuffering
+      MVar.newMVar handle
 
 
-writeFile :: ( System.IO.Handle, MVar.MVar () ) -> String -> IO ()
-writeFile ( handle, lock ) text =
-  bracket_ (MVar.takeMVar lock) (MVar.putMVar lock ()) <|
-    System.IO.hPutStrLn handle (Data.Text.unpack text)
+writeFile :: MVar.MVar System.IO.Handle -> String -> IO ()
+writeFile lock string =
+  MVar.withMVar lock <| \handle ->
+    System.IO.hPutStrLn handle (String.toList string)
+    -- TODO use hPutBuf to skip lots of allocations
+    -- See the following implementation for an example
+    -- https://hackage.haskell.org/package/bytestring-0.10.10.0/docs/Data-ByteString.html#v:hPut
 
 
-closeFile :: ( System.IO.Handle, MVar.MVar () ) -> IO ()
-closeFile ( handle, _ ) = do
-  System.IO.hFlush handle
-  System.IO.hClose handle
-  return ()
+closeFile :: MVar.MVar System.IO.Handle -> IO ()
+closeFile lock =
+  do  handle <- MVar.takeMVar lock
+      System.IO.hFlush handle
+      System.IO.hClose handle
+
 
 
 -- TERMINAL HELPERS
@@ -81,7 +82,7 @@ openTerminal = do
 
 writeTerminal :: System.IO.Handle -> String -> IO ()
 writeTerminal handle text =
-  System.IO.hPutStr handle (Data.Text.unpack text)
+  System.IO.hPutStr handle (String.toList text)
 
 
 closeTerminal :: System.IO.Handle -> IO ()
@@ -93,14 +94,13 @@ closeTerminal handle = do
 {-| -}
 write :: String -> IO ()
 write string =
-  putStr (Data.Text.unpack string)
+  putStr (String.toList string)
 
 
 {-| -}
 read :: IO String
 read =
-  getLine
-    |> fmap Data.Text.pack
+  fmap String.fromList getLine
 
 
 
