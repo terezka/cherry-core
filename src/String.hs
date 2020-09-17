@@ -47,7 +47,7 @@ module String
   )
 where
 
-import Prelude (Bool, Float, Int, (+), (<))
+import Prelude (Bool, Float, Int, (+), (<), Show, show)
 import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
@@ -94,6 +94,9 @@ newtype String =
 
 instance HS.IsString String where
   fromString = fromList
+
+instance Show String where
+  show (String s) = show s
 
 
 {-| Determine if a string is empty.

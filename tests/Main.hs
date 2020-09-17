@@ -4,7 +4,6 @@ module Main where
 
 import Test.Hspec
 import qualified Data.Map.Strict as Map
-import qualified Data.Text.Encoding as Text
 import qualified Json.Decode as Decode
 import Cherry.Prelude (Result(..))
 

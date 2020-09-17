@@ -12,14 +12,14 @@ Read and write to the terminal.
 
 -}
 
-module Terminal (line, lines, read) where
+module Terminal (write, read) where
 
 import qualified List
 import qualified String
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
 import qualified Data.Text.IO as IO
-import Prelude (return, putStrLn, putStr, getContents)
+import Prelude (return, getContents)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
@@ -33,22 +33,10 @@ import Char (Char)
 
 
 {-| -}
-line :: String -> Task s x ()
-line string =
+write :: String -> Task s x ()
+write string =
   Task.Task <| \_ -> do
-    handle <- U.openTerminal
-    U.writeTerminal handle (string ++ "\n")
-    U.closeTerminal handle
-    return (Ok ())
-
-
-{-| -}
-lines :: List String -> Task s x ()
-lines strings =
-  Task.Task <| \_ -> do
-    handle <- U.openTerminal
-    U.writeTerminal handle (String.join "\n" strings ++ "\n")
-    U.closeTerminal handle
+    IO.putStrLn (String.toTextUtf8 string)
     return (Ok ())
 
 
@@ -56,5 +44,5 @@ lines strings =
 read :: Task s x String
 read =
   Task.Task <| \_ -> do
-    contents <- IO.getContents
+    contents <- IO.getLine
     return (Ok (String.fromTextUtf8 contents))

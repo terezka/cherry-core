@@ -65,7 +65,6 @@ import qualified String
 
 
 
-
 -- RUNNERS
 
 
@@ -119,7 +118,7 @@ red.
 data Error
   = DecodeProblem Problem
   | ParseProblem ParseError
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 
@@ -132,7 +131,7 @@ data Problem
   | OneOf Problem [Problem]
   | Failure String
   | Expecting DecodeExpectation
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 {-| -}
@@ -146,7 +145,7 @@ data DecodeExpectation
   | TObjectWith String
   | TArrayPair Int
   | TNull
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 
@@ -919,7 +918,7 @@ data ParseError
   | Value Row Col
   | Colon Row Col
   | BadEnd Row Col
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 data StringProblem
@@ -927,14 +926,14 @@ data StringProblem
   | BadStringControlChar
   | BadStringEscapeChar
   | BadStringEscapeHex
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 data NumberProblem
   = NumberEnd
   | NumberDot Int
   | NumberNoLeadingZero
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 

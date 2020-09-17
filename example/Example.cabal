@@ -10,7 +10,7 @@ extra-source-files:  CHANGELOG.md
 
 executable Example
   main-is:             Main.hs
-  other-modules:       Example.Log
+  other-modules:
   build-depends:       base >=4.12 && <4.13, HTTP, safe-exceptions, cherry-core, text, time
   hs-source-dirs:      src
   default-extensions:  OverloadedStrings, NoImplicitPrelude

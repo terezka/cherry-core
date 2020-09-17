@@ -29,7 +29,6 @@ library
     Json.Decode,
     Json.Encode,
     List,
-    Log,
     Maybe,
     Result,
     Set,
@@ -40,8 +39,6 @@ library
   other-modules:
     Internal.Shortcut,
     Internal.Task,
-    Internal.Entry,
-    Internal.Queue,
     Internal.Utils,
     Json.String,
     Parser

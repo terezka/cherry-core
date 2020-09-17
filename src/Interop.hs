@@ -12,14 +12,7 @@ Interop with third party libraries.
 
 -}
 
-module Interop
-  ( Key, key
-
-  , enter, exit
-
-  -- * Exception handling
-  , Task.Exception
-  ) where
+module Interop (Key, key, enter) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Internal.Shortcut as Shortcut
@@ -45,24 +38,11 @@ key =
 {-| When working with third party libraries, you might need to
 transform an `IO` into a `Task`. If that is the case, use this function.
 
-You shouldn't usually need to use this!
-
 -}
-enter :: Key -> IO a -> Task s Task.Exception a
+enter :: Key -> IO a -> Task k Control.SomeException a
 enter _ io =
-  Task.Task <| \key ->
+  Task.Task <| \_ ->
     io
       |> Shortcut.map Ok
-      |> Control.handleAny (Task.fromSomeException key >> Shortcut.map Err)
-
-
-{-| When working with third party libraries, you might need to
-transform a `Task` into an `IO`. If that is the case, use this function.
-
-You shouldn't usually need to use this!
-
--}
-exit :: Key -> Task.Config s -> Task s x a -> IO (Result x a)
-exit _ =
-  Task.attempt
+      |> Control.handleAny (Err >> return)
 

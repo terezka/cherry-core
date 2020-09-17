@@ -3,6 +3,7 @@ module Internal.Utils where
 import qualified String
 import qualified List
 import qualified Dict
+import qualified Data.Text
 import qualified GHC.Stack as Stack
 import qualified System.IO
 import qualified Control.Concurrent.MVar as MVar
@@ -17,91 +18,6 @@ import List (List)
 import Array (Array)
 import Set (Set)
 import Char (Char)
-
-
-
--- KEY HELPERS
-
-
-appendNamespace :: String -> String -> String
-appendNamespace old new =
-  if String.isEmpty old then new else old ++ "/" ++ new
-
-
-appendContext :: s -> List (s -> s) -> s
-appendContext old transformers =
-  List.foldl (\t s -> t s) old transformers
-
-
-appendStack :: Stack.HasCallStack => String -> Stack.CallStack -> Stack.CallStack
-appendStack namespace old =
-  case Stack.getCallStack Stack.callStack of
-    ( function, location ) : _ ->
-      Stack.pushCallStack ( String.toList namespace, location ) old
-
-    _ ->
-      old
-
-
-
--- FILE HELPERS
-
-
-openFile :: FilePath -> IO (MVar.MVar System.IO.Handle)
-openFile filepath =
-  do  handle <- System.IO.openFile filepath System.IO.AppendMode
-      System.IO.hSetBuffering handle System.IO.LineBuffering
-      MVar.newMVar handle
-
-
-writeFile :: MVar.MVar System.IO.Handle -> String -> IO ()
-writeFile lock string =
-  MVar.withMVar lock <| \handle ->
-    System.IO.hPutStrLn handle (String.toList string)
-    -- TODO use hPutBuf to skip lots of allocations
-    -- See the following implementation for an example
-    -- https://hackage.haskell.org/package/bytestring-0.10.10.0/docs/Data-ByteString.html#v:hPut
-
-
-closeFile :: MVar.MVar System.IO.Handle -> IO ()
-closeFile lock =
-  do  handle <- MVar.takeMVar lock
-      System.IO.hFlush handle
-      System.IO.hClose handle
-
-
-
--- TERMINAL HELPERS
-
-
-openTerminal :: IO System.IO.Handle
-openTerminal = do
-  System.IO.hSetBuffering System.IO.stdout (System.IO.BlockBuffering P.Nothing)
-  return System.IO.stdout
-
-
-writeTerminal :: System.IO.Handle -> String -> IO ()
-writeTerminal handle text =
-  System.IO.hPutStr handle (String.toList text)
-
-
-closeTerminal :: System.IO.Handle -> IO ()
-closeTerminal handle = do
-  System.IO.hFlush handle
-  return ()
-
-
-{-| -}
-write :: String -> IO ()
-write string =
-  putStr (String.toList string)
-
-
-{-| -}
-read :: IO String
-read =
-  fmap String.fromList getLine
-
 
 
 -- TEXT HELPERS
@@ -213,3 +129,10 @@ breakAt80 text =
     |> String.split " "
     |> List.foldl fold ([], [])
     |> concat
+
+
+--
+
+toString :: P.String -> String
+toString =
+  Data.Text.pack >> String.fromTextUtf8
