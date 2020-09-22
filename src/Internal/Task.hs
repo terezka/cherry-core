@@ -47,35 +47,34 @@ list. Or like a grocery list. Or like GitHub issues. So saying "the task is
 to tell me the current POSIX time" does not complete the task! You need
 `perform` tasks or `attempt` tasks.
 -}
-newtype Task k x a =
-  Task { toIO :: k -> IO (Result x a) }
+newtype Task x a =
+  Task { toIO :: IO (Result x a) }
 
 
-instance Functor (Task k a) where
+instance Functor (Task a) where
   fmap func task =
-    Task <| \key ->
-      toIO task key
-        |> fmap (Result.map func)
+    Task <| do
+      fmap (Result.map func) (toIO task)
 
 
-instance Applicative (Task k a) where
+instance Applicative (Task a) where
   pure a =
     succeed a
 
   (<*>) func task =
-    Task <| \key -> do
-      rFunc <- toIO func key
-      rTask <- toIO task key
+    Task <| do
+      rFunc <- toIO func
+      rTask <- toIO task
       let apply f t = f t
       return (Result.map2 apply rFunc rTask)
 
 
-instance Monad (Task k a) where
+instance Monad (Task a) where
   task >>= func =
-    Task <| \key -> do
-      result <- toIO task key
+    Task <| do
+      result <- toIO task
       case result of
-        Ok ok -> toIO (func ok) key
+        Ok ok -> toIO (func ok)
         Err err -> return (Err err)
 
 
@@ -91,17 +90,17 @@ instance Monad (Task k a) where
   >    Task.perform Time.now
 
 -}
-perform :: k -> Task k Never a -> IO a
-perform config task = do
-  Ok a <- attempt config task
+perform :: Task Never a -> IO a
+perform task = do
+  Ok a <- attempt task
   return a
 
 
 {-| Like `perform`, except for tasks which can fail.
 -}
-attempt :: k -> Task k x a -> IO (Result x a)
-attempt key task =
-  toIO task key
+attempt :: Task x a -> IO (Result x a)
+attempt task =
+  toIO task
 
 
 {-| A task that succeeds immediately when run. Often useful in the last
@@ -116,7 +115,7 @@ statement of a `do` block.
   >    Task.succeed (time, timezone)
 
 -}
-succeed :: a -> Task k x a
+succeed :: a -> Task x a
 succeed a =
   Task <| \_ -> return (Ok a)
 
@@ -130,7 +129,7 @@ used with `andThen` to check on the outcome of another task.
   >  notFound =
   >    fail NotFound
 -}
-fail :: x -> Task k x a
+fail :: x -> Task x a
 fail x =
   Task <| \_ -> return (Err x)
 
@@ -142,7 +141,7 @@ sequence fails.
   >  sequence [ succeed 1, succeed 2 ] == succeed [ 1, 2 ]
 
 -}
-sequence :: List (Task k x a) -> Task k x (List a)
+sequence :: List (Task x a) -> Task x (List a)
 sequence tasks =
   List.foldr (map2 (:)) (succeed []) tasks
 
@@ -158,7 +157,7 @@ callback to recover.
   >    |> onError (\msg -> succeed 42)
   >    -- succeed 9
 -}
-onError :: (x -> Task k y a) -> Task k x a -> Task k y a
+onError :: (x -> Task y a) -> Task x a -> Task y a
 onError func task =
   Task <| \key -> do
     result <- toIO task key
@@ -181,25 +180,9 @@ types to match up.
   >      , mapError WebGL textureTask
   >      ]
 -}
-mapError :: (x -> y) -> Task k x a -> Task k y a
+mapError :: (x -> y) -> Task x a -> Task y a
 mapError func task =
   onError (fail << func) task
 
 
-{-| Update your key. Useful for accumulating logging data.
-
--}
-mapKey :: (k -> l) -> Task l x a -> Task k x a
-mapKey update task =
-  Task <| \key ->
-    toIO task (update key)
-
-
-{-| Do something with your key. Useful for sending logs.
-
--}
-getKey :: (k -> l) -> Task k x l
-getKey f =
-  Task <| \key ->
-    return (Ok (f key))
 

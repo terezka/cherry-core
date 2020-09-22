@@ -25,7 +25,6 @@ module Task
     -- * Errors
   , Task.onError, Task.mapError
 
-  , Task.mapKey, Task.getKey
   ) where
 
 import qualified Internal.Task as Task
