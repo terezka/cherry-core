@@ -36,6 +36,7 @@ module Json.Decode
   , oneOf
     -- * Run Decoders
   , fromString
+  , fromFile
   , Error(..)
   , Problem(..)
   , DecodeExpectation(..)
@@ -50,9 +51,10 @@ module Json.Decode
 import Prelude hiding ((++), Float, String, maybe, map, fail, null)
 import qualified Data.List as List hiding (map)
 import qualified Data.Maybe as Maybe
+import qualified Data.Text.IO
 import GHC.Prim (ByteArray#)
 import GHC.Word (Word8)
-import Basics ((++), Float)
+import Basics ((++), Float, (<|))
 import Dict (Dict)
 import qualified Dict
 import qualified Json.String as JS
@@ -62,6 +64,8 @@ import qualified Parser as P
 import Result (Result(..))
 import String (String)
 import qualified String
+import Task (Task)
+import qualified Internal.Task
 
 
 
@@ -85,6 +89,14 @@ fromString (Decoder decode) src =
     Err problem ->
       Err (ParseProblem problem)
 
+
+{-| -}
+fromFile :: Decoder a -> String -> Task Error a
+fromFile decoder file =
+  Internal.Task.Task <| do
+    content <- Data.Text.IO.readFile (String.toList file)
+    let src = String.fromTextUtf8 content
+    return (fromString decoder src)
 
 
 -- DECODERS

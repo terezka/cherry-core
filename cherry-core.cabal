@@ -25,6 +25,7 @@ library
     Char,
     Debug,
     Dict,
+    File,
     Interop,
     Json.Decode,
     Json.Encode,
