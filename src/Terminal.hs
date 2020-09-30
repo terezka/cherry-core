@@ -33,16 +33,16 @@ import Char (Char)
 
 
 {-| -}
-write :: String -> Task s x ()
+write :: String -> Task x ()
 write string =
-  Task.Task <| \_ -> do
+  Task.Task <| do
     IO.putStrLn (String.toTextUtf8 string)
     return (Ok ())
 
 
 {-| -}
-read :: Task s x String
+read :: Task x String
 read =
-  Task.Task <| \_ -> do
+  Task.Task <| do
     contents <- IO.getLine
     return (Ok (String.fromTextUtf8 contents))

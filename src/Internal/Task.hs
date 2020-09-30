@@ -117,7 +117,7 @@ statement of a `do` block.
 -}
 succeed :: a -> Task x a
 succeed a =
-  Task <| \_ -> return (Ok a)
+  Task <| return (Ok a)
 
 
 {-| A task that fails immediately when run. Like with `succeed`, this can be
@@ -131,7 +131,7 @@ used with `andThen` to check on the outcome of another task.
 -}
 fail :: x -> Task x a
 fail x =
-  Task <| \_ -> return (Err x)
+  Task <| return (Err x)
 
 
 {-| Start with a list of tasks, and turn them into a single task that returns a
@@ -159,11 +159,11 @@ callback to recover.
 -}
 onError :: (x -> Task y a) -> Task x a -> Task y a
 onError func task =
-  Task <| \key -> do
-    result <- toIO task key
+  Task <| do
+    result <- toIO task
     case result of
       Ok ok -> return (Ok ok)
-      Err err -> toIO (func err) key
+      Err err -> toIO (func err)
 
 
 {-| Transform the error value. This can be useful if you need a bunch of error

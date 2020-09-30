@@ -40,7 +40,7 @@ import Prelude (IO)
 {-| Transform a task. Maybe you want to use [`elm/time`][time] to figure
 out what time it will be in one hour:
 
-  >  timeInOneHour :: Task k x Time.Posix
+  >  timeInOneHour :: Task x Time.Posix
   >  timeInOneHour =
   >    Task.map addAnHour Time.now
   >
@@ -49,43 +49,43 @@ out what time it will be in one hour:
   >    Time.millisToPosix (Time.posixToMillis time + 60 * 60 * 1000)
 
 -}
-map :: (a -> b) -> Task k x a -> Task k x b
+map :: (a -> b) -> Task x a -> Task x b
 map =
   Shortcut.map
 
 
 {-| Put the results of two tasks together.
 
-  >  newsfeed :: Task k x Newsfeed
+  >  newsfeed :: Task x Newsfeed
   >  newsfeed =
   >    Task.map2 combine getUser getNews
 
 -}
-map2 :: (a -> b -> result) -> Task k x a -> Task k x b -> Task k x result
+map2 :: (a -> b -> result) -> Task x a -> Task x b -> Task x result
 map2 =
   Shortcut.map2
 
 
 {-| -}
-map3 :: (a -> b -> c -> result) -> Task k x a -> Task k x b -> Task k x c -> Task k x result
+map3 :: (a -> b -> c -> result) -> Task x a -> Task x b -> Task x c -> Task x result
 map3 =
   Shortcut.map3
 
 
 {-| -}
-map4 :: (a -> b -> c -> d -> result) -> Task k x a -> Task k x b -> Task k x c -> Task k x d -> Task k x result
+map4 :: (a -> b -> c -> d -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x result
 map4 =
   Shortcut.map4
 
 
 {-| -}
-map5 :: (a -> b -> c -> d -> e -> result) -> Task k x a -> Task k x b -> Task k x c -> Task k x d -> Task k x e -> Task k x result
+map5 :: (a -> b -> c -> d -> e -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x result
 map5 =
   Shortcut.map5
 
 
 {-| -}
-map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task k x a -> Task k x b -> Task k x c -> Task k x d -> Task k x e -> Task k x f -> Task k x result
+map6 :: (a -> b -> c -> d -> e -> f -> result) -> Task x a -> Task x b -> Task x c -> Task x d -> Task x e -> Task x f -> Task x result
 map6 =
   Shortcut.map6
 
@@ -95,19 +95,19 @@ successful, you give the result to the callback resulting in another task. This
 task then gets run. We could use this to make a task that resolves an hour from
 now:
 
-  >  write :: Keys -> Task k x ()
+  >  write :: Keys -> Task x ()
   >  write keys =
   >    Http.get (http keys) "/username"
   >      |> Task.andThen Terminal.write
 
 As an alternative, you can use this special syntax:
 
-  >  write :: Keys -> Task k x ()
+  >  write :: Keys -> Task x ()
   >  write keys = do
   >    username <- Http.get (http keys) "/username"
   >    Terminal.write username
 
 -}
-andThen :: (a -> Task k x b) -> Task k x a -> Task k x b
+andThen :: (a -> Task x b) -> Task x a -> Task x b
 andThen =
   Shortcut.andThen

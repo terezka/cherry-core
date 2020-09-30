@@ -63,12 +63,6 @@ data Trace =
     }
 
 
-request :: Settings -> String -> Json.Value -> (Key -> Task x a) -> Task x a
-request settings title details toRequest = do
-  bugsnag <- Reference.init (Bugsnag.init "Request" title details [])
-  toRequest (Key settings bugsnag)
-
-
 trace :: Key -> String -> Json.Value -> Task x a -> Task x a
 trace key group context task = do
   started <- Time.now

@@ -39,10 +39,8 @@ key =
 transform an `IO` into a `Task`. If that is the case, use this function.
 
 -}
-enter :: Key -> IO a -> Task k Control.SomeException a
+enter :: Key -> IO a -> Task Control.SomeException a
 enter _ io =
-  Task.Task <| \_ ->
-    io
-      |> Shortcut.map Ok
-      |> Control.handleAny (Err >> return)
+  Task.Task <|
+    Control.handleAny (Err >> return) (Shortcut.map Ok io)
 
