@@ -44,6 +44,7 @@ module String
 
     -- * Conversions to Haskell Types
   , toBuilder, toTextUtf8, fromTextUtf8
+  , fromByteString, toByteString, toLazyByteString
   )
 where
 
@@ -53,6 +54,8 @@ import List (List)
 import Maybe (Maybe(..))
 import qualified Prelude
 import qualified Data.ByteString.Builder as HB
+import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.String as HS
 import qualified Data.Text as HT
 import qualified Data.Text.Encoding as HTE
@@ -633,6 +636,25 @@ so this function is compatible with that system, and fast!
 toBuilder :: String -> HB.Builder
 toBuilder (String str) =
   HTE.encodeUtf8Builder str
+
+
+{-| -}
+fromByteString :: B.ByteString -> String
+fromByteString bs =
+  fromList (B.unpack bs)
+
+
+{-| -}
+toByteString :: String -> B.ByteString
+toByteString s =
+  B.pack (toList s)
+
+
+{-| -}
+toLazyByteString :: String -> BL.ByteString
+toLazyByteString s =
+  BL.fromStrict (B.pack (toList s))
+
 
 
 {-| Convert to a `Text` value as defined in the `text-utf8` package.
