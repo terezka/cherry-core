@@ -104,7 +104,7 @@ element (starting at zero).
 -}
 indexedMap :: (Int -> a -> b) -> List a -> List b
 indexedMap f xs =
-  Shortcut.map2 f [0 .. (length xs - 1)] xs
+  List.map2 f [0 .. (length xs - 1)] xs
 
 
 {-| Reduce a list from the left.
@@ -337,25 +337,25 @@ If one list is longer, the extra elements are dropped.
 -}
 map2 :: (a -> b -> result) -> List a -> List b -> List result
 map2 =
-  Shortcut.map2
+  Data.List.zipWith
 
 
 {-| -}
 map3 :: (a -> b -> c -> result) -> List a -> List b -> List c -> List result
 map3 =
-  Shortcut.map3
+  Data.List.zipWith3
 
 
 {-| -}
 map4 :: (a -> b -> c -> d -> result) -> List a -> List b -> List c -> List d -> List result
 map4 =
-  Shortcut.map4
+  Data.List.zipWith4
 
 
 {-| -}
 map5 :: (a -> b -> c -> d -> e -> result) -> List a -> List b -> List c -> List d -> List e -> List result
 map5 =
-  Shortcut.map5
+  Data.List.zipWith5
 
 
 
