@@ -23,11 +23,15 @@ module Result
 
     -- * Handling Errors
   , withDefault, toMaybe, fromMaybe, mapError
+
+    -- * Conversions from Haskell Types
+  , fromEither
   )
 where
 
 import Prelude (Applicative, Char, Eq, Functor, Monad, Num, Ord, Show, flip, fromIntegral, mappend, mconcat, otherwise, pure, (<*>), (>>=), fmap)
 import Maybe (Maybe(Just, Nothing))
+import qualified Data.Either
 import qualified Internal.Shortcut as Shortcut
 
 
@@ -211,3 +215,11 @@ fromMaybe error maybe =
   case maybe of
     Just something -> Ok something
     Nothing -> Err error
+
+
+{-| -}
+fromEither :: Data.Either.Either x a -> Result x a
+fromEither either =
+  case either of
+    Data.Either.Right a -> Ok a
+    Data.Either.Left x -> Err x
