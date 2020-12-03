@@ -12,7 +12,7 @@ Interop with third party libraries.
 
 -}
 
-module Interop (Key, key, enter) where
+module Interop (enter, Shortcut.map, Shortcut.andThen) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Internal.Shortcut as Shortcut
@@ -24,23 +24,12 @@ import Result (Result(..))
 import Prelude (IO, return)
 
 
-{-| -}
-data Key
-  = Key
-
-
-{-| -}
-key :: IO Key
-key =
-  return Key
-
-
 {-| When working with third party libraries, you might need to
 transform an `IO` into a `Task`. If that is the case, use this function.
 
 -}
-enter :: Key -> IO a -> Task Control.SomeException a
-enter _ io =
+enter :: IO a -> Task Control.SomeException a
+enter io =
   Task.Task <|
     Control.handleAny (Err >> return) (Shortcut.map Ok io)
 
