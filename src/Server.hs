@@ -120,6 +120,7 @@ file statusNo path =
   Wai.responseFile (statusCode statusNo) [] (String.toList path) HMaybe.Nothing
 
 
+
 -- HELPERS
 
 
@@ -159,6 +160,7 @@ body decoder request =
   in
   getChunks []
     |> Task.andThen decode
+
 
 
 -- INTERNAL
@@ -217,7 +219,7 @@ collectRoutes public routes =
 homeRoute :: String -> Route
 homeRoute public =
   get Parser.top <| \_ ->
-    Task.succeed serveIndex
+    Task.succeed (serveIndex public)
 
 
 
