@@ -111,7 +111,7 @@ text statusNo string =
 {-| -}
 json :: Int -> E.Value -> Response
 json statusNo value =
-  Wai.responseLBS (statusCode statusNo) [] (Builder.toLazyByteString (E.toBuilder value))
+  Wai.responseBuilder (statusCode statusNo) [] (E.toBuilder value)
 
 
 {-| -}
