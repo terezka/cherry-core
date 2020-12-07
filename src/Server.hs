@@ -139,7 +139,7 @@ body :: D.Decoder a -> Request -> Task.Task String a
 body decoder request =
   let getChunks :: List B.ByteString -> Task.Task String B.ByteString
       getChunks chunks =
-        Wai.requestBody request
+        Wai.getRequestBodyChunk request
           |> Interop.enter
           |> Task.mapError (\_ -> "Body could not be parsed")
           |> Task.andThen (\chunk ->

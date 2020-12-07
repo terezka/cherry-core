@@ -45,6 +45,7 @@ library
     Internal.Shortcut,
     Internal.Task,
     Internal.Utils,
+    Url.Parser.Internal
     Json.String,
     Parser
     Parser.Reporting
