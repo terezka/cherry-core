@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Http (listen, get, post, Request, Response, text, json, file, body) where
+module Server (listen, get, post, Request, Response, text, json, file, body) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Data.ByteString as B
@@ -105,47 +105,32 @@ post parser handler =
 {-| -}
 text :: Int -> String -> Response
 text statusNo string =
-  let status =
-        case statusNo of
-          200 -> HTTP.status200
-          404 -> HTTP.status404
-          401 -> HTTP.status401
-          501 -> HTTP.status501
-          _   -> HTTP.status404 -- TODO
-  in
-  Wai.responseLBS status [] (String.toLazyByteString string)
+  Wai.responseLBS (statusCode statusNo) [] (String.toLazyByteString string)
 
 
 {-| -}
 json :: Int -> E.Value -> Response
 json statusNo value =
-  let status =
-        case statusNo of
-          200 -> HTTP.status200
-          404 -> HTTP.status404
-          401 -> HTTP.status401
-          501 -> HTTP.status501
-          _   -> HTTP.status404 -- TODO
-  in
-  Wai.responseLBS status [] (Builder.toLazyByteString (E.toBuilder value))
+  Wai.responseLBS (statusCode statusNo) [] (Builder.toLazyByteString (E.toBuilder value))
 
 
 {-| -}
 file :: Int -> String -> Response
 file statusNo path =
-  let status =
-        case statusNo of
-          200 -> HTTP.status200
-          404 -> HTTP.status404
-          401 -> HTTP.status401
-          501 -> HTTP.status501
-          _   -> HTTP.status404 -- TODO
-  in
-  Wai.responseFile status [] (String.toList path) HMaybe.Nothing
-
+  Wai.responseFile (statusCode statusNo) [] (String.toList path) HMaybe.Nothing
 
 
 -- HELPERS
+
+
+statusCode :: Int -> HTTP.Status
+statusCode statusNo =
+  case statusNo of
+    200 -> HTTP.status200
+    404 -> HTTP.status404
+    401 -> HTTP.status401
+    501 -> HTTP.status501
+    _   -> HTTP.status404 -- TODO
 
 
 {-| -}
@@ -221,7 +206,7 @@ findResponse public url request remaining =
         Nothing -> findResponse public url request rest
 
     [] ->
-        Task.succeed (file 200 (String.concat [ public, "/404.html" ]))
+        Task.succeed (serve404 public)
 
 
 collectRoutes :: String -> List Route -> List Route
@@ -232,14 +217,21 @@ collectRoutes public routes =
 homeRoute :: String -> Route
 homeRoute public =
   get Parser.top <| \_ ->
-    Task.succeed (file 200 (String.concat [ public, "/index.html" ]))
+    Task.succeed serveIndex
 
 
-toSafeResponse :: Result String Response -> Response
-toSafeResponse result =
-  case result of
-    Result.Ok response -> response
-    Result.Err msg -> internalError msg
+
+-- RESPONSES
+
+
+serveIndex :: String -> Response
+serveIndex public =
+  file 200 (String.concat [ public, "/index.html" ])
+
+
+serve404 :: String -> Response
+serve404 public =
+  file 404 (String.concat [ public, "/404.html" ])
 
 
 internalError :: String -> Response
@@ -251,3 +243,9 @@ notFound :: Response
 notFound =
   Wai.responseLBS HTTP.status404 [] "Route not found"
 
+
+toSafeResponse :: Result String Response -> Response
+toSafeResponse result =
+  case result of
+    Result.Ok response -> response
+    Result.Err msg -> internalError msg
