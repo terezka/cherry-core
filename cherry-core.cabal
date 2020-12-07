@@ -26,6 +26,7 @@ library
     Debug,
     Dict,
     File,
+    Http,
     Interop,
     Json.Decode,
     Json.Encode,
@@ -34,6 +35,9 @@ library
     Result,
     Set,
     String,
+    Url,
+    Url.Parser,
+    Url.Parser.Query,
     Task,
     Terminal,
     Tuple
@@ -65,8 +69,16 @@ library
     bytestring,
     containers >=0.6 && <0.7,
     ghc-prim,
+    base64-bytestring,
+    wai-middleware-static,
+    wai-extra,
+    warp,
+    network,
+    wai,
+    http-types,
     mtl,
     safe-exceptions,
+    case-insensitive,
     scientific,
     stm,
     text-utf8 >=1.2 && <1.3,
@@ -82,6 +94,10 @@ test-suite spec
   main-is:             Main.hs
   hs-source-dirs:      tests
   ghc-options:         -Wall
-  build-depends:       base >= 4.12.0 && < 4.13, hspec, text-utf8 >= 1.2.3 && < 1.3, containers >= 0.6.0 && < 0.7, cherry-core
+  build-depends:        base >= 4.12.0 && < 4.13,
+                        hspec,
+                        text-utf8 >= 1.2.3 && < 1.3,
+                        containers >= 0.6.0 && < 0.7,
+                        cherry-core
   default-language:    Haskell2010
   build-tool-depends:  hspec-discover:hspec-discover == 2.*
