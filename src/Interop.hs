@@ -12,7 +12,7 @@ Interop with third party libraries.
 
 -}
 
-module Interop (enter, Shortcut.map, Shortcut.andThen) where
+module Interop (enter, fromResult, Shortcut.map, Shortcut.andThen) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Internal.Shortcut as Shortcut
@@ -33,3 +33,8 @@ enter io =
   Task.Task <|
     Control.handleAny (Err >> return) (Shortcut.map Ok io)
 
+
+{-| -}
+fromResult :: IO (Result x a) -> Task x a
+fromResult io =
+  Task.Task io

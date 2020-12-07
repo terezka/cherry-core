@@ -44,7 +44,7 @@ module String
 
     -- * Conversions to Haskell Types
   , toBuilder, toTextUtf8, fromTextUtf8
-  , fromByteString, toByteString, toLazyByteString
+  , fromByteString, toByteString, fromLazyByteString, toLazyByteString
   )
 where
 
@@ -648,6 +648,12 @@ fromByteString bs =
 toByteString :: String -> B.ByteString
 toByteString s =
   B.pack (toList s)
+
+
+{-| -}
+fromLazyByteString :: BL.ByteString -> String
+fromLazyByteString bs =
+  fromByteString (BL.toStrict bs)
 
 
 {-| -}

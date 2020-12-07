@@ -1,4 +1,4 @@
-module Server (listen, get, post, Request, Response, text, json, file, body) where
+module Server (listen, get, post, text, json, file, body) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Data.ByteString as B
@@ -23,8 +23,10 @@ import qualified Network.HTTP.Types.Header as Header
 import qualified Prelude
 import qualified Maybe
 import qualified String
+import qualified Debug
 import qualified List
 import qualified Tuple
+import qualified Http
 import qualified Result
 import qualified Dict
 import qualified Task
@@ -35,21 +37,12 @@ import qualified Interop
 import qualified Json.Encode as E
 import qualified Json.Decode as D
 import Cherry.Prelude
+import Url.Parser (Parser)
 
 
 {-| -}
 type Port =
   Int
-
-
-{-| -}
-type Request =
-  Wai.Request
-
-
-{-| -}
-type Response =
-  Wai.Response
 
 
 {-| -}
@@ -77,11 +70,11 @@ listen port public routes =
 
 {-| -}
 newtype Route =
-  Route (Request -> Url.Url -> Maybe (Task String Response))
+  Route (Http.Request -> Url.Url -> Maybe (Task String Http.Response))
 
 
 {-| -}
-get :: Parser.Parser a (Task String Response) -> (Request -> a) -> Route
+get :: Parser a (Task String Http.Response) -> (Http.Request -> a) -> Route
 get parser handler =
   Route <| \request url ->
     if Wai.requestMethod request == Method.methodGet then
@@ -91,7 +84,7 @@ get parser handler =
 
 
 {-| -}
-post :: Parser.Parser a (Task String Response) -> (Request -> a) -> Route
+post :: Parser a (Task String Http.Response) -> (Http.Request -> a) -> Route
 post parser handler =
   Route <| \request url ->
     if Wai.requestMethod request == Method.methodPost then
@@ -101,19 +94,19 @@ post parser handler =
 
 
 {-| -}
-text :: Int -> String -> Response
+text :: Int -> String -> Http.Response
 text statusNo string =
   Wai.responseLBS (statusCode statusNo) [] (String.toLazyByteString string)
 
 
 {-| -}
-json :: Int -> E.Value -> Response
+json :: Int -> E.Value -> Http.Response
 json statusNo value =
   Wai.responseBuilder (statusCode statusNo) [] (E.toBuilder value)
 
 
 {-| -}
-file :: Int -> String -> Response
+file :: Int -> String -> Http.Response
 file statusNo path =
   Wai.responseFile (statusCode statusNo) [] (String.toList path) HMaybe.Nothing
 
@@ -122,18 +115,8 @@ file statusNo path =
 -- HELPERS
 
 
-statusCode :: Int -> HTTP.Status
-statusCode statusNo =
-  case statusNo of
-    200 -> HTTP.status200
-    404 -> HTTP.status404
-    401 -> HTTP.status401
-    501 -> HTTP.status501
-    _   -> HTTP.status404 -- TODO
-
-
 {-| -}
-body :: D.Decoder a -> Request -> Task.Task String a
+body :: D.Decoder a -> Http.Request -> Task.Task String a
 body decoder request =
   let getChunks :: List B.ByteString -> Task.Task String B.ByteString
       getChunks chunks =
@@ -174,7 +157,7 @@ application public routes request respond =
     |> Interop.andThen (toSafeResponse >> respond)
 
 
-requestToUrl :: Request -> Url.Url
+requestToUrl :: Http.Request -> Url.Url
 requestToUrl request =
   let toPath request =
         Wai.rawPathInfo request
@@ -182,6 +165,7 @@ requestToUrl request =
 
       toQuery request =
         Wai.rawQueryString request
+          |> B.tail
           |> String.fromByteString
           |> nothingIfEmpty
 
@@ -197,7 +181,7 @@ requestToUrl request =
     }
 
 
-findResponse :: String -> Url.Url -> Request -> List Route -> Task String Response
+findResponse :: String -> Url.Url -> Http.Request -> List Route -> Task String Http.Response
 findResponse public url request remaining =
   case remaining of
     Route next : rest ->
@@ -220,31 +204,41 @@ homeRoute public =
     Task.succeed (serveIndex public)
 
 
+statusCode :: Int -> HTTP.Status
+statusCode statusNo =
+  case statusNo of
+    200 -> HTTP.status200
+    404 -> HTTP.status404
+    401 -> HTTP.status401
+    501 -> HTTP.status501
+    _   -> HTTP.status404 -- TODO
+
+
 
 -- RESPONSES
 
 
-serveIndex :: String -> Response
+serveIndex :: String -> Http.Response
 serveIndex public =
   file 200 (String.concat [ public, "/index.html" ])
 
 
-serve404 :: String -> Response
+serve404 :: String -> Http.Response
 serve404 public =
   file 404 (String.concat [ public, "/404.html" ])
 
 
-internalError :: String -> Response
+internalError :: String -> Http.Response
 internalError err =
   Wai.responseLBS HTTP.status500 [] (String.toLazyByteString err)
 
 
-notFound :: Response
+notFound :: Http.Response
 notFound =
   Wai.responseLBS HTTP.status404 [] "Route not found"
 
 
-toSafeResponse :: Result String Response -> Response
+toSafeResponse :: Result String Http.Response -> Http.Response
 toSafeResponse result =
   case result of
     Result.Ok response -> response
