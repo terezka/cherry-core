@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Server (listen, get, post, Request, Response, text, json, file, body) where
 
 import qualified Control.Exception.Safe as Control
