@@ -1,11 +1,13 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-|
 
-module Url.Parser.Query
-  ( Parser, string, int, enum, custom
-  , map, map2, map3, map4, map5, map6, map7, map8
-  ) where
+Module      : Url.Parser.Query
+Description : Build URL queries.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
 
-{-| In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
+In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
 says a URL looks like this:
 
 ```
@@ -21,13 +23,13 @@ In this library, a valid query looks like `?search=hats&page=2` where each
 query parameter has the format `key=value` and is separated from the next
 parameter by the `&` character.
 
-# Parse Query Parameters
-@docs Parser, string, int, enum, custom
-
-# Mapping
-@docs map, map2, map3, map4, map5, map6, map7, map8
-
 -}
+
+module Url.Parser.Query
+  ( Parser, string, int, enum, custom
+  , map, map2, map3, map4, map5, map6, map7, map8
+  ) where
+
 
 import qualified Prelude
 import qualified Dict

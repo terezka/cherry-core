@@ -1,20 +1,20 @@
+{-|
+
+Module      : Url
+Description : Work with URLs.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
+
 module Url
   ( Url(..)
   , percentEncode
   , percentDecode
   ) where
-
-
-{-|
-
-# URLs
-@docs Url, Protocol, toString, fromString
-
-# Percent-Encoding
-@docs percentEncode, percentDecode
-
--}
-
 
 import qualified Prelude
 import qualified Network.HTTP.Types.URI as URI

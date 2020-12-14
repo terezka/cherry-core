@@ -1,3 +1,14 @@
+{-|
+
+Module      : Http
+Description : Send HTTPS requests.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Http (Request, Response, Key, Decoder(..), getKey, post) where
 
 import qualified Network.Wai as Wai

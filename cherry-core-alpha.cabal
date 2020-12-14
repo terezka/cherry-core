@@ -1,8 +1,8 @@
 cabal-version:       >=1.10
-name:                cherry-core
+name:                cherry-core-alpha
 version:             0.1.0.0
 synopsis:            The core library for Cherry Haskell.
-description:         The core library for Cherry Haskell. Make sure to check out the other libraries at github.com/cherry-haskell.
+description:         The core library for Cherry Haskell, including a standard fuctions, server, and json parsing.
 license:             BSD3
 license-file:        LICENSE
 author:              Tereza Sokol

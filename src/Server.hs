@@ -1,3 +1,14 @@
+{-|
+
+Module      : Server
+Description : Run a server.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+-}
+
 module Server (listen, get, post, text, json, file, body) where
 
 import qualified Control.Exception.Safe as Control

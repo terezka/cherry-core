@@ -1,13 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-|
 
-module Url.Parser
-  ( Parser, string, int, s
-  , (</>), map, oneOf, top, custom
-  , (<?>), query
-  , parse
-  ) where
+Module      : Url.Parser
+Description : Parse URLs.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
 
-{-| In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
+
+In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
 says a URL looks like this:
 ```
   https://example.com:8042/over/there?name=ferret#nose
@@ -17,18 +18,15 @@ says a URL looks like this:
 ```
 This module is primarily for parsing the `path` part.
 
-# Primitives
-@docs Parser, string, int, s
-
-# Path
-@docs (</>), map, oneOf, top, custom
-
-# Query
-@docs (<?>), query
-
-# Run Parsers
-@docs parse
 -}
+
+module Url.Parser
+  ( Parser, string, int, s
+  , (</>), map, oneOf, top, custom
+  , (<?>), query
+  , parse
+  ) where
+
 
 import qualified Prelude
 import qualified Maybe

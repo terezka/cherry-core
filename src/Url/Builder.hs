@@ -1,10 +1,13 @@
-module Url.Builder
-  ( absolute, relative, crossOrigin, custom, Root(..)
-  , QueryParameter, string, int, toQuery
-  ) where
+{-|
 
+Module      : Url.Builder
+Description : Build URLs.
+License     : BSD 3
+Maintainer  : terezasokol@gmail.com
+Stability   : experimental
+Portability : POSIX
 
-{-| In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
+In [the URI spec](https://tools.ietf.org/html/rfc3986), Tim Berners-Lee
 says a URL looks like this:
 
 ```
@@ -16,14 +19,12 @@ says a URL looks like this:
 
 This module helps you create these!
 
-
-# Builders
-@docs absolute, relative, crossOrigin, custom, Root
-
-# Queries
-@docs QueryParameter, string, int, toQuery
-
 -}
+
+module Url.Builder
+  ( absolute, relative, crossOrigin, custom, Root(..)
+  , QueryParameter, string, int, toQuery
+  ) where
 
 
 import qualified Url
