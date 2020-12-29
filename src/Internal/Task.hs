@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy as ByteString
 import qualified GHC.Stack as Stack
 import qualified Internal.Shortcut as Shortcut
 import qualified Control.Concurrent.MVar as MVar
+import qualified Control.Concurrent.Async as Async
 import qualified System.IO
 import qualified List
 import qualified Dict
@@ -182,4 +183,9 @@ mapError func task =
   onError (fail << func) task
 
 
+{-| Run tasks in parallel.
 
+-}
+parallel :: List (Task x a) -> Task x (List a)
+parallel tasks =
+  Task <| Shortcut.map P.sequence (Async.forConcurrently tasks toIO)

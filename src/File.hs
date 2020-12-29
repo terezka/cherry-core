@@ -12,13 +12,14 @@ Read and write to a file.
 
 -}
 
-module File (read, write) where
+module File (Path, read, write, doesExist) where
 
 import qualified List
 import qualified String
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
 import qualified Data.Text.IO as IO
+import qualified System.Directory as Directory
 import Prelude (return, getContents)
 import Basics
 import Maybe (Maybe (..))
@@ -32,16 +33,30 @@ import Set (Set)
 import Char (Char)
 
 
+type Path
+  = String
+
+
 {-| -}
-write :: String -> String -> Task x ()
+write :: Path -> String -> Task x ()
 write filename string =
   Task.Task <| do
+    let dir = String.split "/" filename |> List.reverse |> List.drop 1 |> List.reverse |> String.join "/"
+    Directory.createDirectoryIfMissing True (String.toList dir)
     IO.writeFile (String.toList filename) (String.toTextUtf8 string)
     return (Ok ())
 
 
 {-| -}
-read :: String -> Task x String
+doesExist :: Path -> Task x Bool
+doesExist path =
+  Task.Task <| do
+    bool <- Directory.doesFileExist (String.toList path)
+    return (Ok bool)
+
+
+{-| -}
+read :: Path -> Task x String
 read filename =
   Task.Task <| do
     contents <- IO.readFile (String.toList filename)

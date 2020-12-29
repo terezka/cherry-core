@@ -17,7 +17,7 @@ module Task
   ( Task, Task.perform, Task.attempt
 
     -- * Chains
-  , andThen, Task.succeed, Task.fail, Task.sequence
+  , andThen, Task.succeed, Task.fail, Task.sequence, Task.parallel
 
     -- * Maps
   , map, map2, map3, map4, map5, map6
