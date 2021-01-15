@@ -21,7 +21,7 @@ This module is primarily for parsing the `path` part.
 -}
 
 module Url.Parser
-  ( Parser, string, int, s
+  ( Parser, string, int, s, anything
   , (</>), map, oneOf, top, custom
   , (<?>), query
   , parse
@@ -94,6 +94,14 @@ string =
 int :: Parser (Int -> a) a
 int =
   custom "NUMBER" String.toInt
+
+
+
+{-| -}
+anything :: Parser (List String -> a) a
+anything =
+  Parser <| \state ->
+    [ State (unvisited state ++ visited state) [] (params state) (value state <| unvisited state) ]
 
 
 {-| Parse a segment of the path if it matches a given string. It is almost

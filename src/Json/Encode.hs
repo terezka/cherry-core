@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# LANGUAGE OverloadedStrings, TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings, TypeSynonymInstances, PackageImports #-}
 
 {-|
 
@@ -33,11 +33,10 @@ import qualified Data.ByteString.Builder.Prim as P
 import Data.ByteString.Builder.Prim ((>$<), (>*<))
 import qualified Data.ByteString.Builder as B
 import qualified Data.Char as Char
-import qualified Data.Text.Encoding as TE
+import qualified "text-utf8" Data.Text.Encoding as TE
 import Data.Monoid ((<>))
 import Prelude hiding (String, Float, null)
 import Data.Word (Word8)
-
 import Basics (Float)
 import qualified Dict
 import qualified List

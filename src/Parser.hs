@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
 {-# LANGUAGE BangPatterns, MagicHash, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE PackageImports #-}
+
 module Parser
   ( fromString
   , Parser(..), State(..), Pos, End, Row, Col
@@ -18,8 +20,8 @@ module Parser
 
 
 import qualified Data.Char as Char
-import qualified Data.Text.Internal as T
-import qualified Data.Text.Array as T
+import qualified "text-utf8" Data.Text.Internal as T
+import qualified "text-utf8" Data.Text.Array as T
 import GHC.Exts (Char(C#), Int#, (+#), (-#), chr#, uncheckedIShiftL#, word2Int#)
 import GHC.Prim (ByteArray#, indexWord8Array#)
 import GHC.Types (Int(I#))

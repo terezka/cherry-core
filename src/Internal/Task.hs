@@ -2,13 +2,14 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PackageImports #-}
 
 module Internal.Task where
 
 import qualified Prelude as P
-import qualified Data.Text
+import qualified "text-utf8" Data.Text
+import qualified "text-utf8" Data.Text.Encoding
 import qualified Control.Exception.Safe as Control
-import qualified Data.Text.Encoding
 import qualified Data.ByteString.Lazy as ByteString
 import qualified GHC.Stack as Stack
 import qualified Internal.Shortcut as Shortcut
@@ -189,3 +190,12 @@ mapError func task =
 parallel :: List (Task x a) -> Task x (List a)
 parallel tasks =
   Task <| Shortcut.map P.sequence (Async.forConcurrently tasks toIO)
+
+
+{-| -}
+fromResult :: Result x a -> Task x a
+fromResult result =
+  case result of
+    Ok a -> succeed a
+    Err x -> fail x
+

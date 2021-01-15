@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall -fno-warn-unused-do-bind -fno-warn-name-shadowing #-}
 {-# LANGUAGE BangPatterns, Rank2Types, MagicHash, OverloadedStrings, UnboxedTuples, TypeSynonymInstances #-}
+{-# LANGUAGE PackageImports #-}
 
 {-|
 
@@ -48,24 +49,25 @@ module Json.Decode
   where
 
 
-import Prelude hiding ((++), Float, String, maybe, map, fail, null)
 import qualified Data.List as List hiding (map)
-import qualified Data.Maybe as Maybe
-import qualified Data.Text.IO
+import qualified "text-utf8" Data.Text.IO
+import qualified Parser as P
+import qualified String
+import qualified Dict
+import qualified Json.String as JS
+import qualified Internal.Task
 import GHC.Prim (ByteArray#)
 import GHC.Word (Word8)
 import Basics ((++), Float, (<|))
 import Dict (Dict)
-import qualified Dict
-import qualified Json.String as JS
 import List (List)
 import Parser (Pos, End, Row, Col)
-import qualified Parser as P
 import Result (Result(..))
 import String (String)
-import qualified String
+import Maybe (Maybe(..))
 import Task (Task)
-import qualified Internal.Task
+import Prelude hiding ((++), Float, String, Maybe(..), maybe, map, fail, null)
+
 
 
 
@@ -375,20 +377,20 @@ float =
  > fromString (nullable int) "true"  == Err ..
 
 -}
-nullable :: Decoder a -> Decoder (Maybe.Maybe a)
+nullable :: Decoder a -> Decoder (Maybe a)
 nullable decoder =
   oneOf
-    [ fmap Maybe.Just decoder
+    [ fmap Just decoder
     , null_
     ]
 
 
-null_ :: Decoder (Maybe.Maybe a)
+null_ :: Decoder (Maybe a)
 null_ =
   Decoder $ \ast ok err ->
     case ast of
       NULL ->
-        ok Maybe.Nothing
+        ok Nothing
 
       _ ->
         err (Expecting TNull)
@@ -434,11 +436,11 @@ the content *may* be a float. There is no `height` field, so the decoder fails.
 Point is, `maybe` will make exactly what it contains conditional. For optional
 fields, this means you probably want it *outside* a use of `field` or `at`.
 -}
-maybe :: Decoder a -> Decoder (Maybe.Maybe a)
+maybe :: Decoder a -> Decoder (Maybe a)
 maybe decoder_ =
   oneOf
-    [ fmap Maybe.Just decoder_
-    , return Maybe.Nothing
+    [ fmap Just decoder_
+    , return Nothing
     ]
 
 
@@ -634,25 +636,25 @@ field key (Decoder decodeA) =
     case ast of
       Object kvs ->
         case findField key kvs of
-          Maybe.Just value ->
+          Just value ->
             let
               err' prob =
                 err (Field key prob)
             in
             decodeA value ok err'
 
-          Maybe.Nothing ->
+          Nothing ->
             err (Expecting (TObjectWith key))
 
       _ ->
         err (Expecting TObject)
 
 
-findField :: String -> [( String, AST )] -> Maybe.Maybe AST
+findField :: String -> [( String, AST )] -> Maybe AST
 findField key pairs =
   case pairs of
     [] ->
-      Maybe.Nothing
+      Nothing
 
     (bts, value) : remainingPairs ->
       if key == bts

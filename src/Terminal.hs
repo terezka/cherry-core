@@ -1,3 +1,4 @@
+{-# LANGUAGE PackageImports #-}
 
 {-|
 
@@ -18,7 +19,7 @@ import qualified List
 import qualified String
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
-import qualified Data.Text.IO as IO
+import qualified "text-utf8" Data.Text.IO as IO
 import Prelude (return, getContents)
 import Basics
 import Maybe (Maybe (..))

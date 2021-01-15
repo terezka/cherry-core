@@ -1,9 +1,11 @@
+{-# LANGUAGE PackageImports #-}
+
 module Internal.Utils where
 
 import qualified String
 import qualified List
 import qualified Dict
-import qualified Data.Text
+import qualified "text-utf8" Data.Text
 import qualified GHC.Stack as Stack
 import qualified System.IO
 import qualified Control.Concurrent.MVar as MVar

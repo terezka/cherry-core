@@ -21,6 +21,9 @@ module Maybe
 
     -- * Chaining Maybes
   , andThen
+
+    -- * From Haskell types
+  , fromHMaybe
   )
 where
 
@@ -174,3 +177,11 @@ again the chain of computations will result in `Nothing`.
 andThen :: (a -> Maybe b) -> Maybe a -> Maybe b
 andThen =
   Shortcut.andThen
+
+
+{-| -}
+fromHMaybe :: Prelude.Maybe a -> Maybe a
+fromHMaybe maybe =
+  case maybe of
+    Prelude.Just a -> Just a
+    Prelude.Nothing -> Nothing

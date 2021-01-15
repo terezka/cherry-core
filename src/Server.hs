@@ -1,3 +1,5 @@
+{-# LANGUAGE PackageImports #-}
+
 {-|
 
 Module      : Server
@@ -9,7 +11,7 @@ Portability : POSIX
 
 -}
 
-module Server (listen, get, post, text, json, file, body) where
+module Server (Route, listen, get, post, text, json, file, body, getLogin, getToken, findHeader) where
 
 import qualified Control.Exception.Safe as Control
 import qualified Data.ByteString as B
@@ -18,10 +20,10 @@ import qualified Data.Maybe as HMaybe
 import qualified Data.Either as Either
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Base64 as Base64
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Encoding as Encoding
-import qualified Data.Text.Encoding.Error as Encoding
+import qualified "text-utf8" Data.Text as T
+import qualified "text-utf8" Data.Text.Lazy as TL
+import qualified "text-utf8" Data.Text.Encoding as Encoding
+import qualified "text-utf8" Data.Text.Encoding.Error as Encoding
 import qualified Data.Time.Clock.POSIX as POSIX
 import qualified Data.CaseInsensitive as CI
 import qualified Network.Wai as Wai
@@ -152,6 +154,74 @@ body decoder request =
   in
   getChunks []
     |> Task.andThen decode
+
+
+
+-- HELPERS / AUTH
+
+
+{-| -}
+getToken :: Http.Request -> Result String String
+getToken request =
+  findHeader "Authorization" request
+    |> Result.map dropBasic
+    |> Result.andThen decodeBase64
+
+
+{-| -}
+getLogin :: Http.Request -> Result String ( String, String )
+getLogin request =
+  findHeader "Authorization" request
+    |> Result.map dropBasic
+    |> Result.andThen decodeBase64
+    |> Result.andThen textToAuthForm
+
+
+dropBasic :: String -> String
+dropBasic =
+  String.dropLeft 6
+
+
+decodeBase64 :: String -> Result String String
+decodeBase64 value =
+  value
+    |> String.toByteString
+    |> Base64.decode
+    |> Result.fromEither
+    |> Result.mapError String.fromList
+    |> Result.map String.fromByteString
+
+
+textToAuthForm :: String -> Result String ( String, String )
+textToAuthForm text =
+  case String.split ":" text of
+    [ email, password ] -> Ok ( email, password )
+    _ -> Err ("Bad value: " ++ text)
+
+
+
+
+-- HELPERS / HEADER
+
+
+{-| -}
+findHeader :: CI.CI B.ByteString -> Http.Request -> Result String String
+findHeader name request =
+  let isCorrect ( header, value ) = header == name
+      getValue ( header, value ) = value
+      nameAsError = String.fromByteString (CI.original name)
+  in
+  findFirst isCorrect (Wai.requestHeaders request)
+    |> Maybe.map getValue
+    |> Result.fromMaybe ("Request is missing \"" ++ nameAsError ++ "\" header.")
+    |> Result.map String.fromByteString
+
+
+findFirst :: (a -> Bool) -> List a -> Maybe a
+findFirst isCorrect all =
+  case all of
+    a : rest -> if isCorrect a then Just a else findFirst isCorrect rest
+    [] -> Nothing
 
 
 

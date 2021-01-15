@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
-{-# LANGUAGE MagicHash, UnboxedTuples #-}
+{-# LANGUAGE MagicHash, UnboxedTuples, PackageImports #-}
 module Json.String
   ( Chunk(..)
   , toTextUtf8
@@ -9,8 +9,8 @@ module Json.String
 
 import Prelude (($), (+), (<), (=<<), fromIntegral, map, otherwise, sum)
 import Data.Bits ((.&.), shiftR)
-import qualified Data.Text.Internal as T
-import qualified Data.Text.Array as T (Array(Array))
+import qualified "text-utf8" Data.Text.Internal as T
+import qualified "text-utf8" Data.Text.Array as T (Array(Array))
 import GHC.Exts
   ( Int(I#)
   , ByteArray#

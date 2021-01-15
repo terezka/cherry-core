@@ -1,3 +1,4 @@
+{-# LANGUAGE PackageImports #-}
 
 {-|
 
@@ -12,13 +13,13 @@ Read and write to a file.
 
 -}
 
-module File (Path, read, write, doesExist) where
+module File (Path, read, write, doesExist, list) where
 
 import qualified List
 import qualified String
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
-import qualified Data.Text.IO as IO
+import qualified "text-utf8" Data.Text.IO as IO
 import qualified System.Directory as Directory
 import Prelude (return, getContents)
 import Basics
@@ -33,6 +34,7 @@ import Set (Set)
 import Char (Char)
 
 
+{-| -}
 type Path
   = String
 
@@ -61,3 +63,11 @@ read filename =
   Task.Task <| do
     contents <- IO.readFile (String.toList filename)
     return (Ok (String.fromTextUtf8 contents))
+
+
+{-| -}
+list :: Path -> Task x (List Path)
+list path =
+  Task.Task <| do
+    files <- Directory.listDirectory (String.toList path)
+    return (Ok (List.map String.fromList files))

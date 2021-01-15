@@ -1,6 +1,6 @@
 cabal-version:       >=1.10
 name:                cherry-core-alpha
-version:             0.3.0.0
+version:             0.4.0.0
 synopsis:            The core library for Cherry Haskell.
 description:         The core library for Cherry Haskell, including a standard fuctions, server, and json parsing.
 license:             BSD3
@@ -30,9 +30,12 @@ library
     Interop,
     Json.Decode,
     Json.Encode,
+    JWT,
     Http,
     List,
     Maybe,
+    Postgres,
+    Postgres.Decoder,
     Result,
     Set,
     Server,
@@ -43,8 +46,11 @@ library
     Url.Parser.Query,
     Task,
     Terminal,
+    Token,
+    Time,
     Tuple
   other-modules:
+    Internal.Basics,
     Internal.Shortcut,
     Internal.Task,
     Internal.Utils,
@@ -69,11 +75,13 @@ library
   build-depends:
     async >=2.2 && <2.3,
     base >=4.12 && <4.13,
+    aeson,
     binary,
     bytestring,
     containers >=0.6 && <0.7,
     directory,
     ghc-prim,
+    jose-jwt,
     base64-bytestring,
     wai-middleware-static,
     wai-extra,
@@ -84,11 +92,13 @@ library
     http-client-tls,
     http-types,
     mtl,
+    postgresql-libpq,
     safe-exceptions,
     case-insensitive,
     scientific,
     stm,
     text-utf8 >=1.2 && <1.3,
+    text,
     time,
     unix,
     utf8-string,

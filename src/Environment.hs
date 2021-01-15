@@ -1,4 +1,4 @@
-module Environment (variable) where
+module Environment (optional, required) where
 
 import qualified System.Environment
 import qualified Data.ByteString as ByteString
@@ -14,8 +14,19 @@ import Cherry.Prelude
 
 
 {-| -}
-variable :: String -> Task String String
-variable name =
+optional :: String -> Task String (Maybe String)
+optional name =
+  Interop.fromResult <| do
+    var <- System.Environment.lookupEnv (String.toList name)
+    Prelude.return <| case var of
+      Prelude.Nothing -> Ok Nothing
+      Prelude.Just value -> Ok (Just (String.fromList value))
+
+
+
+{-| -}
+required :: String -> Task String String
+required name =
   Interop.fromResult <| do
     var <- System.Environment.lookupEnv (String.toList name)
     Prelude.return <| case var of

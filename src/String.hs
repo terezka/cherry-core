@@ -1,3 +1,4 @@
+{-# LANGUAGE PackageImports #-}
 
 {-|
 
@@ -48,7 +49,8 @@ module String
   )
 where
 
-import Prelude (Bool, Float, Int, (+), (<), Show, show)
+import Prelude (Bool, (+), (<), Show, show)
+import Internal.Basics
 import Char (Char)
 import List (List)
 import Maybe (Maybe(..))
@@ -57,9 +59,9 @@ import qualified Data.ByteString.Builder as HB
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.String as HS
-import qualified Data.Text as HT
-import qualified Data.Text.Encoding as HTE
-import qualified Data.Text.Internal.Search as HTIS
+import qualified "text-utf8" Data.Text as HT
+import qualified "text-utf8" Data.Text.Encoding as HTE
+import qualified "text-utf8" Data.Text.Internal.Search as HTIS
 import qualified Data.Maybe as HM
 import qualified Text.Read as HTR
 import qualified List as List
