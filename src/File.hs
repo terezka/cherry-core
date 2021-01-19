@@ -17,11 +17,14 @@ module File (Path, read, write, doesExist, list) where
 
 import qualified List
 import qualified String
+import qualified Data.Maybe
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
 import qualified "text-utf8" Data.Text.IO as IO
 import qualified System.Directory as Directory
-import Prelude (return, getContents)
+import qualified Prelude as P
+import Prelude (return, getContents, sequence)
+import Data.List (stripPrefix)
 import Basics
 import Maybe (Maybe (..))
 import Result (Result (..))
@@ -66,8 +69,30 @@ read filename =
 
 
 {-| -}
-list :: Path -> Task x (List Path)
+list :: Path -> Task String (List Path)
 list path =
-  Task.Task <| do
-    files <- Directory.listDirectory (String.toList path)
-    return (Ok (List.map String.fromList files))
+  Task.Task <|
+    let
+        findFiles :: P.String -> List P.String -> P.IO (List P.String)
+        findFiles folder acc = do
+          items <- Directory.listDirectory folder
+          newfiles <- List.foldl checkOne (return []) (List.map (\i -> folder ++ "/" ++ i) items)
+          return (acc ++ newfiles)
+
+        checkOne :: P.String -> P.IO (List P.String) -> P.IO (List P.String)
+        checkOne name acc = do
+          exists <- Directory.doesDirectoryExist name
+          if exists then do
+            files <- acc
+            findFiles name files
+          else
+            P.fmap (\fs -> name : fs) acc
+    in do
+    let directory = String.toList path
+    exists <- Directory.doesDirectoryExist directory
+    if exists then do
+      files <- findFiles directory []
+      let final = Data.Maybe.mapMaybe (stripPrefix (directory ++ "/")) files
+      return (Ok (List.map String.fromList final))
+    else
+      return (Err "Given path is not a directory.")
