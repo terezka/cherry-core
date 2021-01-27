@@ -13,11 +13,13 @@ Read and write to a file.
 
 -}
 
-module File (Path, read, write, doesExist, list) where
+module File (Path, read, rename, write, delete, doesExist, list) where
 
 import qualified List
 import qualified String
 import qualified Data.Maybe
+import qualified System.IO.Error
+import qualified Control.Exception
 import qualified Internal.Task as Task
 import qualified Internal.Utils as U
 import qualified "text-utf8" Data.Text.IO as IO
@@ -44,12 +46,36 @@ type Path
 
 {-| -}
 write :: Path -> String -> Task x ()
-write filename string =
+write path string =
   Task.Task <| do
-    let dir = String.split "/" filename |> List.reverse |> List.drop 1 |> List.reverse |> String.join "/"
+    let dir = String.split "/" path |> List.reverse |> List.drop 1 |> List.reverse |> String.join "/"
     Directory.createDirectoryIfMissing True (String.toList dir)
-    IO.writeFile (String.toList filename) (String.toTextUtf8 string)
+    IO.writeFile (String.toList path) (String.toTextUtf8 string)
     return (Ok ())
+
+
+{-| -}
+rename :: Path -> Path -> Task x ()
+rename old new =
+  Task.Task <|
+    let handleError err =
+          if System.IO.Error.isDoesNotExistError err
+            then return ()
+            else Control.Exception.throwIO err
+    in
+    P.fmap Ok (Directory.renameFile (String.toList old) (String.toList new) `Control.Exception.catch` handleError)
+
+
+{-| -}
+delete :: Path -> Task x ()
+delete path =
+  Task.Task <|
+    let handleError err =
+          if System.IO.Error.isDoesNotExistError err
+            then return ()
+            else Control.Exception.throwIO err
+    in
+    P.fmap Ok (Directory.removeFile (String.toList path) `Control.Exception.catch` handleError)
 
 
 {-| -}
